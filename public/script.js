@@ -888,46 +888,45 @@ o.items.forEach(i => {
   render();
 }
 
-function parseGS1(input) {
+function parseGS1(qr) {
   const out = {};
-  if (!input) return out;
+  const s0 = String(qr || "").replace(/\u0000/g, "").trim();
+  if (!s0) return out;
 
+  // GS separator (FNC1) - apare uneori în DataMatrix
   const GS = String.fromCharCode(29);
-  let s = String(input).replace(/\u0000/g, "").trim();
-  if (!s) return out;
+  const s = s0;
 
-  // 1) cu paranteze: (01)...(17)...(10)...
+  // A) cu paranteze: (01)...(17)...(10)...
   if (s.includes("(")) {
     const regex = /\((\d{2})\)([^()]*)/g;
     let m;
     while ((m = regex.exec(s)) !== null) {
       const ai = m[1];
       const val = (m[2] || "").trim();
+
       if (ai === "01") out.gtin = val;
       else if (ai === "17") out.expiresAt = yymmddToISO(val);
       else if (ai === "10") out.lot = val;
-      // 11 ignorăm
+      // (11) ignorăm
     }
     return out;
   }
 
-  // 2) PATTERN foarte comun: 01 + 14 + 17 + 6 + (11 + 6 optional) + 10 + LOT...
-  // LOT poate fi până la GS sau până la final
-  const m = s.match(/^01(\d{14})17(\d{6})(?:11(\d{6}))?10(.+)$/);
-  if (m) {
-    out.gtin = m[1];
-    out.expiresAt = yymmddToISO(m[2]);
-    out.lot = String(m[4] || "").split(GS)[0].trim();
-    return out;
-  }
-
-  // 3) fallback: parse secvențial cu GS separator (dacă există)
+  // B) fără paranteze (cazul tău): 01 + GTIN14 + 17 + YYMMDD + [11 + YYMMDD optional] + 10 + LOT...
   let i = 0;
-  const take = (n) => (s.slice(i, i += n));
-  const takeUntilGS = () => {
+
+  const take = (n) => {
+    const part = s.slice(i, i + n);
+    i += n;
+    return part;
+  };
+
+  const takeUntilGSOrEnd = () => {
     const start = i;
     while (i < s.length && s[i] !== GS) i++;
     const val = s.slice(start, i);
+    // dacă e GS, îl consumăm
     if (s[i] === GS) i++;
     return val.trim();
   };
@@ -935,12 +934,30 @@ function parseGS1(input) {
   while (i + 2 <= s.length) {
     const ai = take(2);
 
-    if (ai === "01") { out.gtin = take(14); continue; }
-    if (ai === "17") { out.expiresAt = yymmddToISO(take(6)); continue; }
-    if (ai === "11") { take(6); continue; } // ignoră fabricație
-    if (ai === "10") { out.lot = takeUntilGS() || s.slice(i).trim(); break; }
+    if (ai === "01") {
+      out.gtin = take(14);
+      continue;
+    }
 
-    break; // AI necunoscut
+    if (ai === "17") {
+      out.expiresAt = yymmddToISO(take(6));
+      continue;
+    }
+
+    if (ai === "11") {
+      // fabricație (YYMMDD) -> ignorăm
+      take(6);
+      continue;
+    }
+
+    if (ai === "10") {
+      // LOT e variabil: până la GS (dacă există) sau până la final
+      out.lot = takeUntilGSOrEnd() || s.slice(i).trim();
+      break;
+    }
+
+    // AI necunoscut -> stop
+    break;
   }
 
   return out;
@@ -953,35 +970,47 @@ function yymmddToISO(v) {
 }
 
 
-
-function normalizeGTIN(gtin) {
-  const g = String(gtin || "").trim();
-  if (g.length === 14 && g.startsWith("0")) return g.slice(1); // GTIN-14 -> GTIN-13
-  return g;
+function yymmddToISO(v) {
+  v = String(v || "").trim();
+  if (v.length !== 6) return "";
+  return `20${v.slice(0,2)}-${v.slice(2,4)}-${v.slice(4,6)}`;
 }
 
 
+
+function normalizeGTIN(gtin) {
+  let g = String(gtin || "").replace(/\D/g, ""); // doar cifre
+  // dacă ai GTIN-14 cu 0 în față, îl faci GTIN-13
+  if (g.length === 14 && g.startsWith("0")) g = g.slice(1);
+  return g;
+}
 
 function selectProductByGTIN(gtin) {
   const sel = document.getElementById("stockProduct");
   if (!sel) return;
 
   const scanned = normalizeGTIN(gtin);
+  let found = false;
 
   [...sel.options].forEach(o => {
     const optGTIN = normalizeGTIN(o.dataset.gtin);
     if (optGTIN && optGTIN === scanned) {
       sel.value = o.value;
+      found = true;
     }
   });
+
+  if (found) {
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+  }
 }
+
 
 function applyParsedGS1(qr) {
   const data = parseGS1(qr);
-  console.log("GS1 PARSED:", data, "RAW:", qr);
+  console.log("PARSED:", data, "RAW:", qr);
 
-  if (data.lot) {const data = parseGS1(qr);
-  console.log("GS1 PARSED:", data, "RAW:", qr);
+  if (data.lot) {
     const lotEl = document.getElementById("stockLot");
     if (lotEl) lotEl.value = data.lot;
   }
@@ -995,6 +1024,7 @@ function applyParsedGS1(qr) {
     selectProductByGTIN(data.gtin);
   }
 }
+
 
 
 let scanStream = null;
