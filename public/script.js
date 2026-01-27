@@ -888,94 +888,106 @@ o.items.forEach(i => {
   render();
 }
 
-function parseGS1(input) {
-  const s = String(input || "").trim();
+function parseGS1(qr) {
   const out = {};
+  const s = String(qr || "").trim();
+  if (!s) return out;
 
-  // helper: YYMMDD -> YYYY-MM-DD
-  const yymmddToISO = (val6) =>
-    "20" + val6.slice(0, 2) + "-" + val6.slice(2, 4) + "-" + val6.slice(4, 6);
-
-  // 1) Varianta cu paranteze: (01)....(17)....(10)....(11)....
+  // ✅ dacă avem paranteze, păstrăm metoda veche (merge pe scanner-ele care dau (01)...)
   if (s.includes("(")) {
     const regex = /\((\d{2})\)([^()]+)/g;
     let m;
-
     while ((m = regex.exec(s)) !== null) {
       const ai = m[1];
-      const val = String(m[2] || "").trim();
+      const val = m[2];
 
-      if (ai === "01") out.gtin = val;
-      else if (ai === "17") out.expiresAt = yymmddToISO(val.slice(0, 6));
-      else if (ai === "10") out.lot = val;
-      else if (ai === "11") {
-        // data fabricației – IGNORĂM
+      if (ai === "01") out.gtin = val.trim();
+      if (ai === "17") {
+        out.expiresAt =
+          "20" + val.slice(0, 2) + "-" +
+          val.slice(2, 4) + "-" +
+          val.slice(4, 6);
       }
-      // alte AI-uri -> ignorăm
+      if (ai === "10") out.lot = val.trim();
+      // (11) îl ignorăm
     }
-
     return out;
   }
 
-  // 2) Varianta numerică: 01 + GTIN(14) + 17 + YYMMDD + 11 + YYMMDD + 10 + LOT...
-  const digits = s.replace(/\D/g, "");
+  // ✅ variantă fără paranteze (raw GS1)
+  // AIs pe care le folosim:
+  // 01 = 14 cifre (GTIN-14)
+  // 17 = 6 cifre (YYMMDD)
+  // 11 = 6 cifre (YYMMDD) - ignorăm
+  // 10 = variabil (LOT) până la final (sau până la următorul AI - rar la voi)
   let i = 0;
 
-  function readAI() {
-    const ai = digits.slice(i, i + 2);
-    i += 2;
-    return ai;
+  function take(n) {
+    const part = s.slice(i, i + n);
+    i += n;
+    return part;
   }
 
-  while (i + 2 <= digits.length) {
-    const ai = readAI();
+  while (i < s.length) {
+    const ai = s.slice(i, i + 2);
+    i += 2;
 
     if (ai === "01") {
-      out.gtin = digits.slice(i, i + 14);
-      i += 14;
+      out.gtin = take(14);
       continue;
     }
 
     if (ai === "17") {
-      const val = digits.slice(i, i + 6);
-      i += 6;
-      out.expiresAt = yymmddToISO(val);
+      const val = take(6);
+      out.expiresAt =
+        "20" + val.slice(0, 2) + "-" +
+        val.slice(2, 4) + "-" +
+        val.slice(4, 6);
       continue;
     }
 
     if (ai === "11") {
-      // fabricație YYMMDD -> o sărim
-      i += 6;
+      // data fabricației, nu ne interesează
+      take(6);
       continue;
     }
 
     if (ai === "10") {
-      // LOT variabil -> îl luăm până la final
-      out.lot = digits.slice(i);
+      // LOT variabil: la voi, de obicei e ultimul → luăm tot ce rămâne
+      out.lot = s.slice(i);
       break;
     }
 
-    // AI necunoscut:
-    // ca să nu stricăm parse-ul, ieșim (sau poți adăuga reguli dacă mai apar AIs)
+    // dacă apare un AI pe care nu-l știm:
+    // ca să nu „rupem” tot, ieșim
     break;
   }
 
   return out;
 }
 
+function normalizeGTIN(gtin) {
+  const g = String(gtin || "").trim();
+  if (g.length === 14 && g.startsWith("0")) return g.slice(1); // GTIN-14 -> GTIN-13
+  return g;
+}
+
+
 
 function selectProductByGTIN(gtin) {
   const sel = document.getElementById("stockProduct");
   if (!sel) return;
 
-  const clean = gtin.trim();
+  const scanned = normalizeGTIN(gtin);
 
   [...sel.options].forEach(o => {
-    if (o.dataset.gtin && o.dataset.gtin.trim() === clean) {
+    const optGTIN = normalizeGTIN(o.dataset.gtin);
+    if (optGTIN && optGTIN === scanned) {
       sel.value = o.value;
     }
   });
 }
+
 
 async function initStockPage() {
   const prodSel = document.getElementById("stockProduct");
