@@ -650,3 +650,21 @@ body.dark .hub-btn:hover {
   color: #fff;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,.35);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 100000;
+}
+
+#scanVideo{
+  display:block;
+  width:100%;
+  height:auto;
+  background:#000;
+}

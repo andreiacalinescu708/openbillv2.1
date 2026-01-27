@@ -1022,45 +1022,53 @@ function closeScanner() {
 }
 
 async function startScanIntoInput(qrInputEl) {
-  if (!("BarcodeDetector" in window)) {
-    alert("Scannerul nu e suportat pe acest browser. Introdu manual codul.");
-    return;
-  }
-
-  let detector;
-  try {
-    detector = new BarcodeDetector({ formats: ["qr_code", "data_matrix"] });
-  } catch {
-    detector = new BarcodeDetector();
-  }
-
   const modal = document.getElementById("scannerModal");
   const video = document.getElementById("scanVideo");
   if (!modal || !video) return;
 
+  if (!window.isSecureContext) {
+    alert("Camera merge doar pe HTTPS.");
+    return;
+  }
+
   modal.style.display = "block";
 
-  scanStream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: "environment" } },
-    audio: false
-  });
+  video.muted = true;
+  video.setAttribute("muted", "");
+  video.setAttribute("playsinline", "");
+  video.autoplay = true;
+
+  // oprește stream vechi
+  closeScanner();
+
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { exact: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+  } catch {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+  }
 
   video.srcObject = scanStream;
 
-  scanTimer = setInterval(async () => {
-    try {
-      const codes = await detector.detect(video);
-      if (codes && codes.length) {
-        const raw = (codes[0].rawValue || "").trim();
-        if (raw) {
-          qrInputEl.value = raw;
-          applyParsedGS1(raw);
-          closeScanner();
-        }
-      }
-    } catch {}
-  }, 250);
+  await new Promise(resolve => {
+    video.onloadedmetadata = () => resolve();
+  });
+
+  try { await video.play(); } catch {}
+
+  // deocamdată: fără detectare, doar să verificăm că se vede camera
 }
+
+
 
 
 async function initStockPage() {
