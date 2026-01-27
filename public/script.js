@@ -887,8 +887,24 @@ o.items.forEach(i => {
 
   render();
 }
+function sanitizeGS1(raw) {
+  const GS = String.fromCharCode(29); // FNC1 / Group Separator
+  return String(raw || "")
+    .replace(/\u0000/g, "")          // NULL
+    .replace(/\u200B/g, "")          // zero-width space
+    .replace(new RegExp(GS, "g"), "")// scoate GS (sau îl poți păstra dacă vrei)
+    .replace(/[\r\n\t ]+/g, "")      // whitespace
+    .trim();
+}
 
-function parseGS1(qr) {
+function applyParsedGS1(qr) {
+  const clean = sanitizeGS1(qr);
+  const data = parseGS1(clean);
+
+  console.log("RAW:", qr);
+  console.log("CLEAN:", clean);
+  console.log("PARSED:", data);
+
   const out = {};
   const s0 = String(qr || "").replace(/\u0000/g, "").trim();
   if (!s0) return out;
@@ -1133,8 +1149,15 @@ async function startScanIntoInput(qrInputEl) {
         console.log("SCANNED:", raw);
 
         if (raw) {
-          qrInputEl.value = raw;
-          applyParsedGS1(raw);
+          const clean = sanitizeGS1(raw);
+qrInputEl.value = clean;
+
+// pe mobil ajută să declanșezi și event
+qrInputEl.dispatchEvent(new Event("input", { bubbles: true }));
+qrInputEl.dispatchEvent(new Event("change", { bubbles: true }));
+
+applyParsedGS1(clean);
+
           closeScanner();
         }
       }
@@ -1193,7 +1216,11 @@ if (btnScan && qrInput) {
 
 // ✅ manual: când user apasă Enter sau iese din câmp
 if (qrInput) {
-  qrInput.addEventListener("change", () => {
+ qrInput.addEventListener("input", () => {
+const clean = sanitizeGS1(qrInput.value);
+if (!clean) return;
+applyParsedGS1(clean);
+
     const qr = qrInput.value.trim();
     if (!qr) return;
     applyParsedGS1(qr);
