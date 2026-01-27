@@ -888,76 +888,70 @@ o.items.forEach(i => {
   render();
 }
 
-function parseGS1(qr) {
+function parseGS1(input) {
   const out = {};
-  const s = String(qr || "").trim();
+  if (!input) return out;
+
+  const GS = String.fromCharCode(29);
+  let s = String(input).replace(/\u0000/g, "").trim();
   if (!s) return out;
 
-  // 1) cu paranteze: (01)...(17)...(10)...(11)...
+  // 1) cu paranteze: (01)...(17)...(10)...
   if (s.includes("(")) {
-    const regex = /\((\d{2})\)([^()]+)/g;
+    const regex = /\((\d{2})\)([^()]*)/g;
     let m;
-
     while ((m = regex.exec(s)) !== null) {
       const ai = m[1];
-      const val = String(m[2] || "").trim();
-
+      const val = (m[2] || "").trim();
       if (ai === "01") out.gtin = val;
-      else if (ai === "17") {
-        out.expiresAt =
-          "20" + val.slice(0, 2) + "-" +
-          val.slice(2, 4) + "-" +
-          val.slice(4, 6);
-      } else if (ai === "10") out.lot = val;
-      // (11) fabricatie -> ignoram
+      else if (ai === "17") out.expiresAt = yymmddToISO(val);
+      else if (ai === "10") out.lot = val;
+      // 11 ignorăm
     }
-
     return out;
   }
 
-  // 2) fara paranteze: 01 + GTIN(14) + 17 + YYMMDD + 11 + YYMMDD + 10 + LOT...
-  let i = 0;
-
-  function take(n) {
-    const part = s.slice(i, i + n);
-    i += n;
-    return part;
+  // 2) PATTERN foarte comun: 01 + 14 + 17 + 6 + (11 + 6 optional) + 10 + LOT...
+  // LOT poate fi până la GS sau până la final
+  const m = s.match(/^01(\d{14})17(\d{6})(?:11(\d{6}))?10(.+)$/);
+  if (m) {
+    out.gtin = m[1];
+    out.expiresAt = yymmddToISO(m[2]);
+    out.lot = String(m[4] || "").split(GS)[0].trim();
+    return out;
   }
+
+  // 3) fallback: parse secvențial cu GS separator (dacă există)
+  let i = 0;
+  const take = (n) => (s.slice(i, i += n));
+  const takeUntilGS = () => {
+    const start = i;
+    while (i < s.length && s[i] !== GS) i++;
+    const val = s.slice(start, i);
+    if (s[i] === GS) i++;
+    return val.trim();
+  };
 
   while (i + 2 <= s.length) {
     const ai = take(2);
 
-    if (ai === "01") {
-      out.gtin = take(14);
-      continue;
-    }
-
-    if (ai === "17") {
-      const val = take(6);
-      out.expiresAt =
-        "20" + val.slice(0, 2) + "-" +
-        val.slice(2, 4) + "-" +
-        val.slice(4, 6);
-      continue;
-    }
-
-    if (ai === "11") {
-      // fabricatie (YYMMDD) -> ignoram
-      take(6);
-      continue;
-    }
-
-    if (ai === "10") {
-      // LOT variabil: luam tot ce ramane
-      out.lot = s.slice(i).trim();
-      break;
-    }
+    if (ai === "01") { out.gtin = take(14); continue; }
+    if (ai === "17") { out.expiresAt = yymmddToISO(take(6)); continue; }
+    if (ai === "11") { take(6); continue; } // ignoră fabricație
+    if (ai === "10") { out.lot = takeUntilGS() || s.slice(i).trim(); break; }
 
     break; // AI necunoscut
   }
 
   return out;
 }
+
+function yymmddToISO(v) {
+  v = String(v || "").trim();
+  if (v.length !== 6) return "";
+  return `20${v.slice(0,2)}-${v.slice(2,4)}-${v.slice(4,6)}`;
+}
+
 
 
 function normalizeGTIN(gtin) {
@@ -984,8 +978,10 @@ function selectProductByGTIN(gtin) {
 
 function applyParsedGS1(qr) {
   const data = parseGS1(qr);
+  console.log("GS1 PARSED:", data, "RAW:", qr);
 
-  if (data.lot) {
+  if (data.lot) {const data = parseGS1(qr);
+  console.log("GS1 PARSED:", data, "RAW:", qr);
     const lotEl = document.getElementById("stockLot");
     if (lotEl) lotEl.value = data.lot;
   }
