@@ -974,7 +974,10 @@ async function startQrScan() {
     return;
   }
 
-  const detector = new BarcodeDetector({ formats: ["qr_code"] });
+const detector = new BarcodeDetector({
+  formats: ["qr_code", "data_matrix"]
+});
+
 
   try {
     qrStream = await navigator.mediaDevices.getUserMedia({
