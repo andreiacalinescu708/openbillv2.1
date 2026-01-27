@@ -1141,25 +1141,37 @@ if (modal) {
   renderStock(stock);
 
   if (qrInput) {
-    qrInput.addEventListener("change", () => {
-      const qr = qrInput.value.trim();
-      if (!qr) return;
+  function handleQRValue(raw) {
+    const qr = String(raw || "").trim();
+    if (!qr) return;
 
-      const data = parseGS1(qr);
+    const data = parseGS1(qr);
 
-      if (data.lot) {
-        document.getElementById("stockLot").value = data.lot;
-      }
+    if (data.lot) {
+      const lotEl = document.getElementById("stockLot");
+      if (lotEl) lotEl.value = data.lot;
+    }
 
-      if (data.expiresAt) {
-        document.getElementById("stockExpire").value = data.expiresAt;
-      }
+    if (data.expiresAt) {
+      const expEl = document.getElementById("stockExpire");
+      if (expEl) expEl.value = data.expiresAt;
+    }
 
-      if (data.gtin) {
-        selectProductByGTIN(data.gtin);
-      }
-    });
+    if (data.gtin) {
+      selectProductByGTIN(data.gtin);
+    }
   }
+
+  const onAny = () => handleQRValue(qrInput.value);
+
+  // ✅ esențial pt Android (camera “scrie” în input fără change)
+  qrInput.addEventListener("input", onAny);
+
+  // ✅ fallback
+  qrInput.addEventListener("change", onAny);
+  qrInput.addEventListener("blur", onAny);
+}
+
 
   document.getElementById("btnAddStock").onclick = async () => {
     const productId = prodSel.value;
