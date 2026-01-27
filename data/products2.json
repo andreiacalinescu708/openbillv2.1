@@ -1,155 +1,151 @@
-[
+[{
+    "id": 158,
+    "name": "Seni Classic Air Small 30",
+    "gtin": "5900516800048",
+    "price": 56.709328000000006
+  },
   {
-  "id": 158,
-  "name": "Seni Classic Air Small 30",
-  "gtin": "5900516800048",
-  "price": 56.71,
-  "category": "🧷Seni Classic Air x30🧷"
-},
-{
-  "id": 159,
-  "name": "Seni Classic Air Medium 30",
-  "gtin": "5900516800055",
-  "price": 67.52,
-  "category": "🧷Seni Classic Air x30🧷"
-},
-{
-  "id": 160,
-  "name": "Seni Classic Air Large 30",
-  "gtin": "5900516800062",
-  "price": 79.22,
-  "category": "🧷Seni Classic Air x30🧷"
-},
-{
-  "id": 161,
-  "name": "Seni Classic Air Extra large 30",
-  "gtin": "5900516800079",
-  "price": 86.41,
-  "category": "🧷Seni Classic Air x30🧷"
-},
+    "id": 159,
+    "name": "Seni Classic Air Medium 30",
+    "gtin": "5900516800055",
+    "price": 67.51773600000001
+  },
   {
-  "id": 171,
-  "name": "Seni Active CLASSIC Small 30",
-  "gtin": "5900516695910",
-  "price": 75.19,
-  "category": "🩲Seni Active Classic x30🩲"
-},
+    "id": 160,
+    "name": "Seni Classic Air Large 30",
+    "gtin": "5900516800062",
+    "price": 79.21524000000001
+  },
+  {
+    "id": 161,
+    "name": "Seni Classic Air Extra large 30",
+    "gtin": "5900516800079",
+    "price": 86.413704
+  },
 {
-  "id": 172,
-  "name": "Seni Active Classic Medium 30",
-  "gtin": "5900516695927",
-  "price": 83.21,
-  "category": "🩲Seni Active Classic x30🩲"
-},
-{
-  "id": 173,
-  "name": "Seni Active Classic Large 30",
-  "gtin": "5900516695934",
-  "price": 90.86,
-  "category": "🩲Seni Active Classic x30🩲"
-},
-{
-  "id": 174,
-  "name": "Seni Active Classic Extra Large 30",
-  "gtin": "5900516695941",
-  "price": 93.57,
-  "category": "🩲Seni Active Classic x30🩲"
-},
+    "id": 171,
+    "name": "Seni Active CLASSIC Small 30",
+    "gtin": "5900516695910",
+    "price": 75.19
+  },
+  {
+    "id": 172,
+    "name": "Seni Active Classic Medium 30",
+    "gtin": "5900516695927",
+    "price": 83.21
+  },
+  {
+    "id": 173,
+    "name": "Seni Active Classic Large 30",
+    "gtin": "5900516695934",
+    "price": 90.8585145
+  },
+  {
+    "id": 174,
+    "name": "Seni Active Classic Extra Large 30",
+    "gtin": "5900516695941",
+    "price": 93.57
+  },
+
+
+
   {
     "id": 154,
     "name": "Scutece adulti Seni CLassic Air Small a'10",
     "gtin": "5900516800000",
-    "price": 19.42
+    "price": 19.4155
   },
   {
     "id": 155,
     "name": "Scutece adulti Seni CLassic Air Medium a'10",
     "gtin": "5900516800017",
-    "price": 23.82
+    "price": 23.820809999999998
   },
   {
     "id": 156,
     "name": "Scutece adulti Seni CLassic Air Large a'10",
     "gtin": "5900516800024",
-    "price": 28.23
+    "price": 28.22612
   },
   {
     "id": 157,
     "name": "Scutece adulti Seni CLassic Air Extra Large a'10",
     "gtin": "5900516800031",
-    "price": 33.23
+    "price": 33.23398
   },
+  
   {
     "id": 168,
     "name": "Seni Active Classic Medium 10",
     "gtin": "5900516695897",
-    "price": 28.69
+    "price": 28.692761500000003
   },
   {
     "id": 169,
     "name": "Seni Active Classic Large 10",
     "gtin": "5900516695903",
-    "price": 30.6
+    "price": 30.6048535
   },
   {
     "id": 170,
     "name": "Seni Active Classic Extra Large 10",
     "gtin": "5900516696283",
-    "price": 35.39
+    "price": 35.3850835
   },
+  
   {
     "id": 175,
     "name": "Seni ACTIVE Normal Small 10",
     "gtin": "5900516693039",
-    "price": 31.5
+    "price": 31.503992000000007
   },
   {
     "id": 176,
     "name": "Seni ACTIVE Normal Medium 10",
     "gtin": "5900516693046",
-    "price": 34.2
+    "price": 34.203416000000004
   },
   {
     "id": 177,
     "name": "Seni ACTIVE Normal Large 10",
     "gtin": "5900516693053",
-    "price": 36.0
+    "price": 36.003032000000005
   },
   {
     "id": 178,
     "name": "Seni ACTIVE Normal Extra Large 10",
     "gtin": "5900516693060",
-    "price": 40.5
+    "price": 40.50207200000001
   },
   {
     "id": 179,
     "name": "Seni Active PLUS Small 10",
     "gtin": "5900516692162",
-    "price": 39.6
+    "price": 39.602264
   },
   {
     "id": 180,
     "name": "Seni Active PLUS Medium 10",
     "gtin": "5900516692179",
-    "price": 42.3
+    "price": 42.301688000000006
   },
   {
     "id": 181,
     "name": "Seni Active PLUS Large 10",
     "gtin": "5900516692186",
-    "price": 45.01
+    "price": 45.01182400000001
   },
   {
     "id": 182,
     "name": "Seni Active PLUS Extra Large 10",
     "gtin": "5900516692193",
-    "price": 51.31
+    "price": 51.310480000000005
   },
   {
     "id": 183,
     "name": "Seni Active PLUS XXL 10",
     "gtin": "5900516696887",
-    "price": 78.32
+    "price": 78.315432
   },
   {
     "id": 184,
@@ -173,7 +169,7 @@
     "id": 119,
     "name": "Bella Tampoane mamare MAMMA",
     "gtin": "5900516402341",
-    "price": 8.65
+    "price": 8.652
   },
   {
     "id": 388,
@@ -203,127 +199,127 @@
     "id": 1,
     "name": "Bella Nova 10",
     "gtin": "5900516300418",
-    "price": 3.88
+    "price": 3.876096
   },
   {
     "id": 2,
     "name": "Bella Nova Maxi 10",
     "gtin": "5900516300487",
-    "price": 4.36
+    "price": 4.360608
   },
   {
     "id": 3,
     "name": "Bella Ideale Ultra Stay Drai Night 7",
     "gtin": "5900516304799",
-    "price": 6.3
+    "price": 6.298656
   },
   {
     "id": 4,
     "name": "Bella Ideale Ultra Stay Drai 10",
     "gtin": "5900516304775",
-    "price": 6.3
+    "price": 6.298656
   },
   {
     "id": 5,
     "name": "Bella Ideale Ultra StaySofti 10",
     "gtin": "5900516304898",
-    "price": 6.3
+    "price": 6.298656
   },
   {
     "id": 6,
     "name": "Bella Ideale Ultra Stay Drai 20",
     "gtin": "5900516304782",
-    "price": 11.63
+    "price": 11.628288
   },
   {
     "id": 7,
     "name": "Bella Ideale Ultra StaySofti 20",
     "gtin": "5900516304904",
-    "price": 11.63
+    "price": 11.628288
   },
   {
     "id": 8,
     "name": "Bella Panty Ideale Normal 28",
     "gtin": "5900516312633",
-    "price": 5.81
+    "price": 5.814144
   },
   {
     "id": 9,
     "name": "Bella Panty Ideale Large 20",
     "gtin": "5900516312626",
-    "price": 5.81
+    "price": 5.814144
   },
   {
     "id": 10,
     "name": "Bella Panty Ideale Normal  54",
     "gtin": "5900516312510",
-    "price": 10.66
+    "price": 10.659264
   },
   {
     "id": 11,
     "name": "Bella Bio based Normal absorbante 10 buc",
     "gtin": "5900516313531",
-    "price": 10.97
+    "price": 10.97362
   },
   {
     "id": 12,
     "name": "Bella Bio based Maxi absorbante 8 buc",
     "gtin": "5900516313548",
-    "price": 10.97
+    "price": 10.97362
   },
   {
     "id": 13,
     "name": "Bella Bio based Night absorbante 7 buc",
     "gtin": "5900516307349",
-    "price": 10.97
+    "price": 10.97362
   },
   {
     "id": 14,
     "name": "Bella BiO Based Normal absorbante zilnice a'28",
     "gtin": "5900516307356",
-    "price": 6.85
+    "price": null
   },
   {
     "id": 15,
     "name": "Bella BiO Based Long absorbante zilnice a'22",
     "gtin": "5900516307363",
-    "price": 6.85
+    "price": 6.8495
   },
   {
     "id": 20,
     "name": "Bella Perfecta  Slim Blue Extra Soft 20 buc",
     "gtin": "5900516004453",
-    "price": 10.66
+    "price": 10.659264
   },
   {
     "id": 21,
     "name": "Bella Perfecta Slim Green Silk Drai 20 buc",
     "gtin": "5900516004446",
-    "price": 10.66
+    "price": 10.659264
   },
   {
     "id": 22,
     "name": "Bella Perfecta Slim Rose Extra Soft Deo 20 buc",
     "gtin": "5900516006518",
-    "price": 10.66
+    "price": 10.659264
   },
   {
     "id": 23,
     "name": "Bella Perfecta Slim Violet Silky Drai Deo 20 buc",
     "gtin": "5900516006525",
-    "price": 10.66
+    "price": 10.659264
   },
   {
     "id": 24,
     "name": "Bella Perfecta Slim Night Silky Drai 7 buc",
     "gtin": "5900516302016",
-    "price": 5.33
+    "price": 5.329632
   },
   {
     "id": 25,
     "name": "Bella Perfecta Slim Night Extra Soft 7 buc",
     "gtin": "5900516304317",
-    "price": 5.33
+    "price": 5.329632
   },
   {
     "id": 26,
@@ -383,25 +379,25 @@
     "id": 38,
     "name": "Absorbante zilnice Bella Panty Light Sensitive a'20",
     "gtin": "5900516311407",
-    "price": 3.46
+    "price": 3.45744
   },
   {
     "id": 39,
     "name": "Absorbante zilnice Bella Panty Light Aroma a'20",
     "gtin": "5900516311438",
-    "price": 3.46
+    "price": 3.45744
   },
   {
     "id": 40,
     "name": "Absorbante zilnice Bella Panty Light Sensitive a'60",
     "gtin": "5900516311483",
-    "price": 8.89
+    "price": 8.89056
   },
   {
     "id": 41,
     "name": "Absorbante zilnice Bella Panty Light Aroma a'60",
     "gtin": "5900516311520",
-    "price": 8.89
+    "price": 8.89056
   },
   {
     "id": 42,
@@ -467,13 +463,13 @@
     "id": 52,
     "name": "Bella Herbs Floare de tei a'12",
     "gtin": "5900516711191",
-    "price": 4.85
+    "price": 4.84512
   },
   {
     "id": 53,
     "name": "Bella Herbs Verbina a'12",
     "gtin": "5900516711238",
-    "price": 4.85
+    "price": 4.84512
   },
   {
     "id": 54,
@@ -509,7 +505,7 @@
     "id": 59,
     "name": "Bella Herbs Panty Verbina a'60",
     "gtin": "5900516714420",
-    "price": 10.87
+    "price": 10.866240000000001
   },
   {
     "id": 60,
@@ -521,19 +517,19 @@
     "id": 69,
     "name": "Bella Sensitive Servetele intime a'20",
     "gtin": "5900516421670",
-    "price": 4.85
+    "price": 4.84512
   },
   {
     "id": 70,
     "name": "Bella Sensitive sapun lichid intim 300 ml",
     "gtin": "5900516651275",
-    "price": 11.63
+    "price": 11.628288
   },
   {
     "id": 71,
     "name": "Bella HydroNatural sapun lichid intim 300 ml",
     "gtin": "5900516651282",
-    "price": 11.63
+    "price": 11.628288
   },
   {
     "id": 75,
@@ -545,13 +541,13 @@
     "id": 76,
     "name": "Bella Vata Bumbac 100% 100g",
     "gtin": "5900516402860",
-    "price": 4.85
+    "price": 4.84512
   },
   {
     "id": 77,
     "name": "Bella Vata Bumbac 100% 200g",
     "gtin": "5900516402877",
-    "price": 8.72
+    "price": 8.721216
   },
   {
     "id": 78,
@@ -569,7 +565,7 @@
     "id": 80,
     "name": "Bella Cotton Betisoare din hartie cutie rotunda A100",
     "gtin": "5900516402976",
-    "price": 3.61
+    "price": 3.605
   },
   {
     "id": 87,
@@ -581,19 +577,19 @@
     "id": 120,
     "name": "Absorbante ginecologice Bella Mamma 34x11cm a'10",
     "gtin": "5900516601270",
-    "price": 6.49
+    "price": 6.489
   },
   {
     "id": 246,
     "name": "Seni Care Manusi laminate de curatare",
     "gtin": "5900516803322",
-    "price": 23.91
+    "price": 23.9125315
   },
   {
     "id": 247,
     "name": "Seni Care Manusi nelaminate de curatare",
     "gtin": "5900516803339",
-    "price": 21.04
+    "price": 21.044393499999998
   },
   {
     "id": 250,
@@ -719,67 +715,67 @@
     "id": 16,
     "name": "Perfecta Slim Blue Extra Soft 10",
     "gtin": "5900516301125",
-    "price": 5.33
+    "price": 5.329632
   },
   {
     "id": 17,
     "name": "Perfecta Slim Green Silk Drai 10",
     "gtin": "5900516301132",
-    "price": 5.33
+    "price": 5.329632
   },
   {
     "id": 18,
     "name": "Perfecta Slim Rose Extra Soft Deo 10",
     "gtin": "5900516301927",
-    "price": 5.33
+    "price": 5.329632
   },
   {
     "id": 19,
     "name": "Perfecta Slim Violet Silky Drai Deo 10",
     "gtin": "5900516301934",
-    "price": 5.33
+    "price": 5.329632
   },
   {
     "id": 35,
     "name": "Panty Classic 20",
     "gtin": "5900516310417",
-    "price": 3.09
+    "price": 3.0869999999999993
   },
   {
     "id": 36,
     "name": "Panty Classic 60",
     "gtin": "5900516310370",
-    "price": 6.34
+    "price": 6.33864
   },
   {
     "id": 37,
     "name": "Panty Soft Comfort",
     "gtin": "5900516310592",
-    "price": 3.09
+    "price": 3.0869999999999993
   },
   {
     "id": 61,
     "name": "Medica Ultra Normal a'10",
     "gtin": "5900516301538",
-    "price": 6.3
+    "price": 6.298656
   },
   {
     "id": 62,
     "name": "Medica Ultra Large a'8",
     "gtin": "5900516304331",
-    "price": 6.3
+    "price": 6.298656
   },
   {
     "id": 63,
     "name": "Medica Panty Normal a'12",
     "gtin": "5900516310899",
-    "price": 3.82
+    "price": 3.8196479999999995
   },
   {
     "id": 64,
     "name": "Medica servetele intime 20 buc",
     "gtin": "5900516420789",
-    "price": 3.76
+    "price": 3.7599659999999995
   },
   {
     "id": 65,
@@ -809,7 +805,7 @@
     "id": 72,
     "name": "Dischete demachiante 140",
     "gtin": "5900516402488",
-    "price": 6.34
+    "price": 6.33864
   },
   {
     "id": 73,
@@ -821,13 +817,13 @@
     "id": 74,
     "name": "Dischete demachiante rotunde 60",
     "gtin": "5900516401542",
-    "price": 5.28
+    "price": 5.2849439999999985
   },
   {
     "id": 81,
     "name": "Happy betisoare din hartie 56+8",
     "gtin": "5900516402242",
-    "price": 4.33
+    "price": 4.326
   },
   {
     "id": 82,
@@ -863,13 +859,13 @@
     "id": 88,
     "name": "Eva Natura Sapun lichid Hipoalergenic Aloe si Musetel 500 ml",
     "gtin": "5900002072966",
-    "price": 9.69
+    "price": 9.69024
   },
   {
     "id": 89,
     "name": "Eva Natura Sapun lichid Masline&Lamaie verde 500 ml",
     "gtin": "5900002073000",
-    "price": 9.69
+    "price": 9.69024
   },
   {
     "id": 90,
@@ -971,7 +967,7 @@
     "id": 106,
     "name": "Happy Pants Midi 6-11 kg a'48 buc",
     "gtin": "5900516603656",
-    "price": 67.2
+    "price": 67.19999999999999
   },
   {
     "id": 107,
@@ -989,19 +985,19 @@
     "id": 109,
     "name": "Aleze absorbante copii Happy 60x90 cm pachet a'5 display",
     "gtin": "5900516600723",
-    "price": 10.09
+    "price": 10.094
   },
   {
     "id": 110,
     "name": "Happy - aleze igienice absorbante 90X60 a'10",
     "gtin": "5900516600853",
-    "price": 18.48
+    "price": 18.479999999999997
   },
   {
     "id": 111,
     "name": "Panda - cearsaf absorbant 60x60 a'10",
     "gtin": "5900516601546",
-    "price": 11.54
+    "price": 11.536
   },
   {
     "id": 112,
@@ -1067,85 +1063,85 @@
     "id": 124,
     "name": "Seni Super Extra Small 10",
     "gtin": "5900516803704",
-    "price": 20.81
+    "price": 20.813000000000002
   },
   {
     "id": 125,
     "name": "Seni  Super Small  10",
     "gtin": "5900516803711",
-    "price": 23.54
+    "price": 23.543
   },
   {
     "id": 126,
     "name": "Seni Super Medium 10",
     "gtin": "5900516803735",
-    "price": 27.96
+    "price": 27.963000000000005
   },
   {
     "id": 127,
     "name": "Seni Super Large 10",
     "gtin": "5900516803759",
-    "price": 32.46
+    "price": 32.461
   },
   {
     "id": 128,
     "name": "Seni Super Extra Large 10",
     "gtin": "5900516803773",
-    "price": 35.33
+    "price": 35.334
   },
   {
     "id": 129,
     "name": "Seni Super Small 30",
     "gtin": "5900516803728",
-    "price": 66.64
+    "price": 66.638
   },
   {
     "id": 130,
     "name": "Seni Super Medium 30",
     "gtin": "5900516803742",
-    "price": 83.03
+    "price": 83.031
   },
   {
     "id": 131,
     "name": "Seni Super Large 30",
     "gtin": "5900516803766",
-    "price": 95.04
+    "price": 95.043
   },
   {
     "id": 132,
     "name": "Seni Super Extra Large 30",
     "gtin": "5900516803780",
-    "price": 100.09
+    "price": 100.087
   },
   {
     "id": 133,
     "name": "Seni Super  Plus Extra Small 10",
     "gtin": "5900516803544",
-    "price": 23.7
+    "price": 23.699
   },
   {
     "id": 134,
     "name": "Seni Super Plus Small 10",
     "gtin": "5900516803551",
-    "price": 27.04
+    "price": 27.040000000000003
   },
   {
     "id": 135,
     "name": "Seni Super Plus Medium  10",
     "gtin": "5900516803575",
-    "price": 32.8
+    "price": 32.799
   },
   {
     "id": 136,
     "name": "Seni Super Plus Large  10",
     "gtin": "5900516803599",
-    "price": 38.99
+    "price": 38.987
   },
   {
     "id": 137,
     "name": "Seni Super  Plus Extra Large 10",
     "gtin": "5900516803612",
-    "price": 41.59
+    "price": 41.586999999999996
   },
   {
     "id": 138,
@@ -1157,49 +1153,49 @@
     "id": 139,
     "name": "Seni Super Trio Small 10",
     "gtin": "5900516803469",
-    "price": 29.89
+    "price": 29.887
   },
   {
     "id": 140,
     "name": "Seni Super Trio Medium 10",
     "gtin": "5900516803476",
-    "price": 37.26
+    "price": 37.258
   },
   {
     "id": 141,
     "name": "Seni Super Trio Large 10",
     "gtin": "5900516803483",
-    "price": 42.03
+    "price": 42.028999999999996
   },
   {
     "id": 142,
     "name": "Seni Super Trio Extra Large 10",
     "gtin": "5900516803490",
-    "price": 44.34
+    "price": 44.343
   },
   {
     "id": 143,
     "name": "Seni Super Quatro Small 10",
     "gtin": "5900516803384",
-    "price": 30.04
+    "price": 30.043
   },
   {
     "id": 144,
     "name": "Seni Super Quatro Medium 10",
     "gtin": "5900516803391",
-    "price": 38.99
+    "price": 38.987
   },
   {
     "id": 145,
     "name": "Seni Super Quatro Large 10",
     "gtin": "5900516803407",
-    "price": 44.5
+    "price": 44.498999999999995
   },
   {
     "id": 146,
     "name": "Seni Super Quatro Extra Large 10",
     "gtin": "5900516803414",
-    "price": 48.07
+    "price": 48.074
   },
   {
     "id": 147,
@@ -1229,55 +1225,55 @@
     "id": 151,
     "name": "Seni Basic Medium 30",
     "gtin": "5900516693794",
-    "price": 59.46
+    "price": 59.46499
   },
   {
     "id": 152,
     "name": "Seni Basic Large 30",
     "gtin": "5900516693800",
-    "price": 72.44
+    "price": 72.4399
   },
   {
     "id": 153,
     "name": "Seni Basic Extra Large 30",
     "gtin": "5900516693817",
-    "price": 78.33
+    "price": 78.3315
   },
   {
     "id": 162,
     "name": "Seni Classic Plus Air Medium 10",
     "gtin": "5900516800086",
-    "price": 27.74
+    "price": 27.736715500000003
   },
   {
     "id": 163,
     "name": "Seni Classic Plus Air Large 10",
     "gtin": "5900516800093",
-    "price": 31.56
+    "price": 31.560899499999998
   },
   {
     "id": 164,
     "name": "Seni Classic Plus Air Extra large 10",
     "gtin": "5900516800109",
-    "price": 33.47
+    "price": 33.4729915
   },
   {
     "id": 165,
     "name": "Seni Classic Plus Air Medium 30",
     "gtin": "5900516800116",
-    "price": 81.3
+    "price": 81.29805450000002
   },
   {
     "id": 166,
     "name": "Seni Classic Plus Air Large 30",
     "gtin": "5900516800123",
-    "price": 94.68
+    "price": 94.68269850000001
   },
   {
     "id": 167,
     "name": "Seni Classic Plus Air Extra large 30",
     "gtin": "5900516800130",
-    "price": 101.38
+    "price": 101.37502049999999
   },
   {
     "id": 187,
@@ -1337,97 +1333,79 @@
     "id": 196,
     "name": "Seni Fix Plus Large 5",
     "gtin": "5900516694838",
-    "price": 15.3
+    "price": 15.296736000000001
   },
   {
     "id": 197,
     "name": "Seni Fix Plus X-Large 5",
     "gtin": "5900516694845",
-    "price": 16.21
+    "price": 16.207256000000005
   },
   {
     "id": 198,
     "name": "Seni Fix Plus XXLarge 5",
     "gtin": "5900516694852",
-    "price": 18.01
+    "price": 18.006872
   },
   {
     "id": 199,
     "name": "Seni Lady Slim Micro 20",
     "gtin": "5900516699079",
-    "price": 4.72,
-    "category": "🌸 Seni Lady🌸"
+    "price": 4.723991999999999
   },
   {
     "id": 200,
     "name": "Seni Lady Slim Micro Plus 20",
     "gtin": "5900516699086",
-    "price": 6.31,
-    "category": "🌸 Seni Lady🌸"
+    "price": 6.308029000000001
   },
   {
     "id": 201,
     "name": "Seni Lady Slim Mini 20",
     "gtin": "5900516699093",
-    "price": 9.0,
-  "category": "🌸 Seni Lady🌸 "
-
+    "price": null
   },
   {
     "id": 202,
     "name": "Seni Lady Slim Mini Plus 20",
     "gtin": "5900516699109",
-    "price": 10.8,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 10.797696
   },
   {
     "id": 203,
     "name": "Seni Lady Slim Normal 20",
     "gtin": "5900516699116",
-    "price": 12.6,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 12.597312
   },
   {
     "id": 204,
     "name": "Seni Lady Slim Extra 15",
     "gtin": "5900516699123",
-    "price": 10.8,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 10.797696
   },
   {
     "id": 205,
     "name": "Seni Lady Extra Plus 15",
     "gtin": "5900516699130",
-    "price": 12.6,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 12.597312
   },
   {
     "id": 206,
     "name": "Seni Lady Super 15",
     "gtin": "5900516699147",
-    "price": 14.4,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 14.396928
   },
   {
     "id": 207,
     "name": "SENI LADY SUPER NIGHT A12",
     "gtin": "5900516751678",
-    "price": 19.8,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 19.8
   },
   {
     "id": 208,
     "name": "Seni Lady Plus 15",
     "gtin": "5900516699154",
-    "price": 18.01,
-  "category": "🌸 Seni Lady🌸"
-
+    "price": 18.006872
   },
   {
     "id": 209,
@@ -1487,188 +1465,181 @@
     "id": 218,
     "name": "Seni Soft Super – aleze igienice 60x60 a'5",
     "gtin": "5900516690311",
-    "price": 10.8
+    "price": 10.797696
   },
   {
     "id": 219,
     "name": "Seni Soft Super – aleze igienice 90x60 a'5",
     "gtin": "5900516690328",
-    "price": 13.5
+    "price": 13.49712
   },
   {
     "id": 220,
     "name": "Seni Soft Super – aleze igienice 60x60 a'30",
     "gtin": "5900516691288",
-    "price": 52.21,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 52.210288000000006
   },
   {
     "id": 221,
     "name": "Seni Soft Super– aleze igienice 90x60 a'30",
     "gtin": "5900516691295",
-    "price": 69.31,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 69.30664000000002
   },
   {
     "id": 222,
     "name": "Seni Soft Super - aleze igienice 90x170 a'5",
     "gtin": "5900516693978",
-    "price": 18.46
+    "price": 18.456776
   },
   {
     "id": 223,
     "name": "Seni Soft Super  - aleze igienice 90x170 '30",
     "gtin": "5900516691998",
-    "price": 103.52,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 103.52076800000002
   },
   {
     "id": 224,
     "name": "Seni Soft Normal - aleze igienice 60x60 cm a'30",
     "gtin": "5900516692568",
-    "price": 40.5,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 40.50207200000001
   },
   {
     "id": 225,
     "name": "Seni Soft Normal - aleze igienice 90x60 cm a'30",
     "gtin": "5900516692575",
-    "price": 52.21,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 52.210288000000006
   },
   {
     "id": 226,
     "name": "Seni Soft Basic - aleze igienice 60x60 a'30",
     "gtin": "5900516692308",
-    "price": 33.3,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 33.303608000000004
   },
   {
     "id": 227,
     "name": "Seni Soft Basic - aleze igienice 90x60 a'30",
     "gtin": "5900516692315",
-    "price": 45.01,
-"category": "🛏️ Seni Aleze x30🛏️ "
+    "price": 45.01182400000001
   },
   {
     "id": 228,
     "name": "Seni Soft Basic - aleze igienice 90x60 a'10",
     "gtin": "5900516692469",
-    "price": 16.58
+    "price": 16.57682
   },
   {
     "id": 229,
     "name": "Seni Care Servetele umede XXL 20x30 cm a'80 buc",
     "gtin": "5900516422417",
-    "price": 18.01
+    "price": 18.006872
   },
   {
     "id": 230,
     "name": "Seni Care Servetele umede XXL 20x30 cm a' 48",
     "gtin": "5900516422370",
-    "price": 10.32
+    "price": 10.32369
   },
   {
     "id": 231,
     "name": "Seni Care Maxi Servetele umede XXXL 25x30 cm 52 buc",
     "gtin": "5900516422455",
-    "price": 16.21
+    "price": 16.207256000000005
   },
   {
     "id": 232,
     "name": "Seni Care Classic Servetele umede XL 20x25 cm a'68 buc",
     "gtin": "5900516422462",
-    "price": 10.8
+    "price": 10.797696
   },
   {
     "id": 233,
     "name": "Seni Care Inti +",
     "gtin": "5900516421809",
-    "price": 4.39
+    "price": 4.386564000000001
   },
   {
     "id": 234,
     "name": "Seni Care Spuma pentru curatare si ingrijire corp 500 ml",
     "gtin": "5900516652135",
-    "price": 18.91
+    "price": 18.906679999999998
   },
   {
     "id": 235,
     "name": "Seni Care Lotiune pentru curatare corp 500 ml",
     "gtin": "5900516652197",
-    "price": 14.4
+    "price": 14.396928
   },
   {
     "id": 236,
     "name": "Seni Care Gel de dus crema 3% uree 300ml",
     "gtin": "5900516651084",
-    "price": 26.11
+    "price": 26.105144000000003
   },
   {
     "id": 237,
     "name": "Seni Care Sampon 3% uree 500ml",
     "gtin": "5900516652227",
-    "price": 15.3
+    "price": 15.296736000000001
   },
   {
     "id": 238,
     "name": "Seni Care Sampon Spuma, curatare fara apa, 200 ml",
     "gtin": "5900516652159",
-    "price": 10.8
+    "price": 10.797696
   },
   {
     "id": 239,
     "name": "Seni Care Crema pentru curatare corp 3 in 1 1000 ml",
     "gtin": "5900516652142",
-    "price": 36.0
+    "price": 36.003032000000005
   },
   {
     "id": 240,
     "name": "SENI CARE Crema piele uscata 10% UREA 100 ml",
     "gtin": "5900516652265",
-    "price": 11.7
+    "price": 11.697504000000002
   },
   {
     "id": 241,
     "name": "Seni Care Emulsie pentru pielea uscata 500 ml",
     "gtin": "5900516652210",
-    "price": 24.31
+    "price": 24.305528000000002
   },
   {
     "id": 242,
     "name": "Seni Care Crema cu oxid de zinc 100 ml",
     "gtin": "5900516652272",
-    "price": 12.6
+    "price": 12.597312
   },
   {
     "id": 243,
     "name": "Seni Care Crema cu arginina 100 ml",
     "gtin": "5900516652289",
-    "price": 9.9
+    "price": 9.897888
   },
   {
     "id": 244,
     "name": "Seni Care Bavete 100",
     "gtin": "5900516690960",
-    "price": 70.77
+    "price": 70.770167
   },
   {
     "id": 245,
     "name": "Seni Care Bavete 10",
     "gtin": "5900516692506",
-    "price": 9.56
+    "price": 9.56046
   },
   {
     "id": 248,
     "name": "Seni Care Lavete \"air-laid\" 36 x 32 см",
     "gtin": "5900516803346",
-    "price": 18.18
+    "price": 18.1762555
   },
   {
     "id": 249,
     "name": "Seni Care neutralizator mirosuri 500 ml",
     "gtin": "5900516651336",
-    "price": 35.39
+    "price": 35.3850835
   },
   {
     "id": 270,
@@ -1698,43 +1669,43 @@
     "id": 274,
     "name": "Matopat Universal plasturi a'20",
     "gtin": "5900516894054",
-    "price": 4.75
+    "price": 4.747604400000001
   },
   {
     "id": 275,
     "name": "Matopat Transparent plasturi a'20",
     "gtin": "5900516894061",
-    "price": 4.72
+    "price": 4.720161600000002
   },
   {
     "id": 276,
     "name": "Matopat Happy plasturi a'12",
     "gtin": "5900516894078",
-    "price": 4.21
+    "price": 4.206981240000002
   },
   {
     "id": 277,
     "name": "Matopat Classic plasturi a'12",
     "gtin": "5900516894085",
-    "price": 4.29
+    "price": 4.293426060000002
   },
   {
     "id": 278,
     "name": "Matopat Aqua Stop plasturi a'18",
     "gtin": "5900516894115",
-    "price": 7.43
+    "price": 7.426021680000002
   },
   {
     "id": 279,
     "name": "Matopat Tatoo plasturi a'12",
     "gtin": "5900516898359",
-    "price": 9.18
+    "price": 9.178473150000002
   },
   {
     "id": 280,
     "name": "Matopat Family plasturi a'17",
     "gtin": "5900516896805",
-    "price": 5.94
+    "price": 5.943653100000001
   },
   {
     "id": 281,
@@ -1746,25 +1717,25 @@
     "id": 282,
     "name": "Plasturi Matopat Qwikstrip Univ 19x72mm a'100",
     "gtin": "5900516896102",
-    "price": 16.31
+    "price": 16.308
   },
   {
     "id": 283,
     "name": "Comfort Plus Plasturi Sterili Small 17x48 mm a'5",
     "gtin": "8717438379012",
-    "price": 13.94
+    "price": 13.936368600000003
   },
   {
     "id": 284,
     "name": "Comfort Plus Plasturi Sterili Medium 29x59mm a'5",
     "gtin": "5900516849429",
-    "price": 16.05
+    "price": 16.049464200000006
   },
   {
     "id": 285,
     "name": "Comfort Plus Plasturi Nesterili Large 42x68mm a'5",
     "gtin": "5900516849436",
-    "price": 15.29
+    "price": 15.294787200000004
   },
   {
     "id": 286,
@@ -1794,19 +1765,19 @@
     "id": 290,
     "name": "Matopat bandaj tifon 10x10 cm",
     "gtin": "5900516845186",
-    "price": 30.55
+    "price": 30.550385250000005
   },
   {
     "id": 291,
     "name": "Matopat bandaj tifon 15x10 cm",
     "gtin": "5900516845179",
-    "price": 46.61
+    "price": 46.61143987500001
   },
   {
     "id": 292,
     "name": "Matopat bandaj tifon 20x10 cm",
     "gtin": "5900516845162",
-    "price": 61.98
+    "price": 61.984865250000006
   },
   {
     "id": 293,
@@ -1866,19 +1837,19 @@
     "id": 302,
     "name": "Medisorb H 15x15 cm a'5",
     "gtin": "5900516849917",
-    "price": 131.53
+    "price": 131.52585600000003
   },
   {
     "id": 303,
     "name": "Medisorb G 15G A5",
     "gtin": "5900516843496",
-    "price": 96.08
+    "price": 96.08247000000001
   },
   {
     "id": 304,
     "name": "Medisorb Silver adeziv cu argint 10x10cm a'5",
     "gtin": "5900516899448",
-    "price": 53.11
+    "price": 53.10900000000001
   },
   {
     "id": 305,
@@ -1890,37 +1861,37 @@
     "id": 306,
     "name": "Medisorb SILVERPAD 10X10CM A5",
     "gtin": "5900516899462",
-    "price": 58.4
+    "price": 58.401
   },
   {
     "id": 307,
     "name": "Medisorb SILVERPAD 10X20CM A5",
     "gtin": "5900516899479",
-    "price": 92.04
+    "price": 92.043
   },
   {
     "id": 308,
     "name": "Codosil Adhesive 14x14 cm a'1",
     "gtin": "5900516844608",
-    "price": 287.64
+    "price": 287.64000000000004
   },
   {
     "id": 309,
     "name": "Fixopore S pansament steril autoadeziv 7,2cm x 5cm a'100",
     "gtin": "5900516720469",
-    "price": 45.77
+    "price": 45.769363200000015
   },
   {
     "id": 310,
     "name": "Fixopore S pansament steril autoadeziv 10cm x 6cm a'50",
     "gtin": "5900516720476",
-    "price": 41.54
+    "price": 41.54317200000001
   },
   {
     "id": 311,
     "name": "Fixopore S pansament steril autoadeziv 10cm x 8cm a'50",
     "gtin": "5900516720483",
-    "price": 48.88
+    "price": 48.87671580000001
   },
   {
     "id": 312,
@@ -1968,19 +1939,19 @@
     "id": 319,
     "name": "Matopat Universal bandaje elastice 5m x 10cm a'1",
     "gtin": "5900516861278",
-    "price": 5.26
+    "price": 5.257491624000002
   },
   {
     "id": 320,
     "name": "Matopat Universal bandaje elastice 5m x 12cm a'1",
     "gtin": "5900516861285",
-    "price": 5.6
+    "price": 5.5966846320000005
   },
   {
     "id": 321,
     "name": "Matopat Universal bandaje elastice 5m x 15cm a'1",
     "gtin": "5900516861292",
-    "price": 6.47
+    "price": 6.4701066276000025
   },
   {
     "id": 322,
@@ -2034,73 +2005,73 @@
     "id": 330,
     "name": "Plastofix banda adeziva 5cm x 10m a'1",
     "gtin": "5900516891206",
-    "price": 10.32
+    "price": 10.318492800000001
   },
   {
     "id": 331,
     "name": "Plastofix banda adeziva 10cm x 10m a'1",
     "gtin": "5900516891213",
-    "price": 19.59
+    "price": 19.594159200000007
   },
   {
     "id": 332,
     "name": "Plastofix banda adeziva 15cm x 10m a'1",
     "gtin": "5900516891220",
-    "price": 28.07
+    "price": 28.06575156000001
   },
   {
     "id": 333,
     "name": "Plastosilk banda adeziva 2.5cm x 9.14m a'12",
     "gtin": "5900516849818",
-    "price": 92.61
+    "price": 92.61396144000003
   },
   {
     "id": 334,
     "name": "Plastosilk banda adeziva 5cm x 5m a'11",
     "gtin": "5900516849795",
-    "price": 94.96
+    "price": 94.96169298000001
   },
   {
     "id": 335,
     "name": "Plastosilk banda adeziva 5cm x 9.14m a'6",
     "gtin": "5900516849825",
-    "price": 90.26
+    "price": 90.25936920000001
   },
   {
     "id": 336,
     "name": "Plastofilm banda adeziva 2.5cm x 9.14m a'12",
     "gtin": "5900516849870",
-    "price": 69.94
+    "price": 69.94346436000002
   },
   {
     "id": 337,
     "name": "Plastofilm banda adeziva 5cm x 5m a'8",
     "gtin": "5900516849856",
-    "price": 51.2
+    "price": 51.197287680000024
   },
   {
     "id": 338,
     "name": "Plastofilm banda adeziva 5cm x 9.14m a'6",
     "gtin": "5900516849887",
-    "price": 67.53
+    "price": 67.52849796000002
   },
   {
     "id": 339,
     "name": "Plastopore banda adeziva 2.5cm x 9.14 m a'12",
     "gtin": "5900516849726",
-    "price": 53.49
+    "price": 53.49150576000001
   },
   {
     "id": 340,
     "name": "Plastopore banda adeziva 5cm x 5 m a'12",
     "gtin": "5900516849702",
-    "price": 53.5
+    "price": 53.496
   },
   {
     "id": 341,
     "name": "Plastopore banda adeziva 5cm x 9.14 m a'6",
     "gtin": "5900516849733",
-    "price": 51.08
+    "price": 51.07653936000002
   },
   {
     "id": 342,
@@ -2118,13 +2089,13 @@
     "id": 344,
     "name": "Matodress bonete nesterile cu elastic a'100",
     "gtin": "5900516892234",
-    "price": 72.39
+    "price": 72.39456000000001
   },
   {
     "id": 345,
     "name": "Halat de vizitator/procedura nesteril, a'10",
     "gtin": "5900516894351",
-    "price": 56.0
+    "price": 55.9950732
   },
   {
     "id": 346,
@@ -2377,224 +2348,5 @@
     "name": "BOM hartie sterilizare standard MIX 1200x1200mm a'100",
     "gtin": "5900516947361",
     "price": null
-  },
-  {
-    "id": 900,
-    "name": "San Seni Normal",
-    "gtin": "",
-    "price": 17.11
-  },
-  {
-    "id": 901,
-    "name": "San Seni Uni",
-    "gtin": "5900516800680",
-    "price": 19.81
-  },
-  {
-    "id": 902,
-    "name": "San Seni Maxi",
-    "gtin": "5900516800703",
-    "price": 24.31
-  },
-  {
-    "id": 903,
-    "name": "San Seni Plus",
-    "gtin": "5900516800710",
-    "price": 27.9
-  },
-  {
-    "id": 904,
-    "name": "San Seni Normal 30",
-    "gtin": "5900516800734",
-    "price": 40.5
-  },
-  {
-    "id": 905,
-    "name": "San Seni Uni 30",
-    "gtin": "5900516800741",
-    "price": 50.41
-  },
-  {
-    "id": 906,
-    "name": "San Seni Maxi 30",
-    "gtin": "5900516800765",
-    "price": 65.71
-  },
-  {
-    "id": 907,
-    "name": "San Seni Plus 30",
-    "gtin": "5900516800772",
-    "price": 72.02
-  },
-  {
-    "id": 908,
-    "name": "Seni Man Super",
-    "gtin": "5900516802325",
-    "price": 2.8794
-  },
-  {
-    "id": 909,
-    "name": "Seni Man Normal",
-    "gtin": "5900516801663",
-    "price": 2.24952
-  },
-  {
-    "id": 910,
-    "name": "Seni Man Light",
-    "gtin": "5900516801656",
-    "price": 1.70946
-  },
-  {
-    "id": 911,
-    "name": "Seni Man Extra",
-    "gtin": "5900516801670",
-    "price": 3.2391
-  },
- 
-
-
-  {
-    "id": 941,
-    "name": "Ambulex manusi pentru examinare L nepudrate",
-    "gtin": "",
-    "price": 15.0,
-    "category": "🧤 Manusi🧤 "
-
-  },
-  {
-    "id": 942,
-    "name": "Ambulex manusi pentru examinare M nepudrate",
-    "gtin": "",
-    "price": 15.0,
-"category": "🧤 Manusi🧤"
-  },
-  {
-    "id": 943,
-    "name": "Ambulex manusi pentru examinare S nepudrate",
-    "gtin": "",
-    "price": 15.0,
-"category": "🧤 Manusi🧤"
-  },
-  {
-    "id": 944,
-    "name": "Ambulex manusi pentru examinare XL nepudrate",
-    "gtin": "",
-    "price": 15.0,
-"category": "🧤 Manusi🧤"
-  },
-  {
-    "id": 945,
-    "name": "Bella Cotton Betisoare din hartie cutie 200",
-    "gtin": "",
-    "price": 5.34
-  },
-  {
-    "id": 946,
-    "name": "Bella Herbs Panty Floare de tei Mixform a'60",
-    "gtin": "",
-    "price": 10.87
-  },
-  {
-    "id": 947,
-    "name": "Bella Herbs Panty Sensitive Patlagina a'60",
-    "gtin": "",
-    "price": 10.87
-  },
-  {
-    "id": 948,
-    "name": "Bella Herbs Sensitive Patlagina a'12",
-    "gtin": "",
-    "price": 4.85
-  },
-  {
-    "id": 949,
-    "name": "Bella Tampo Mini 16",
-    "gtin": "",
-    "price": 7.01
-  },
-  {
-    "id": 950,
-    "name": "Bella Tampo Regular 16",
-    "gtin": "",
-    "price": 7.01
-  },
-  {
-    "id": 951,
-    "name": "Bella Tampo Super 16",
-    "gtin": "",
-    "price": 7.01
-  },
-  {
-    "id": 952,
-    "name": "Bella Tampo Super Plus 16",
-    "gtin": "",
-    "price": 7.01
-  },
-  {
-    "id": 953,
-    "name": "Dischete demachiante 100",
-    "gtin": "",
-    "price": 5.51
-  },
-  {
-    "id": 954,
-    "name": "Happy Junior Extra scutece peste 16 kg 54 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 955,
-    "name": "Happy Junior scutece 12-25 kg 58 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 956,
-    "name": "Happy Maxi Plus scutece 9-20 kg 62 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 957,
-    "name": "Happy Maxi scutece 8-18 kg 66 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 958,
-    "name": "Happy Midi scutece 5-9 kg 72 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 959,
-    "name": "Happy Mini scutece 3-6 kg 78 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 960,
-    "name": "Happy Newborn scutece 2-5 kg 78 buc",
-    "gtin": "",
-    "price": 57.6
-  },
-  {
-    "id": 961,
-    "name": "Happy Pant Junior 11-18 kg 40 buc",
-    "gtin": "",
-    "price": 67.2
-  },
-  {
-    "id": 962,
-    "name": "Happy Pants Maxi 8-14 kg 44 buc",
-    "gtin": "",
-    "price": 67.2
-  },
-  {
-    "id": 963,
-    "name": "Happy catel batistute universale 100 buc",
-    "gtin": "",
-    "price": 7.0
   }
-
 ]

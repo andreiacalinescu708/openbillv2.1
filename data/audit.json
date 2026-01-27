@@ -350,5 +350,79 @@
       "afterQty": 30
     },
     "createdAt": "2025-12-23T18:08:21.792Z"
+  },
+  {
+    "id": "1766592627997",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1766592627990zg6x7yq8p1a",
+    "details": {
+      "productName": "ACTIVE/CHILOT - XL",
+      "lot": "1402455555",
+      "qty": 150
+    },
+    "createdAt": "2025-12-24T16:10:27.997Z"
+  },
+  {
+    "id": "1766592659061",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1766592627990zg6x7yq8p1a",
+    "details": {
+      "productName": "ACTIVE/CHILOT - XL",
+      "lot": "1402455555",
+      "beforeQty": 150,
+      "afterQty": 154
+    },
+    "createdAt": "2025-12-24T16:10:59.061Z"
+  },
+  {
+    "id": "1766593382830",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1766593382829hhh3sc8yea",
+    "details": {
+      "productName": "Lady SUPER",
+      "lot": "1402345285",
+      "qty": 72
+    },
+    "createdAt": "2025-12-24T16:23:02.830Z"
+  },
+  {
+    "id": "1766593414355",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "17663362497388awidpbcplg",
+    "details": {
+      "productName": "SUPER",
+      "lot": "1402345285",
+      "beforeQty": 27,
+      "afterQty": 28
+    },
+    "createdAt": "2025-12-24T16:23:34.355Z"
+  },
+  {
+    "id": "1769209462627",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "17692094626196eio0qwcz42",
+    "details": {
+      "productName": "Seni Soft Super– aleze igienice 90x60 a'30",
+      "lot": "1402436091",
+      "qty": 144
+    },
+    "createdAt": "2026-01-23T23:04:22.627Z"
+  },
+  {
+    "id": "1769461209549",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769461209542svzb2wbinx",
+    "details": {
+      "productName": "Seni Active Classic Medium 30",
+      "lot": "1402345285",
+      "qty": 120
+    },
+    "createdAt": "2026-01-26T21:00:09.549Z"
   }
 ]

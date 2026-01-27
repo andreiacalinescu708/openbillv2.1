@@ -1,66 +1,129 @@
-
 <!DOCTYPE html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Acasa</title>
+  <title>Acasă</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <div id="userBar"></div>
-
-<header class="topbar">
-  <div class="topbar-left">
-    <span class="brand">⚕️ Fast Medical Distribution</span>
-  </div>
-
-  <div class="topbar-center">
-    <!-- opțional: breadcrumb / titlu pagină -->
-  </div>
-
-  <div class="topbar-right">
-    <button id="btnToggleTheme" class="icon-btn">🌙</button>
-    <div id="userBar"></div>
-  </div>
-</header>
-
-
-
-
-
-<main class="container">
-  <div class="cards">
-
-    <a href="orders.html" class="card">
-      <h2>📦 Comenzi</h2>
-      <p>Vezi și filtrează comenzile existente</p>
-    </a>
-    
-
-    <a href="adauga_comanda.html" class="card">
-      <h2>➕ Adaugă comandă nouă</h2>
-      <p>Selectează client și produse</p>
-    </a>
-
-    <div class="card disabled">
-      <h2>👥 Administrare clienți</h2>
-      <p>În curând</p>
+  <header class="topbar">
+    <div class="left-actions">
+      <span class="brand-dot"></span>
+      <div class="brand">
+        <div class="brand-title">Fast Medical Distribution</div>
+        <div class="brand-sub">Panou principal</div>
+      </div>
     </div>
-    <button onclick="location.href='stock.html'">
-  📦 Recepționare Marfă
-</button>
-<button onclick="location.href='checkstock.html'">
-  📦 Inventar Stoc
-</button>
 
+    <div class="actions">
+      <button id="btnToggleTheme" class="iconbtn" title="Schimbă tema" aria-label="Schimbă tema">
+        🌙
+      </button>
+    </div>
+  </header>
 
+  <div id="userBar" class="user-bar"></div>
 
+  <main class="container">
+    <div class="hub">
+      <!-- DEPOZIT -->
+      <section class="hub-card">
+        <div class="hub-head">
+          <div class="hub-icon" aria-hidden="true">
+            <!-- warehouse icon -->
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 10.5L12 5l9 5.5v10.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M7 22V13h10v9" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M9 16h2M13 16h2M9 19h2M13 19h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h2>Depozit</h2>
+            <p>Recepție, stoc, comenzi</p>
+          </div>
+        </div>
 
-  </div>
-</main>
+        <div class="hub-actions">
+          <a class="hub-btn primary" href="stock.html">
+            Recepție marfă
+          </a>
+          <a class="hub-btn" href="checkstock.html">
+            Inventar stoc
+          </a>
+          <a class="hub-btn" href="orders.html">
+            Comenzi
+          </a>
+        </div>
+      </section>
 
-<script src="script.js"></script>
+      <!-- TEREN -->
+      <section class="hub-card">
+        <div class="hub-head">
+          <div class="hub-icon" aria-hidden="true">
+            <!-- route / field icon -->
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 20c4-7 8-7 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M4 6h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M6 6l2 8M18 6l-2 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M12 10v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h2>Teren</h2>
+            <p>Comenzi și prețuri</p>
+          </div>
+        </div>
+
+        <div class="hub-actions">
+          <a class="hub-btn primary" href="adauga_comanda.html">
+            Adaugă comandă
+          </a>
+          <a class="hub-btn disabled" href="#" onclick="return false;">
+          
+
+          </a>
+        </div>
+        <div class="hub-actions">
+          <a class="hub-btn primary" href="checkprice.html">
+            Produse Si Preturi
+          </a>
+          <a class="hub-btn disabled" href="#" onclick="return false;">
+          
+
+          </a>
+        </div>
+      </section>
+
+      <!-- BIROU -->
+      <section class="hub-card">
+        <div class="hub-head">
+          <div class="hub-icon" aria-hidden="true">
+            <!-- office/doc icon -->
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M14 3v4a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M8 12h8M8 16h8M8 20h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h2>Birou</h2>
+            <p>Exporturi & administrare</p>
+          </div>
+        </div>
+
+        <div class="hub-actions">
+          <a class="hub-btn disabled" href="#" onclick="return false;">
+            CSV / Import (în curând)
+          </a>
+          <a class="hub-btn disabled" href="#" onclick="return false;">
+            Administrare clienți (în curând)
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>

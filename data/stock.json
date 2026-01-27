@@ -5,7 +5,7 @@
     "productName": "ACTIVE/CHILOT - XL",
     "lot": "1402426349",
     "expiresAt": "2030-12-31",
-    "qty": 178,
+    "qty": 172,
     "createdAt": "2025-12-21T15:57:57.396Z"
   },
   {
@@ -14,7 +14,7 @@
     "productName": "SUPER",
     "lot": "1402345285",
     "expiresAt": "2030-04-30",
-    "qty": 30,
+    "qty": 28,
     "createdAt": "2025-12-21T16:57:29.738Z"
   },
   {
@@ -25,5 +25,41 @@
     "expiresAt": "2030-12-31",
     "qty": 22,
     "createdAt": "2025-12-22T21:19:16.075Z"
+  },
+  {
+    "id": "1766592627990zg6x7yq8p1a",
+    "productId": "4",
+    "productName": "ACTIVE/CHILOT - XL",
+    "lot": "1402455555",
+    "expiresAt": "2030-12-31",
+    "qty": 154,
+    "createdAt": "2025-12-24T16:10:27.990Z"
+  },
+  {
+    "id": "1766593382829hhh3sc8yea",
+    "productId": "36",
+    "productName": "Lady SUPER",
+    "lot": "1402345285",
+    "expiresAt": "2030-04-30",
+    "qty": 72,
+    "createdAt": "2025-12-24T16:23:02.829Z"
+  },
+  {
+    "id": "17692094626196eio0qwcz42",
+    "productId": "247",
+    "productName": "Seni Soft Super– aleze igienice 90x60 a'30",
+    "lot": "1402436091",
+    "expiresAt": "2031-01-31",
+    "qty": 144,
+    "createdAt": "2026-01-23T23:04:22.619Z"
+  },
+  {
+    "id": "1769461209542svzb2wbinx",
+    "productId": "172",
+    "productName": "Seni Active Classic Medium 30",
+    "lot": "1402345285",
+    "expiresAt": "2030-04-30",
+    "qty": 120,
+    "createdAt": "2026-01-26T21:00:09.542Z"
   }
 ]

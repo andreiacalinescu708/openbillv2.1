@@ -110,23 +110,35 @@ function flattenClientsTree(tree) {
 
 function flattenProductsTree(tree) {
   const out = [];
-  let id = 1;
 
   function walk(node, pathArr) {
     if (Array.isArray(node)) {
       node.forEach(item => {
         if (!item || !item.name) return;
 
-        out.push({
-          id: id++,
-          name: item.name,
-          gtin: item.gtin || "",
-          price: item.price ?? null,
-          path: pathArr.join(" / "),
-          category: pathArr[0] || "",
-          subcategory: pathArr[1] || "",
-          subsubcategory: pathArr[2] || ""
-        });
+        // IMPORTANT: luăm id-ul din products.json
+        if (!item.id) {
+          console.warn("Produs fără id:", item.name);
+          return; // sau throw, dacă vrei să fie obligatoriu
+        }
+
+        const pathStr = pathArr.join(" / ");
+
+out.push({
+  id: String(item.id),
+  name: item.name,
+  gtin: item.gtin || "",
+  price: item.price ?? null,
+
+  // dacă nu ai path în tree, fă path din category
+  path: pathStr || `Produse / ${item.category || "Altele"}`,
+
+  // ✅ PRIORITAR: category din produs (listă)
+  category: item.category || pathArr[0] || "",
+  subcategory: item.subcategory || pathArr[1] || "",
+  subsubcategory: item.subsubcategory || pathArr[2] || ""
+});
+
       });
       return;
     }
@@ -141,6 +153,7 @@ function flattenProductsTree(tree) {
   walk(tree, []);
   return out;
 }
+
 
 function allocateStockFEFO(stock, productId, neededQty) {
   // filtrăm stocul pentru produs
@@ -214,24 +227,112 @@ function buildClientsFlatFromFlat(flat) {
       id: c.id,
       name: c.name,
       group: c.group,
-      path: `${c.group} / ${c.category}`
+      path: `${c.group} / ${c.category}`,
+      prices: c.prices || {} // ✅ IMPORTANT
     }));
 }
 
 
 
+function readProductsAsList() {
+  const data = readJson(PRODUCTS_FILE, []);
+
+  // ✅ dacă e deja listă (cum ai tu acum)
+  if (Array.isArray(data)) return data;
+
+  // ✅ dacă e vechiul format tree
+  if (data && typeof data === "object") {
+    return flattenProductsTree(data);
+  }
+
+  return [];
+}
+
 
 // ----- API PRODUCTS -----
 app.get("/api/products-tree", (req, res) => {
-  const tree = readJson(PRODUCTS_FILE, {});
-  res.json(tree);
+  const list = readProductsAsList();
+  const CATEGORY_ORDER = [
+  "Seni Active Classic x30",
+  "Seni Classic Air x30",
+  "Seni Aleze x30",
+  "Seni Lady",
+  "Manusi",
+  "Altele"
+];
+
+
+  const treeByCategory = {};
+
+  list.forEach(p => {
+    const cat = (p.category || "Altele").trim();
+    if (!treeByCategory[cat]) treeByCategory[cat] = [];
+
+    // renderTree din frontend folosește item.name
+    treeByCategory[cat].push({ name: p.name });
+  });
+function sizeRank(name) {
+  const n = String(name || "").toLowerCase();
+
+  if (n.includes("small") || n.includes(" s ")) return 1;
+  if (n.includes("medium") || n.includes(" m ")) return 2;
+  if (n.includes("large") || n.includes(" l ")) return 3;
+  if (n.includes("xl") || n.includes("x-large") || n.includes("extra large")) return 4;
+
+  return 999; // fără mărime → la final
+}
+
+  // sortare produse în fiecare categorie
+  Object.keys(treeByCategory).forEach(cat => {
+    treeByCategory[cat].sort((a, b) => a.name.localeCompare(b.name, "ro"));
+  });
+
+  // sortare categorii
+ const sorted = {};
+
+CATEGORY_ORDER.forEach(cat => {
+  if (treeByCategory[cat]) {
+    sorted[cat] = treeByCategory[cat];
+  }
 });
 
+// 🔁 adăugăm orice categorie care NU e în listă
+Object.keys(treeByCategory).forEach(cat => {
+  if (!sorted[cat]) {
+    sorted[cat] = treeByCategory[cat];
+  }
+});
+
+
+
+res.json(sorted);
+});
+
+
+
 app.get("/api/products-flat", (req, res) => {
-  const tree = readJson(PRODUCTS_FILE, {});
-  const flat = flattenProductsTree(tree);
+  const data = readJson(PRODUCTS_FILE, []);
+
+  // dacă e listă, returneaz-o direct (cu path fallback)
+  if (Array.isArray(data)) {
+    return res.json(
+      data.map(p => ({
+        ...p,
+        id: String(p.id),
+        path: p.path && String(p.path).trim()
+          ? p.path
+          : `Produse / ${p.category || "Altele"}`
+      }))
+    );
+  }
+
+  // altfel, e vechiul tree
+  const flat = flattenProductsTree(data);
   res.json(flat);
 });
+
+
+
 
 // ----- API ORDERS -----
 app.get("/api/orders", (req, res) => {

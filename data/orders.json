@@ -17,7 +17,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare"
+    "status": "livrata"
   },
   {
     "id": "1765833610346",
@@ -247,7 +247,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare"
+    "status": "livrata"
   },
   {
     "id": "1765744696281",
@@ -359,7 +359,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare"
+    "status": "livrata"
   },
   {
     "id": "1765744469272",
@@ -492,7 +492,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare"
+    "status": "livrata"
   },
   {
     "id": "1765735413143",
@@ -961,7 +961,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare"
+    "status": "livrata"
   },
   {
     "id": "1765729167593",
@@ -1741,7 +1741,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-15T22:40:11.289Z"
   },
   {
@@ -1863,7 +1863,7 @@
         "allocations": []
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-17T19:15:35.159Z"
   },
   {
@@ -2370,7 +2370,7 @@
         ]
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-22T22:05:57.657Z"
   },
   {
@@ -2435,7 +2435,7 @@
         ]
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-22T22:06:38.409Z"
   },
   {
@@ -2474,7 +2474,7 @@
         ]
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-22T22:16:35.289Z"
   },
   {
@@ -2513,7 +2513,7 @@
         ]
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-22T22:22:24.364Z"
   },
   {
@@ -2552,7 +2552,7 @@
         ]
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-23T16:38:32.416Z"
   },
   {
@@ -2591,7 +2591,72 @@
         ]
       }
     ],
-    "status": "in_procesare",
+    "status": "livrata",
     "createdAt": "2025-12-23T18:08:04.091Z"
+  },
+  {
+    "id": "1766592721939",
+    "client": {
+      "id": "CL068",
+      "name": "Viorica Petrila",
+      "group": "Exterior",
+      "path": "Exterior / HD"
+    },
+    "items": [
+      {
+        "productId": 4,
+        "name": "ACTIVE/CHILOT - XL",
+        "price": 93.57,
+        "qty": 2,
+        "allocations": [
+          {
+            "lot": "1402426349",
+            "expiresAt": "2030-12-31",
+            "qty": 2
+          }
+        ]
+      },
+      {
+        "productId": 36,
+        "name": "Lady SUPER",
+        "price": 14.4,
+        "qty": 3,
+        "allocations": [
+          {
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "qty": 3
+          }
+        ]
+      }
+    ],
+    "status": "livrata",
+    "createdAt": "2025-12-24T16:12:01.939Z"
+  },
+  {
+    "id": "1766593291999",
+    "client": {
+      "id": "CL001",
+      "name": "Iasomie Turceni",
+      "group": "Exterior",
+      "path": "Exterior / Targu Jiu"
+    },
+    "items": [
+      {
+        "productId": 4,
+        "name": "ACTIVE/CHILOT - XL",
+        "price": 93.57,
+        "qty": 4,
+        "allocations": [
+          {
+            "lot": "1402426349",
+            "expiresAt": "2030-12-31",
+            "qty": 4
+          }
+        ]
+      }
+    ],
+    "status": "livrata",
+    "createdAt": "2025-12-24T16:21:31.999Z"
   }
 ]

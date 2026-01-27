@@ -326,7 +326,9 @@ function isObject(v) {
   return v && typeof v === "object" && !Array.isArray(v);
 }
 
-function renderTree(obj, onClick) {
+function renderTree(obj, onClick, opts = {}) {
+  const { accordion = true } = opts;
+
   const box = document.createElement("div");
 
   if (Array.isArray(obj)) {
@@ -344,26 +346,132 @@ function renderTree(obj, onClick) {
         return;
       }
 
-      const b = document.createElement("button");
-      b.className = "itembtn";
-      b.textContent = label;
-      b.onclick = () => onClick(value);
-      box.appendChild(b);
+     const b = document.createElement("button");
+b.className = "itembtn";
+
+const lower = String(label || "").toLowerCase();
+
+// 🎨 doar pentru Aleze
+if (lower.includes("aleze")) {
+  if (lower.includes("soft super")) b.classList.add("aleze-super");
+  else if (lower.includes("soft normal")) b.classList.add("aleze-normal");
+  else if (lower.includes("soft basic")) b.classList.add("aleze-basic");
+}
+
+b.textContent = label;
+b.onclick = () => onClick(value);
+box.appendChild(b);
+
     });
     return box;
   }
 
-  if (obj && typeof obj === "object") {
-    Object.keys(obj).forEach(k => {
+ if (obj && typeof obj === "object") {
+  Object.keys(obj).forEach(k => {
+
+    // ✅ dacă accordion e dezactivat: afișare simplă cu <h4>
+    if (!accordion) {
       const h = document.createElement("h4");
       h.textContent = k;
       box.appendChild(h);
-      box.appendChild(renderTree(obj[k], onClick));
-    });
-  }
+      box.appendChild(renderTree(obj[k], onClick, opts));
+      return;
+    }
+
+    // ✅ accordion ON (produse)
+    const head = document.createElement("button");
+    head.type = "button";
+    head.className = "accHead";
+    head.textContent = k;
+
+    const body = document.createElement("div");
+    body.className = "accBody";
+    body.style.display = "none";
+
+    body.appendChild(renderTree(obj[k], onClick, opts));
+
+    head.onclick = () => {
+      const open = body.style.display !== "none";
+      body.style.display = open ? "none" : "block";
+      head.classList.toggle("open", !open);
+    };
+
+    box.appendChild(head);
+    box.appendChild(body);
+  });
+}
+
+
 
   return box;
 }
+
+async function initCheckPricePage() {
+  const box = document.getElementById("productsList");
+  const search = document.getElementById("productsSearch");
+  if (!box) return;
+
+  const res = await apiFetch("/api/products-flat");
+  const products = await res.json();
+
+  function render(list) {
+    const sorted = [...list].sort((a, b) =>
+      String(a.name).localeCompare(String(b.name), "ro")
+    );
+
+    box.innerHTML = "";
+
+    if (!sorted.length) {
+      box.innerHTML = "<p class='hint'>Nu există produse.</p>";
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Produs</th>
+          <th style="text-align:right; padding:10px; border-bottom:1px solid #eee;">Preț listă (RON)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    sorted.forEach(p => {
+      const price = Number(p.price || 0);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="padding:10px; border-bottom:1px solid #f3f3f3;">${p.name}</td>
+        <td style="padding:10px; border-bottom:1px solid #f3f3f3; text-align:right;">
+          <strong>${price.toFixed(2)}</strong>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    box.appendChild(table);
+  }
+
+  render(products);
+
+  if (search) {
+    search.addEventListener("input", () => {
+      const q = search.value.toLowerCase().trim();
+      if (!q) return render(products);
+
+      render(products.filter(p =>
+        String(p.name || "").toLowerCase().includes(q)
+      ));
+    });
+  }
+}
+
 
 
 // ================= ADAUGA_COMANDA.HTML =================
@@ -378,14 +486,19 @@ async function initAddClientPage() {
   const flat = await fetch("/api/clients-flat").then(r => r.json());
 
   // 🌳 afișăm arborele de clienți
-  treeBox.appendChild(
-    renderTree(tree, name => {
+ treeBox.appendChild(
+  renderTree(
+    tree,
+    name => {
       const client = flat.find(c => c.name === name);
       if (client && setSelectedClient(client)) {
         location.href = "comanda.html";
       }
-    })
-  );
+    },
+    { accordion: false } // ✅ aici e locul
+  )
+);
+
 
   // 🔎 SEARCH LIVE CLIENTI
   searchInput.addEventListener("input", () => {
@@ -814,6 +927,132 @@ async function initStockPage() {
   const prodSel = document.getElementById("stockProduct");
   const list = document.getElementById("stockList");
   const qrInput = document.getElementById("qrInput");
+  // ===== QR POPUP + CAMERA SCAN =====
+let qrStream = null;
+let qrScanTimer = null;
+
+function openQrModal() {
+  const modal = document.getElementById("qrModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+
+  const scannerBox = document.getElementById("qrScannerBox");
+  if (scannerBox) scannerBox.style.display = "none";
+}
+
+function stopQrScan() {
+  if (qrScanTimer) {
+    clearInterval(qrScanTimer);
+    qrScanTimer = null;
+  }
+  if (qrStream) {
+    qrStream.getTracks().forEach(t => t.stop());
+    qrStream = null;
+  }
+  const video = document.getElementById("qrVideo");
+  if (video) video.srcObject = null;
+}
+
+function closeQrModal() {
+  stopQrScan();
+  const modal = document.getElementById("qrModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function startQrScan() {
+  const msg = document.getElementById("qrScanMsg");
+  const scannerBox = document.getElementById("qrScannerBox");
+  const video = document.getElementById("qrVideo");
+
+  if (!scannerBox || !video) return;
+
+  scannerBox.style.display = "block";
+  if (msg) msg.textContent = "Pornește camera...";
+
+  if (!("BarcodeDetector" in window)) {
+    if (msg) msg.textContent = "Browserul nu suportă scanare QR automată. Alege 'Introdu manual'.";
+    return;
+  }
+
+  const detector = new BarcodeDetector({ formats: ["qr_code"] });
+
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false
+    });
+
+    video.srcObject = qrStream;
+    await video.play();
+
+    if (msg) msg.textContent = "Scanează QR-ul...";
+
+    qrScanTimer = setInterval(async () => {
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes && barcodes.length) {
+          const val = barcodes[0].rawValue || "";
+          if (val) {
+            qrInput.value = val;
+
+            // declanșează logica ta existentă din change
+            qrInput.dispatchEvent(new Event("change"));
+
+            closeQrModal();
+          }
+        }
+      } catch {}
+    }, 250);
+
+  } catch (e) {
+    if (msg) msg.textContent = "Nu am acces la cameră. Verifică permisiunile.";
+  }
+}
+
+// la tap/click în input -> deschidem popup
+if (qrInput) {
+ qrInput.addEventListener("pointerdown", (e) => {
+  e.preventDefault();   // oprește focus automat -> nu apare tastatura
+  openQrModal();
+});
+
+}
+
+// butoane modal
+const btnScanCamera = document.getElementById("btnScanCamera");
+const btnManualQr = document.getElementById("btnManualQr");
+const btnStopScan = document.getElementById("btnStopScan");
+const btnClose1 = document.getElementById("btnCloseQrModal");
+const btnClose2 = document.getElementById("btnCloseQrModal2");
+
+if (btnScanCamera) btnScanCamera.onclick = startQrScan;
+
+if (btnManualQr) btnManualQr.onclick = () => {
+  closeQrModal();
+
+  // IMPORTANT: unele telefoane au nevoie de delay + focus clar
+  setTimeout(() => {
+    if (!qrInput) return;
+
+    qrInput.removeAttribute("readonly"); // dacă ai pus vreodată readonly
+    qrInput.focus();
+    qrInput.click(); // ajută la ridicarea tastaturii pe unele Android
+  }, 150);
+};
+
+
+if (btnStopScan) btnStopScan.onclick = stopQrScan;
+if (btnClose1) btnClose1.onclick = closeQrModal;
+if (btnClose2) btnClose2.onclick = closeQrModal;
+
+// click pe fundal => închide
+const modal = document.getElementById("qrModal");
+if (modal) {
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeQrModal();
+  });
+}
+
 
   if (!prodSel || !list) return;
 
@@ -1107,6 +1346,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("clientsTree")) initAddClientPage();
   if (document.getElementById("productsTree")) initOrderPage();
   if (document.getElementById("ordersList")) initOrdersPage();
+if (document.getElementById("productsList")) initCheckPricePage();
+
 
   initViewCurrentOrderButton();
 });
