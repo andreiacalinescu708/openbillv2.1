@@ -2658,5 +2658,63 @@
     ],
     "status": "livrata",
     "createdAt": "2025-12-24T16:21:31.999Z"
+  },
+  {
+    "id": "1769549861802",
+    "client": {
+      "id": "CL004",
+      "name": "Gidea FARM",
+      "group": "Exterior",
+      "path": "Exterior / Tg Jiu",
+      "prices": {}
+    },
+    "items": [
+      {
+        "productId": "274",
+        "name": "Matopat Universal plasturi a'20",
+        "price": 4.75,
+        "qty": 5,
+        "allocations": [
+          {
+            "stockId": "1769549458993fc39nxckd2s",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "A",
+            "qty": 5
+          }
+        ]
+      }
+    ],
+    "status": "livrata",
+    "createdAt": "2026-01-27T21:37:41.802Z"
+  },
+  {
+    "id": "1769549905994",
+    "client": {
+      "id": "CL004",
+      "name": "Gidea FARM",
+      "group": "Exterior",
+      "path": "Exterior / Tg Jiu",
+      "prices": {}
+    },
+    "items": [
+      {
+        "productId": "274",
+        "name": "Matopat Universal plasturi a'20",
+        "price": 4.75,
+        "qty": 7,
+        "allocations": [
+          {
+            "stockId": "1769549456581isnx9uc9h8i",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "A",
+            "qty": 7
+          }
+        ]
+      }
+    ],
+    "status": "in_procesare",
+    "createdAt": "2026-01-27T21:38:25.994Z"
   }
 ]

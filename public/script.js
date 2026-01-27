@@ -583,6 +583,8 @@ stockMap[s.productId] =
     location.href = "index.html";
   };
 }
+const tree = await fetch("/api/products-tree").then(r => r.json());
+  const flat = await fetch("/api/products-flat").then(r => r.json());
 
 
 
@@ -619,9 +621,7 @@ if (searchInput && resultsBox) {
     title.textContent = `Client: ${client.name}`;
   }
 
-  const tree = await fetch("/api/products-tree").then(r => r.json());
-  const flat = await fetch("/api/products-flat").then(r => r.json());
-
+  
   treeBox.innerHTML = "";
   treeBox.appendChild(
     renderTree(tree, name => {
@@ -794,12 +794,16 @@ o.items.forEach(i => {
   if (Array.isArray(i.allocations) && i.allocations.length > 0) {
     html += `<div class="lots">`;
     i.allocations.forEach(a => {
-      html += `
-        <div class="lot">
-          LOT: ${a.lot} | EXP: ${a.expiresAt} | Qty: ${a.qty}
-        </div>
-      `;
-    });
+  html += `
+    <div class="lot">
+      LOC: <strong>${a.location || "-"}</strong>
+      | LOT: ${a.lot}
+      | EXP: ${a.expiresAt}
+      | Qty: ${a.qty}
+    </div>
+  `;
+});
+
     html += `</div>`;
   }
 
@@ -887,15 +891,7 @@ o.items.forEach(i => {
 
   render();
 }
-function sanitizeGS1(raw) {
-  const GS = String.fromCharCode(29); // FNC1 / Group Separator
-  return String(raw || "")
-    .replace(/\u0000/g, "")                 // NULL
-    .replace(/\u200B/g, "")                 // zero-width space
-    .replace(new RegExp(GS, "g"), "")       // scoate GS (în cazul tău e ok)
-    .replace(/[\r\n\t ]+/g, "")             // whitespace
-    .trim();
-}
+
 
 function yymmddToISO(v) {
   v = String(v || "").trim();
@@ -1208,6 +1204,8 @@ qrInput.addEventListener("input", () => {
     const lot = document.getElementById("stockLot").value.trim();
     const expiresAt = document.getElementById("stockExpire").value;
     const qty = document.getElementById("stockQty").value;
+const stockLocation = document.getElementById("stockLocation").value;
+
 
     if (!productId || !lot || !expiresAt || !qty) {
       alert("Completează toate câmpurile");
@@ -1217,10 +1215,19 @@ qrInput.addEventListener("input", () => {
     await fetch("/api/stock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, productName, lot, expiresAt, qty })
+    body: JSON.stringify({
+  productId,
+  productName,
+  lot,
+  expiresAt,
+  qty,
+  location: stockLocation
+})
+
+
     });
 
-    location.reload();
+window.location.reload();
   };
 }
 async function initInventoryPage() {
@@ -1298,13 +1305,21 @@ header.innerHTML = `
         const row = document.createElement("div");
         row.className = "inventory-lot";
 
-        row.innerHTML = `
-          LOT: ${lot.lot} | EXP: ${lot.expiresAt}
-          Qty:
-          <input type="number" value="${lot.qty}" id="qty-${lot.id}">
-          <button class="btnSave" data-id="${lot.id}">💾</button>
-          <button class="btnDelete" data-id="${lot.id}">🗑</button>
-        `;
+       row.innerHTML = `
+  LOT: ${lot.lot} | EXP: ${lot.expiresAt}
+  <br/>
+  Locație:
+  <select id="loc-${lot.id}">
+    ${["A","B","C","R1","R2","R3"].map(x =>
+      `<option value="${x}" ${String(lot.location||"A")===x ? "selected":""}>${x}</option>`
+    ).join("")}
+  </select>
+  Qty:
+  <input type="number" value="${lot.qty}" id="qty-${lot.id}">
+  <button class="btnSave" data-id="${lot.id}">💾</button>
+  <button class="btnDelete" data-id="${lot.id}">🗑</button>
+`;
+
 
         details.appendChild(row);
       });
@@ -1322,12 +1337,14 @@ header.innerHTML = `
       btn.onclick = async () => {
         const id = btn.dataset.id;
         const qty = document.getElementById(`qty-${id}`).value;
+const location = document.getElementById(`loc-${id}`).value;
 
-        await apiFetch(`/api/stock/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ qty })
-        });
+await apiFetch(`/api/stock/${id}`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ qty, location })
+});
+
 
         loadStock();
       };
@@ -1365,7 +1382,8 @@ function renderStock(stock) {
     const row = document.createElement("div");
     row.className = "stockRow";
     row.textContent =
-      `${s.productName} | LOT: ${s.lot} | Exp: ${s.expiresAt} | Qty: ${s.qty}`;
+  `${s.productName} | LOC: ${s.location || "-"} | LOT: ${s.lot} | Exp: ${s.expiresAt} | Qty: ${s.qty}`;
+
     list.appendChild(row);
   });
 }

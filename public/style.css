@@ -690,3 +690,19 @@ body.dark .hub-btn:hover {
   background: #000;
   border-radius: 12px;
 }
+body::after{
+  content: "by Andrei Calinescu\A 0771 123 522";
+  position: fixed;
+  right: 10px;
+  bottom: 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: pre;
+  opacity: 0.35;
+  pointer-events: none; /* nu blochează click-uri */
+  z-index: 999999;
+}
+
+@media print {
+  body::after { display: none; }
+}

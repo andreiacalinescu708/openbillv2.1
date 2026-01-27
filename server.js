@@ -30,6 +30,8 @@ const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
 const PRODUCTS_FILE = path.join(DATA_DIR, "products.json");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
+const STOCK_FILE = path.join(DATA_DIR, "stock.json");
+
 
 
 function readJson(filePath, fallback) {
@@ -155,37 +157,49 @@ out.push({
 }
 
 
-function allocateStockFEFO(stock, productId, neededQty) {
-  // filtrăm stocul pentru produs
+const LOCATION_ORDER = ["A", "B", "C", "R1", "R2", "R3"];
+
+function locRank(loc) {
+  const i = LOCATION_ORDER.indexOf(String(loc || "").toUpperCase());
+  return i === -1 ? 999 : i;
+}
+
+function allocateStockByLocation(stock, productId, neededQty) {
   const lots = stock
-   .filter(s => String(s.productId) === String(productId) && Number(s.qty) > 0)
+    .filter(s => String(s.productId) === String(productId) && Number(s.qty) > 0)
+    .sort((a, b) => {
+      // 1) prioritate locație
+      const r = locRank(a.location) - locRank(b.location);
+      if (r !== 0) return r;
 
-    .sort((a, b) => new Date(a.expiresAt) - new Date(b.expiresAt));
+      // 2) tie-breaker: expirare (opțional, ca să fie stabil)
+      return new Date(a.expiresAt) - new Date(b.expiresAt);
+    });
 
-  let remaining = neededQty;
+  let remaining = Number(neededQty);
   const allocated = [];
 
   for (const lot of lots) {
     if (remaining <= 0) break;
 
-    const takeQty = Math.min(lot.qty, remaining);
+    const takeQty = Math.min(Number(lot.qty), remaining);
 
     allocated.push({
+      stockId: lot.id,
       lot: lot.lot,
       expiresAt: lot.expiresAt,
+      location: lot.location || "A",  // ✅ util în UI
       qty: takeQty
     });
 
-    lot.qty -= takeQty;     // 🔴 scădem stocul
+    lot.qty = Number(lot.qty) - takeQty;
     remaining -= takeQty;
   }
 
-  if (remaining > 0) {
-    throw new Error("Stoc insuficient");
-  }
-
+  if (remaining > 0) throw new Error("Stoc insuficient");
   return allocated;
 }
+
 
 
 
@@ -453,11 +467,8 @@ app.post("/api/orders", (req, res) => {
 
 for (const item of items) {
   try {
-    const allocations = allocateStockFEFO(
-      stock,
-      item.id,
-      item.qty
-    );
+   const allocations = allocateStockByLocation(stock, item.id, item.qty);
+
 
     if (!itemsMap[item.id]) {
       itemsMap[item.id] = {
@@ -522,7 +533,6 @@ app.post("/api/orders/:id/status", (req, res) => {
 
   res.json({ ok: true });
 });
-const STOCK_FILE = path.join(DATA_DIR, "stock.json");
 
 // GET stock
 app.get("/api/stock", (req, res) => {
@@ -534,15 +544,17 @@ app.get("/api/stock", (req, res) => {
 app.post("/api/stock", (req, res) => {
   const stock = readJson(STOCK_FILE, []);
 
-  const entry = {
-    id: Date.now().toString() + Math.random().toString(36).slice(2),
-    productId: req.body.productId,
-    productName: req.body.productName,
-    lot: req.body.lot,
-    expiresAt: req.body.expiresAt,
-    qty: Number(req.body.qty),
-    createdAt: new Date().toISOString()
-  };
+ const entry = {
+  id: Date.now().toString() + Math.random().toString(36).slice(2),
+  productId: req.body.productId,
+  productName: req.body.productName,
+  lot: req.body.lot,
+  expiresAt: req.body.expiresAt,
+  qty: Number(req.body.qty),
+  location: req.body.location || "A",   // ✅ NOU
+  createdAt: new Date().toISOString()
+};
+
 
   stock.push(entry);
   writeJson(STOCK_FILE, stock);
@@ -566,15 +578,21 @@ app.put("/api/stock/:id", (req, res) => {
     return res.status(404).json({ error: "Intrare stoc inexistentă" });
   }
 
-  const beforeQty = item.qty;
-  item.qty = Number(req.body.qty);
+ const beforeQty = item.qty;
+const beforeLoc = item.location || "A";
 
-  logAudit("STOCK_EDIT", "stock", item.id, {
-    productName: item.productName,
-    lot: item.lot,
-    beforeQty,
-    afterQty: item.qty
-  });
+if (req.body.qty != null) item.qty = Number(req.body.qty);
+if (req.body.location != null) item.location = String(req.body.location);
+
+logAudit("STOCK_EDIT", "stock", item.id, {
+  productName: item.productName,
+  lot: item.lot,
+  beforeQty,
+  afterQty: item.qty,
+  beforeLoc,
+  afterLoc: item.location
+});
+
 
   writeJson(STOCK_FILE, stock);
 

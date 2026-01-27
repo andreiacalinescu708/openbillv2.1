@@ -49,6 +49,16 @@
     <input id="stockExpire" type="date" />
 
     <label>Cantitate</label>
+    <label>Locație</label>
+<select id="stockLocation">
+  <option value="A">A</option>
+  <option value="B">B</option>
+  <option value="C">C</option>
+  <option value="R1">R1</option>
+  <option value="R2">R2</option>
+  <option value="R3">R3</option>
+</select>
+
     <input id="stockQty" type="number" min="1" />
 
     <button id="btnAddStock">➕ Adaugă în stoc</button>
@@ -68,7 +78,14 @@
       <button type="button" id="btnCloseScan" class="btn">✖</button>
     </div>
 
-    <video id="scanVideo" playsinline muted style="width:100%; border-radius:12px; background:#000; margin-top:10px;"></video>
+   <video
+  id="scanVideo"
+  autoplay
+  playsinline
+  muted
+  style="width:100%; border-radius:12px; background:#000; margin-top:10px;">
+</video>
+
 
     <p style="margin-top:10px; color:#666;">
       Țintește codul (DataMatrix/QR). După citire se închide automat.

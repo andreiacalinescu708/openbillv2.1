@@ -448,5 +448,222 @@
       "qty": 123
     },
     "createdAt": "2026-01-27T19:12:18.714Z"
+  },
+  {
+    "id": "1769549456584",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549456581isnx9uc9h8i",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:30:56.584Z"
+  },
+  {
+    "id": "1769549458995",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549458993fc39nxckd2s",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:30:58.995Z"
+  },
+  {
+    "id": "1769549459475",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549459473o4ty8yki5m",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:30:59.475Z"
+  },
+  {
+    "id": "1769549459692",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "17695494596905btkkgt8fk",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:30:59.692Z"
+  },
+  {
+    "id": "1769549459911",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549459909j4jgnx4w22d",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:30:59.911Z"
+  },
+  {
+    "id": "1769549460160",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549460158r52w401m4g",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:00.160Z"
+  },
+  {
+    "id": "1769549463573",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549463571a794fc0zrci",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:03.573Z"
+  },
+  {
+    "id": "1769549468405",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "17695494684048e6dfu8o9sc",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:08.405Z"
+  },
+  {
+    "id": "1769549472882",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549472880d9bpr7b0tzr",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:12.882Z"
+  },
+  {
+    "id": "1769549476436",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549476434cgndngflmy7",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:16.436Z"
+  },
+  {
+    "id": "1769549476836",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549476834on9bnwr11m8",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:16.836Z"
+  },
+  {
+    "id": "1769549477040",
+    "action": "STOCK_ADD",
+    "entity": "stock",
+    "entityId": "1769549477039zginxkpphen",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:31:17.040Z"
+  },
+  {
+    "id": "1769549813248",
+    "action": "STOCK_DELETE",
+    "entity": "stock",
+    "entityId": "1769549477039zginxkpphen",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "expiresAt": "2030-04-30",
+      "qty": 243
+    },
+    "createdAt": "2026-01-27T21:36:53.248Z"
+  },
+  {
+    "id": "1769549831297",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1769549456581isnx9uc9h8i",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "beforeQty": 243,
+      "afterQty": 243,
+      "beforeLoc": "A",
+      "afterLoc": "B"
+    },
+    "createdAt": "2026-01-27T21:37:11.297Z"
+  },
+  {
+    "id": "1769549843851",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1769549459473o4ty8yki5m",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "beforeQty": 243,
+      "afterQty": 243,
+      "beforeLoc": "A",
+      "afterLoc": "C"
+    },
+    "createdAt": "2026-01-27T21:37:23.852Z"
+  },
+  {
+    "id": "1769549889523",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1769549456581isnx9uc9h8i",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "beforeQty": 243,
+      "afterQty": 243,
+      "beforeLoc": "B",
+      "afterLoc": "A"
+    },
+    "createdAt": "2026-01-27T21:38:09.523Z"
+  },
+  {
+    "id": "1769549894575",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1769549458993fc39nxckd2s",
+    "details": {
+      "productName": "Matopat Universal plasturi a'20",
+      "lot": "1402345285",
+      "beforeQty": 238,
+      "afterQty": 238,
+      "beforeLoc": "A",
+      "afterLoc": "B"
+    },
+    "createdAt": "2026-01-27T21:38:14.575Z"
   }
 ]
