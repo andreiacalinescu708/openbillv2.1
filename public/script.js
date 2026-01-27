@@ -888,27 +888,81 @@ o.items.forEach(i => {
   render();
 }
 
-function parseGS1(qr) {
+function parseGS1(input) {
+  const s = String(input || "").trim();
   const out = {};
-  const regex = /\((\d{2})\)([^()]+)/g;
-  let m;
 
-  while ((m = regex.exec(qr)) !== null) {
-    const ai = m[1];
-    const val = m[2];
+  // helper: YYMMDD -> YYYY-MM-DD
+  const yymmddToISO = (val6) =>
+    "20" + val6.slice(0, 2) + "-" + val6.slice(2, 4) + "-" + val6.slice(4, 6);
 
-    if (ai === "01") out.gtin = val.trim();
-    if (ai === "17") {
-      out.expiresAt =
-        "20" + val.slice(0, 2) + "-" +
-        val.slice(2, 4) + "-" +
-        val.slice(4, 6);
+  // 1) Varianta cu paranteze: (01)....(17)....(10)....(11)....
+  if (s.includes("(")) {
+    const regex = /\((\d{2})\)([^()]+)/g;
+    let m;
+
+    while ((m = regex.exec(s)) !== null) {
+      const ai = m[1];
+      const val = String(m[2] || "").trim();
+
+      if (ai === "01") out.gtin = val;
+      else if (ai === "17") out.expiresAt = yymmddToISO(val.slice(0, 6));
+      else if (ai === "10") out.lot = val;
+      else if (ai === "11") {
+        // data fabricației – IGNORĂM
+      }
+      // alte AI-uri -> ignorăm
     }
-    if (ai === "10") out.lot = val.trim();
+
+    return out;
+  }
+
+  // 2) Varianta numerică: 01 + GTIN(14) + 17 + YYMMDD + 11 + YYMMDD + 10 + LOT...
+  const digits = s.replace(/\D/g, "");
+  let i = 0;
+
+  function readAI() {
+    const ai = digits.slice(i, i + 2);
+    i += 2;
+    return ai;
+  }
+
+  while (i + 2 <= digits.length) {
+    const ai = readAI();
+
+    if (ai === "01") {
+      out.gtin = digits.slice(i, i + 14);
+      i += 14;
+      continue;
+    }
+
+    if (ai === "17") {
+      const val = digits.slice(i, i + 6);
+      i += 6;
+      out.expiresAt = yymmddToISO(val);
+      continue;
+    }
+
+    if (ai === "11") {
+      // fabricație YYMMDD -> o sărim
+      i += 6;
+      continue;
+    }
+
+    if (ai === "10") {
+      // LOT variabil -> îl luăm până la final
+      out.lot = digits.slice(i);
+      break;
+    }
+
+    // AI necunoscut:
+    // ca să nu stricăm parse-ul, ieșim (sau poți adăuga reguli dacă mai apar AIs)
+    break;
   }
 
   return out;
 }
+
 
 function selectProductByGTIN(gtin) {
   const sel = document.getElementById("stockProduct");
