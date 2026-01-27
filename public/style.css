@@ -668,3 +668,25 @@ body.dark .hub-btn:hover {
   height:auto;
   background:#000;
 }
+#scannerModal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 99999;
+  background: rgba(0,0,0,.35);
+}
+
+#scannerModal .modal-card{
+  background: #fff;
+  border-radius: 12px;
+  width: min(420px, 92vw);
+  margin: 60px auto;
+  padding: 12px;
+}
+
+#scanVideo{
+  width: 100%;
+  display: block;
+  background: #000;
+  border-radius: 12px;
+}

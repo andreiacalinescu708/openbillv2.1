@@ -1022,39 +1022,42 @@ function closeScanner() {
 }
 
 async function startScanIntoInput(qrInputEl) {
-  const modal = document.getElementById("scannerModal");
-  const video = document.getElementById("scanVideo");
-  if (!modal || !video) return;
-
   if (!window.isSecureContext) {
     alert("Camera merge doar pe HTTPS.");
     return;
   }
 
+  const modal = document.getElementById("scannerModal");
+  const video = document.getElementById("scanVideo");
+  if (!modal || !video) return;
+
+  // ✅ oprește orice sesiune veche ÎNAINTE
+  closeScanner();
+
+  // ✅ acum afișează modalul
   modal.style.display = "block";
 
+  // setări video pentru mobil
   video.muted = true;
   video.setAttribute("muted", "");
   video.setAttribute("playsinline", "");
   video.autoplay = true;
 
-  // oprește stream vechi
-  closeScanner();
-
   try {
+    // încearcă camera din spate
     scanStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { exact: "environment" },
+        facingMode: { ideal: "environment" },
         width: { ideal: 1280 },
         height: { ideal: 720 }
       },
       audio: false
     });
-  } catch {
-    scanStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
-      audio: false
-    });
+  } catch (e) {
+    console.warn("getUserMedia failed:", e);
+    closeScanner();
+    alert("Nu pot porni camera. Verifică permisiunile.");
+    return;
   }
 
   video.srcObject = scanStream;
@@ -1063,10 +1066,13 @@ async function startScanIntoInput(qrInputEl) {
     video.onloadedmetadata = () => resolve();
   });
 
-  try { await video.play(); } catch {}
+  try { await video.play(); } catch (e) { console.warn("play failed", e); }
 
-  // deocamdată: fără detectare, doar să verificăm că se vede camera
+  console.log("VIDEO SIZE:", video.videoWidth, video.videoHeight);
+
+  // momentan NU scanăm încă, doar să vedem imaginea
 }
+
 
 
 
