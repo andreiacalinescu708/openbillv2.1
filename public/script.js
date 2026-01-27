@@ -1031,20 +1031,19 @@ async function startScanIntoInput(qrInputEl) {
   const video = document.getElementById("scanVideo");
   if (!modal || !video) return;
 
-  // ✅ oprește orice sesiune veche ÎNAINTE
+  // oprește sesiune veche
   closeScanner();
 
-  // ✅ acum afișează modalul
+  // deschide modal
   modal.style.display = "block";
 
-  // setări video pentru mobil
   video.muted = true;
   video.setAttribute("muted", "");
   video.setAttribute("playsinline", "");
   video.autoplay = true;
 
+  // 1) pornește camera
   try {
-    // încearcă camera din spate
     scanStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: "environment" },
@@ -1068,10 +1067,57 @@ async function startScanIntoInput(qrInputEl) {
 
   try { await video.play(); } catch (e) { console.warn("play failed", e); }
 
-  console.log("VIDEO SIZE:", video.videoWidth, video.videoHeight);
+  // 2) detector: încearcă să includă DataMatrix + QR
+  if (!("BarcodeDetector" in window)) {
+    alert("BarcodeDetector nu e suportat pe acest browser.");
+    return;
+  }
 
-  // momentan NU scanăm încă, doar să vedem imaginea
+  let formats = ["qr_code", "data_matrix"];
+
+  // dacă browserul știe să ne spună ce suportă, filtrăm
+  try {
+    const supported = await BarcodeDetector.getSupportedFormats?.();
+    if (Array.isArray(supported) && supported.length) {
+      console.log("Supported formats:", supported);
+      formats = formats.filter(f => supported.includes(f));
+    }
+  } catch {}
+
+  if (!formats.length) {
+    formats = ["qr_code"]; // fallback minim
+  }
+
+  let detector;
+  try {
+    detector = new BarcodeDetector({ formats });
+  } catch (e) {
+    console.warn("BarcodeDetector init failed:", e);
+    detector = new BarcodeDetector();
+  }
+
+  // 3) loop detect
+  scanTimer = setInterval(async () => {
+    try {
+      if (!video.videoWidth || !video.videoHeight) return;
+
+      const codes = await detector.detect(video);
+      if (codes && codes.length) {
+        const raw = (codes[0].rawValue || "").trim();
+        console.log("SCANNED:", raw);
+
+        if (raw) {
+          qrInputEl.value = raw;
+          applyParsedGS1(raw);
+          closeScanner();
+        }
+      }
+    } catch (e) {
+      // console.warn("detect error", e);
+    }
+  }, 200);
 }
+
 
 
 
