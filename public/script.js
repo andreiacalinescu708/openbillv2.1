@@ -890,11 +890,61 @@ o.items.forEach(i => {
 function sanitizeGS1(raw) {
   const GS = String.fromCharCode(29); // FNC1 / Group Separator
   return String(raw || "")
-    .replace(/\u0000/g, "")          // NULL
-    .replace(/\u200B/g, "")          // zero-width space
-    .replace(new RegExp(GS, "g"), "")// scoate GS (sau îl poți păstra dacă vrei)
-    .replace(/[\r\n\t ]+/g, "")      // whitespace
+    .replace(/\u0000/g, "")                 // NULL
+    .replace(/\u200B/g, "")                 // zero-width space
+    .replace(new RegExp(GS, "g"), "")       // scoate GS (în cazul tău e ok)
+    .replace(/[\r\n\t ]+/g, "")             // whitespace
     .trim();
+}
+
+function yymmddToISO(v) {
+  v = String(v || "").trim();
+  if (v.length !== 6) return "";
+  return `20${v.slice(0,2)}-${v.slice(2,4)}-${v.slice(4,6)}`;
+}
+
+function parseGS1(qr) {
+  const out = {};
+  const s0 = sanitizeGS1(qr);
+  if (!s0) return out;
+
+  // dacă are paranteze
+  if (s0.includes("(")) {
+    const regex = /\((\d{2})\)([^()]*)/g;
+    let m;
+    while ((m = regex.exec(s0)) !== null) {
+      const ai = m[1];
+      const val = (m[2] || "").trim();
+      if (ai === "01") out.gtin = val;
+      else if (ai === "17") out.expiresAt = yymmddToISO(val);
+      else if (ai === "10") out.lot = val;
+      // 11 ignorăm
+    }
+    return out;
+  }
+
+  // fără paranteze: 01 + 14, 17 + 6, 11 + 6 optional, 10 + LOT (rest)
+  let i = 0;
+  const s = s0;
+
+  const take = (n) => {
+    const part = s.slice(i, i + n);
+    i += n;
+    return part;
+  };
+
+  while (i + 2 <= s.length) {
+    const ai = take(2);
+
+    if (ai === "01") { out.gtin = take(14); continue; }
+    if (ai === "17") { out.expiresAt = yymmddToISO(take(6)); continue; }
+    if (ai === "11") { take(6); continue; } // ignoră fabricație
+    if (ai === "10") { out.lot = s.slice(i).trim(); break; }
+
+    break;
+  }
+
+  return out;
 }
 
 function applyParsedGS1(qr) {
@@ -905,92 +955,32 @@ function applyParsedGS1(qr) {
   console.log("CLEAN:", clean);
   console.log("PARSED:", data);
 
-  const out = {};
-  const s0 = String(qr || "").replace(/\u0000/g, "").trim();
-  if (!s0) return out;
-
-  // GS separator (FNC1) - apare uneori în DataMatrix
-  const GS = String.fromCharCode(29);
-  const s = s0;
-
-  // A) cu paranteze: (01)...(17)...(10)...
-  if (s.includes("(")) {
-    const regex = /\((\d{2})\)([^()]*)/g;
-    let m;
-    while ((m = regex.exec(s)) !== null) {
-      const ai = m[1];
-      const val = (m[2] || "").trim();
-
-      if (ai === "01") out.gtin = val;
-      else if (ai === "17") out.expiresAt = yymmddToISO(val);
-      else if (ai === "10") out.lot = val;
-      // (11) ignorăm
-    }
-    return out;
+  if (data.lot) {
+    const lotEl = document.getElementById("stockLot");
+    if (lotEl) lotEl.value = data.lot;
   }
 
-  // B) fără paranteze (cazul tău): 01 + GTIN14 + 17 + YYMMDD + [11 + YYMMDD optional] + 10 + LOT...
-  let i = 0;
-
-  const take = (n) => {
-    const part = s.slice(i, i + n);
-    i += n;
-    return part;
-  };
-
-  const takeUntilGSOrEnd = () => {
-    const start = i;
-    while (i < s.length && s[i] !== GS) i++;
-    const val = s.slice(start, i);
-    // dacă e GS, îl consumăm
-    if (s[i] === GS) i++;
-    return val.trim();
-  };
-
-  while (i + 2 <= s.length) {
-    const ai = take(2);
-
-    if (ai === "01") {
-      out.gtin = take(14);
-      continue;
-    }
-
-    if (ai === "17") {
-      out.expiresAt = yymmddToISO(take(6));
-      continue;
-    }
-
-    if (ai === "11") {
-      // fabricație (YYMMDD) -> ignorăm
-      take(6);
-      continue;
-    }
-
-    if (ai === "10") {
-      // LOT e variabil: până la GS (dacă există) sau până la final
-      out.lot = takeUntilGSOrEnd() || s.slice(i).trim();
-      break;
-    }
-
-    // AI necunoscut -> stop
-    break;
+  if (data.expiresAt) {
+    const expEl = document.getElementById("stockExpire");
+    if (expEl) expEl.value = data.expiresAt;
   }
 
-  return out;
+  if (data.gtin) {
+    selectProductByGTIN(data.gtin);
+  }
 }
 
-function yymmddToISO(v) {
-  v = String(v || "").trim();
-  if (v.length !== 6) return "";
-  return `20${v.slice(0,2)}-${v.slice(2,4)}-${v.slice(4,6)}`;
+function sanitizeGS1(raw) {
+  const GS = String.fromCharCode(29); // FNC1 / Group Separator
+  return String(raw || "")
+    .replace(/\u0000/g, "")          // NULL
+    .replace(/\u200B/g, "")          // zero-width space
+    .replace(new RegExp(GS, "g"), "")// scoate GS (sau îl poți păstra dacă vrei)
+    .replace(/[\r\n\t ]+/g, "")      // whitespace
+    .trim();
 }
 
 
-function yymmddToISO(v) {
-  v = String(v || "").trim();
-  if (v.length !== 6) return "";
-  return `20${v.slice(0,2)}-${v.slice(2,4)}-${v.slice(4,6)}`;
-}
 
 
 
@@ -1022,24 +1012,7 @@ function selectProductByGTIN(gtin) {
 }
 
 
-function applyParsedGS1(qr) {
-  const data = parseGS1(qr);
-  console.log("PARSED:", data, "RAW:", qr);
 
-  if (data.lot) {
-    const lotEl = document.getElementById("stockLot");
-    if (lotEl) lotEl.value = data.lot;
-  }
-
-  if (data.expiresAt) {
-    const expEl = document.getElementById("stockExpire");
-    if (expEl) expEl.value = data.expiresAt;
-  }
-
-  if (data.gtin) {
-    selectProductByGTIN(data.gtin);
-  }
-}
 
 
 
@@ -1140,31 +1113,33 @@ async function startScanIntoInput(qrInputEl) {
 
   // 3) loop detect
   scanTimer = setInterval(async () => {
-    try {
-      if (!video.videoWidth || !video.videoHeight) return;
+  try {
+    if (!video.videoWidth || !video.videoHeight) return;
 
-      const codes = await detector.detect(video);
-      if (codes && codes.length) {
-        const raw = (codes[0].rawValue || "").trim();
-        console.log("SCANNED:", raw);
+    const codes = await detector.detect(video);
+    if (codes && codes.length) {
+      const raw = codes[0].rawValue || "";
+      console.log("SCANNED RAW:", raw);
 
-        if (raw) {
-          const clean = sanitizeGS1(raw);
-qrInputEl.value = clean;
+      if (!raw) return;
 
-// pe mobil ajută să declanșezi și event
-qrInputEl.dispatchEvent(new Event("input", { bubbles: true }));
-qrInputEl.dispatchEvent(new Event("change", { bubbles: true }));
+      const clean = sanitizeGS1(raw);
+      console.log("SCANNED CLEAN:", clean);
 
-applyParsedGS1(clean);
+      // 1️⃣ punem valoarea în input
+      qrInputEl.value = clean;
 
-          closeScanner();
-        }
-      }
-    } catch (e) {
-      // console.warn("detect error", e);
+      // 2️⃣ aplicăm parsing DIRECT (fără events)
+      applyParsedGS1(clean);
+
+      // 3️⃣ închidem scannerul
+      closeScanner();
     }
-  }, 200);
+  } catch (e) {
+    console.warn("SCAN ERROR:", e);
+  }
+}, 250);
+
 }
 
 
@@ -1216,15 +1191,12 @@ if (btnScan && qrInput) {
 
 // ✅ manual: când user apasă Enter sau iese din câmp
 if (qrInput) {
- qrInput.addEventListener("input", () => {
-const clean = sanitizeGS1(qrInput.value);
-if (!clean) return;
-applyParsedGS1(clean);
+qrInput.addEventListener("input", () => {
+  const clean = sanitizeGS1(qrInput.value);
+  if (!clean) return;
+  applyParsedGS1(clean);
+});
 
-    const qr = qrInput.value.trim();
-    if (!qr) return;
-    applyParsedGS1(qr);
-  });
 }
 
 
