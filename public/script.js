@@ -1330,17 +1330,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   const savedTheme = localStorage.getItem("theme") || "light";
   applyTheme(savedTheme);
 
-  const btn = document.getElementById("btnToggleTheme");
-  if (btn) {
-    btn.textContent = savedTheme === "dark" ? "☀️" : "🌙";
-    btn.onclick = () => {
+  // 🎯 FIX: Buton mobil "Vezi comanda"
+  const btnCartMobile = document.getElementById("btnOpenCartMobile");
+  if (btnCartMobile) {
+    btnCartMobile.addEventListener("click", () => {
+      const cartBox = document.getElementById("cartBox");
+      if (cartBox) {
+        cartBox.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        alert("Nu există coș de produse pe această pagină.");
+      }
+    });
+  }
+
+  // 🌙 Tema
+  const btnTheme = document.getElementById("btnToggleTheme");
+  if (btnTheme) {
+    btnTheme.textContent = savedTheme === "dark" ? "☀️" : "🌙";
+    btnTheme.onclick = () => {
       const isDark = document.body.classList.toggle("dark");
       const newTheme = isDark ? "dark" : "light";
       localStorage.setItem("theme", newTheme);
-      btn.textContent = isDark ? "☀️" : "🌙";
+      btnTheme.textContent = isDark ? "☀️" : "🌙";
     };
   }
 
+  // Inițializări pagini
   if (document.getElementById("inventoryList")) initInventoryPage();
   if (document.getElementById("stockProduct")) initStockPage();
   if (document.getElementById("clientsTree")) initAddClientPage();
@@ -1351,7 +1366,4 @@ if (document.getElementById("productsList")) initCheckPricePage();
 
   initViewCurrentOrderButton();
 });
-
-
-
 
