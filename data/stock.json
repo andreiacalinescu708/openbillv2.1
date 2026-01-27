@@ -61,5 +61,23 @@
     "expiresAt": "2030-04-30",
     "qty": 120,
     "createdAt": "2026-01-26T21:00:09.542Z"
+  },
+  {
+    "id": "1769539709181lnt5uod4nz",
+    "productId": "248",
+    "productName": "Seni Care Lavete \"air-laid\" 36 x 32 см",
+    "lot": "1402436091",
+    "expiresAt": "2031-01-31",
+    "qty": 12,
+    "createdAt": "2026-01-27T18:48:29.181Z"
+  },
+  {
+    "id": "1769541138712jaqovlm0m8q",
+    "productId": "172",
+    "productName": "Seni Active Classic Medium 30",
+    "lot": "1402345285",
+    "expiresAt": "2030-04-30",
+    "qty": 123,
+    "createdAt": "2026-01-27T19:12:18.712Z"
   }
 ]

@@ -893,33 +893,29 @@ function parseGS1(qr) {
   const s = String(qr || "").trim();
   if (!s) return out;
 
-  // ✅ dacă avem paranteze, păstrăm metoda veche (merge pe scanner-ele care dau (01)...)
+  // 1) cu paranteze: (01)...(17)...(10)...(11)...
   if (s.includes("(")) {
     const regex = /\((\d{2})\)([^()]+)/g;
     let m;
+
     while ((m = regex.exec(s)) !== null) {
       const ai = m[1];
-      const val = m[2];
+      const val = String(m[2] || "").trim();
 
-      if (ai === "01") out.gtin = val.trim();
-      if (ai === "17") {
+      if (ai === "01") out.gtin = val;
+      else if (ai === "17") {
         out.expiresAt =
           "20" + val.slice(0, 2) + "-" +
           val.slice(2, 4) + "-" +
           val.slice(4, 6);
-      }
-      if (ai === "10") out.lot = val.trim();
-      // (11) îl ignorăm
+      } else if (ai === "10") out.lot = val;
+      // (11) fabricatie -> ignoram
     }
+
     return out;
   }
 
-  // ✅ variantă fără paranteze (raw GS1)
-  // AIs pe care le folosim:
-  // 01 = 14 cifre (GTIN-14)
-  // 17 = 6 cifre (YYMMDD)
-  // 11 = 6 cifre (YYMMDD) - ignorăm
-  // 10 = variabil (LOT) până la final (sau până la următorul AI - rar la voi)
+  // 2) fara paranteze: 01 + GTIN(14) + 17 + YYMMDD + 11 + YYMMDD + 10 + LOT...
   let i = 0;
 
   function take(n) {
@@ -928,9 +924,8 @@ function parseGS1(qr) {
     return part;
   }
 
-  while (i < s.length) {
-    const ai = s.slice(i, i + 2);
-    i += 2;
+  while (i + 2 <= s.length) {
+    const ai = take(2);
 
     if (ai === "01") {
       out.gtin = take(14);
@@ -947,24 +942,23 @@ function parseGS1(qr) {
     }
 
     if (ai === "11") {
-      // data fabricației, nu ne interesează
+      // fabricatie (YYMMDD) -> ignoram
       take(6);
       continue;
     }
 
     if (ai === "10") {
-      // LOT variabil: la voi, de obicei e ultimul → luăm tot ce rămâne
-      out.lot = s.slice(i);
+      // LOT variabil: luam tot ce ramane
+      out.lot = s.slice(i).trim();
       break;
     }
 
-    // dacă apare un AI pe care nu-l știm:
-    // ca să nu „rupem” tot, ieșim
-    break;
+    break; // AI necunoscut
   }
 
   return out;
 }
+
 
 function normalizeGTIN(gtin) {
   const g = String(gtin || "").trim();
@@ -988,139 +982,108 @@ function selectProductByGTIN(gtin) {
   });
 }
 
+function applyParsedGS1(qr) {
+  const data = parseGS1(qr);
+
+  if (data.lot) {
+    const lotEl = document.getElementById("stockLot");
+    if (lotEl) lotEl.value = data.lot;
+  }
+
+  if (data.expiresAt) {
+    const expEl = document.getElementById("stockExpire");
+    if (expEl) expEl.value = data.expiresAt;
+  }
+
+  if (data.gtin) {
+    selectProductByGTIN(data.gtin);
+  }
+}
+
+
+let scanStream = null;
+let scanTimer = null;
+
+function closeScanner() {
+  if (scanTimer) {
+    clearInterval(scanTimer);
+    scanTimer = null;
+  }
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+
+  const modal = document.getElementById("scannerModal");
+  if (modal) modal.style.display = "none";
+
+  const video = document.getElementById("scanVideo");
+  if (video) video.srcObject = null;
+}
+
+async function startScanIntoInput(qrInputEl) {
+  if (!("BarcodeDetector" in window)) {
+    alert("Scannerul nu e suportat pe acest browser. Introdu manual codul.");
+    return;
+  }
+
+  let detector;
+  try {
+    detector = new BarcodeDetector({ formats: ["qr_code", "data_matrix"] });
+  } catch {
+    detector = new BarcodeDetector();
+  }
+
+  const modal = document.getElementById("scannerModal");
+  const video = document.getElementById("scanVideo");
+  if (!modal || !video) return;
+
+  modal.style.display = "block";
+
+  scanStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: "environment" } },
+    audio: false
+  });
+
+  video.srcObject = scanStream;
+
+  scanTimer = setInterval(async () => {
+    try {
+      const codes = await detector.detect(video);
+      if (codes && codes.length) {
+        const raw = (codes[0].rawValue || "").trim();
+        if (raw) {
+          qrInputEl.value = raw;
+          applyParsedGS1(raw);
+          closeScanner();
+        }
+      }
+    } catch {}
+  }, 250);
+}
+
 
 async function initStockPage() {
   const prodSel = document.getElementById("stockProduct");
   const list = document.getElementById("stockList");
   const qrInput = document.getElementById("qrInput");
-  // ===== QR POPUP + CAMERA SCAN =====
-let qrStream = null;
-let qrScanTimer = null;
+  const btnScan = document.getElementById("btnScanQR");
+const btnClose = document.getElementById("btnCloseScan");
 
-function openQrModal() {
-  const modal = document.getElementById("qrModal");
-  if (!modal) return;
-  modal.style.display = "flex";
+if (btnClose) btnClose.onclick = closeScanner;
 
-  const scannerBox = document.getElementById("qrScannerBox");
-  if (scannerBox) scannerBox.style.display = "none";
+if (btnScan && qrInput) {
+  btnScan.onclick = async () => {
+    try {
+      await startScanIntoInput(qrInput);
+    } catch (e) {
+      closeScanner();
+      alert("Nu pot porni camera. Verifică permisiunile.");
+    }
+  };
 }
 
-function stopQrScan() {
-  if (qrScanTimer) {
-    clearInterval(qrScanTimer);
-    qrScanTimer = null;
-  }
-  if (qrStream) {
-    qrStream.getTracks().forEach(t => t.stop());
-    qrStream = null;
-  }
-  const video = document.getElementById("qrVideo");
-  if (video) video.srcObject = null;
-}
-
-function closeQrModal() {
-  stopQrScan();
-  const modal = document.getElementById("qrModal");
-  if (modal) modal.style.display = "none";
-}
-
-async function startQrScan() {
-  const msg = document.getElementById("qrScanMsg");
-  const scannerBox = document.getElementById("qrScannerBox");
-  const video = document.getElementById("qrVideo");
-
-  if (!scannerBox || !video) return;
-
-  scannerBox.style.display = "block";
-  if (msg) msg.textContent = "Pornește camera...";
-
-  if (!("BarcodeDetector" in window)) {
-    if (msg) msg.textContent = "Browserul nu suportă scanare QR automată. Alege 'Introdu manual'.";
-    return;
-  }
-
-const detector = new BarcodeDetector({
-  formats: ["qr_code", "data_matrix"]
-});
-
-
-  try {
-    qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: false
-    });
-
-    video.srcObject = qrStream;
-    await video.play();
-
-    if (msg) msg.textContent = "Scanează QR-ul...";
-
-    qrScanTimer = setInterval(async () => {
-      try {
-        const barcodes = await detector.detect(video);
-        if (barcodes && barcodes.length) {
-          const val = barcodes[0].rawValue || "";
-          if (val) {
-            qrInput.value = val;
-
-            // declanșează logica ta existentă din change
-            qrInput.dispatchEvent(new Event("change"));
-
-            closeQrModal();
-          }
-        }
-      } catch {}
-    }, 250);
-
-  } catch (e) {
-    if (msg) msg.textContent = "Nu am acces la cameră. Verifică permisiunile.";
-  }
-}
-
-// la tap/click în input -> deschidem popup
-if (qrInput) {
- qrInput.addEventListener("pointerdown", (e) => {
-  e.preventDefault();   // oprește focus automat -> nu apare tastatura
-  openQrModal();
-});
-
-}
-
-// butoane modal
-const btnScanCamera = document.getElementById("btnScanCamera");
-const btnManualQr = document.getElementById("btnManualQr");
-const btnStopScan = document.getElementById("btnStopScan");
-const btnClose1 = document.getElementById("btnCloseQrModal");
-const btnClose2 = document.getElementById("btnCloseQrModal2");
-
-if (btnScanCamera) btnScanCamera.onclick = startQrScan;
-
-if (btnManualQr) btnManualQr.onclick = () => {
-  closeQrModal();
-
-  // IMPORTANT: unele telefoane au nevoie de delay + focus clar
-  setTimeout(() => {
-    if (!qrInput) return;
-
-    qrInput.removeAttribute("readonly"); // dacă ai pus vreodată readonly
-    qrInput.focus();
-    qrInput.click(); // ajută la ridicarea tastaturii pe unele Android
-  }, 150);
-};
-
-
-if (btnStopScan) btnStopScan.onclick = stopQrScan;
-if (btnClose1) btnClose1.onclick = closeQrModal;
-if (btnClose2) btnClose2.onclick = closeQrModal;
-
-// click pe fundal => închide
-const modal = document.getElementById("qrModal");
-if (modal) {
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) closeQrModal();
-  });
-}
+ 
 
 
   if (!prodSel || !list) return;
@@ -1140,37 +1103,18 @@ if (modal) {
 
   renderStock(stock);
 
-  if (qrInput) {
-  function handleQRValue(raw) {
-    const qr = String(raw || "").trim();
+
+
+// ✅ manual: când user apasă Enter sau iese din câmp
+if (qrInput) {
+  qrInput.addEventListener("change", () => {
+    const qr = qrInput.value.trim();
     if (!qr) return;
-
-    const data = parseGS1(qr);
-
-    if (data.lot) {
-      const lotEl = document.getElementById("stockLot");
-      if (lotEl) lotEl.value = data.lot;
-    }
-
-    if (data.expiresAt) {
-      const expEl = document.getElementById("stockExpire");
-      if (expEl) expEl.value = data.expiresAt;
-    }
-
-    if (data.gtin) {
-      selectProductByGTIN(data.gtin);
-    }
-  }
-
-  const onAny = () => handleQRValue(qrInput.value);
-
-  // ✅ esențial pt Android (camera “scrie” în input fără change)
-  qrInput.addEventListener("input", onAny);
-
-  // ✅ fallback
-  qrInput.addEventListener("change", onAny);
-  qrInput.addEventListener("blur", onAny);
+    applyParsedGS1(qr);
+  });
 }
+
+
 
 
   document.getElementById("btnAddStock").onclick = async () => {

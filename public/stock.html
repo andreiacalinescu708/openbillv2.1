@@ -31,8 +31,12 @@
     <h3 style="margin:0;">Adaugă stoc</h3>
   </div>
 
-    <label>Scanare QR</label>
-<input id="qrInput" placeholder="Scanează codul QR aici" autofocus />
+   <label>Scanare cod</label>
+<div style="display:flex; gap:10px; align-items:center;">
+  <input id="qrInput" placeholder="Scanează / lipește codul aici" style="flex:1;" />
+  <button type="button" id="btnScanQR" class="btn">📷 Scanează</button>
+</div>
+
 
 
     <label>Produs</label>
@@ -56,33 +60,22 @@
   </div>
 
 </main>
-<!-- QR POPUP -->
-<div id="qrModal" class="modal" style="display:none;">
+<!-- SCANNER MODAL (nou) -->
+<div id="scannerModal" class="modal" style="display:none;">
   <div class="modal-card">
-    <h3 style="margin:0 0 8px;">Scanare cod</h3>
-    <p style="margin:0 0 12px; color:#666;">Alege cum vrei să introduci codul QR.</p>
-
-    <div class="modal-actions">
-      <button id="btnScanCamera" class="btn primary">📷 Scanează cu camera</button>
-      <button id="btnManualQr" class="btn">✍️ Introdu manual</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <strong>Scanner</strong>
+      <button type="button" id="btnCloseScan" class="btn">✖</button>
     </div>
 
-    <div id="qrScannerBox" style="display:none; margin-top:12px;">
-      <video id="qrVideo" playsinline style="width:100%; border-radius:12px; background:#000;"></video>
+    <video id="scanVideo" playsinline muted style="width:100%; border-radius:12px; background:#000; margin-top:10px;"></video>
 
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button id="btnStopScan" class="btn">⛔ Oprește</button>
-        <button id="btnCloseQrModal" class="btn">Închide</button>
-      </div>
-
-      <div id="qrScanMsg" style="margin-top:10px; color:#666;"></div>
-    </div>
-
-    <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-      <button id="btnCloseQrModal2" class="btn">Închide</button>
-    </div>
+    <p style="margin-top:10px; color:#666;">
+      Țintește codul (DataMatrix/QR). După citire se închide automat.
+    </p>
   </div>
 </div>
+
 
 
 <script src="script.js"></script>
