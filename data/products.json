@@ -16,7 +16,7 @@
 {
   "id": 160,
   "name": "Seni Classic Air Large 30",
-  "gtin": "5900516800062",
+  "gtins":["5900516800062", "05900516191634"],
   "price": 79.22,
   "category": "🧷Seni Classic Air x30🧷"
 },
