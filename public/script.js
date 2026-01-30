@@ -808,8 +808,11 @@ pickBtn.className = "btnPick";
 pickBtn.onclick = (e) => {
   e.stopPropagation();
 
+
   // salvăm comanda selectată
   localStorage.setItem("pickingOrder", JSON.stringify(o));
+  localStorage.removeItem("pickState");
+
 
   // mergem la pagina de picking
   location.href = "pickingorder.html";
@@ -1591,6 +1594,88 @@ function savePickState() {
   localStorage.setItem("pickState", JSON.stringify(pickState || {}));
 }
 
+// ===== PICK MODAL STATE =====
+let pickModalState = null;
+
+function openPickModal(state) {
+  pickModalState = state;
+
+  const modal = document.getElementById("pickModal");
+  const btnClose = document.getElementById("pickModalClose");
+  const btnCancel = document.getElementById("pickModalBtnCancel");
+  const btnAdd = document.getElementById("pickModalBtnAdd");
+  const btnReplace = document.getElementById("pickModalBtnReplaceLot");
+
+  const elProd = document.getElementById("pickModalProduct");
+  const elGtin = document.getElementById("pickModalGtin");
+  const elScannedLot = document.getElementById("pickModalScannedLot");
+  const elPlannedRow = document.getElementById("pickModalPlannedRow");
+  const elPlannedLot = document.getElementById("pickModalPlannedLot");
+  const elQty = document.getElementById("pickModalQty");
+  const elHint = document.getElementById("pickModalHint");
+  const elTitle = document.getElementById("pickModalTitle");
+  const elLoc = document.getElementById("pickModalLocation");
+const elRemOrder = document.getElementById("pickModalRemainingOrder");
+
+
+  if (!modal) return;
+
+  elTitle.textContent = state.mode === "replace" ? "LOT diferit" : "Picking";
+  elProd.textContent = state.item?.name || "—";
+  elGtin.textContent = state.item?.gtin || "—";
+  elScannedLot.textContent = state.scannedLot || "—";
+  elLoc.textContent = state.location || "—";
+elRemOrder.textContent =
+  Number.isFinite(state.remainingOrder)
+    ? `${state.remainingOrder} buc`
+    : "—";
+
+
+  elQty.value = String(state.defaultQty || 1);
+
+  if (state.mode === "replace") {
+    elPlannedRow.style.display = "";
+    elPlannedLot.textContent = state.oldLot || "—";
+    btnReplace.style.display = "";
+    btnAdd.style.display = "none";
+    elHint.textContent = "Ai scanat un lot diferit. Poți actualiza lotul din comandă pe cantitatea introdusă.";
+  } else {
+    elPlannedRow.style.display = "none";
+    btnReplace.style.display = "none";
+    btnAdd.style.display = "";
+    elHint.textContent = state.hint || "";
+  }
+
+  // handlers
+  const close = () => closePickModal();
+
+  btnClose.onclick = close;
+  btnCancel.onclick = close;
+
+  // click pe fundal -> închide
+  modal.onclick = (e) => {
+    if (e.target === modal) close();
+  };
+
+  modal.style.display = "flex";
+
+  setTimeout(() => elQty.focus(), 50);
+}
+
+function closePickModal() {
+  const modal = document.getElementById("pickModal");
+  if (modal) modal.style.display = "none";
+  pickModalState = null;
+}
+
+function getPickModalQty() {
+  const elQty = document.getElementById("pickModalQty");
+  const v = parseInt(elQty?.value || "0", 10);
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  return v;
+}
+
+
 // ✅ FULL + CORECT
 async function initPickingOrderPage() {
   const list = document.getElementById("pickingList");
@@ -1616,16 +1701,61 @@ async function initPickingOrderPage() {
 
   // 2) ia produsele ca să facem map GTIN secundar -> GTIN principal
   const products = await apiFetch("/api/products-flat").then(r => r.json());
+  // 3) luăm stocul ca să știm locația lotului scanat (A/B/C/R1...)
+const stock = await apiFetch("/api/stock").then(r => r.json());
+
+// map: "primaryGtin|lot" -> { bestLoc, totalQty }
+const stockLotInfo = {};
+stock.forEach(s => {
+  const g = normalizeGTIN(s.gtin);
+  const lot = String(s.lot || "").trim();
+  if (!g || !lot) return;
+
+  const key = `${g}|${lot}`;
+  const qty = Number(s.qty || 0);
+  const loc = String(s.location || "A");
+
+  if (!stockLotInfo[key]) {
+    stockLotInfo[key] = { bestLoc: loc, totalQty: 0 };
+  }
+
+  stockLotInfo[key].totalQty += qty;
+
+  // alegem "bestLoc" (cel mai bun raft)
+  const order = ["A","B","C","R1","R2","R3"];
+  const rank = (x) => {
+    const i = order.indexOf(String(x || "").toUpperCase());
+    return i === -1 ? 999 : i;
+  };
+
+  if (rank(loc) < rank(stockLotInfo[key].bestLoc)) {
+    stockLotInfo[key].bestLoc = loc;
+  }
+});
+
 
   // map: normalized_gtin (oricare) -> normalized_primary_gtin (primul din gtins)
-  const gtinToPrimary = {};
-  products.forEach(p => {
-    const primary = normalizeGTIN((p.gtins && p.gtins[0]) ? p.gtins[0] : "");
-    (p.gtins || []).forEach(g => {
-      const ng = normalizeGTIN(g);
-      if (ng && primary) gtinToPrimary[ng] = primary;
-    });
+ // map: normalized_gtin (oricare) -> normalized_primary_gtin
+const gtinToPrimary = {};
+
+products.forEach(p => {
+  const primaryRaw =
+    (Array.isArray(p.gtins) && p.gtins.length) ? p.gtins[0] : (p.gtin || "");
+
+  const primary = normalizeGTIN(primaryRaw);
+
+  // IMPORTANT: includem și gtin-ul vechi + toate gtins
+  const all = []
+    .concat(p.gtin || [])
+    .concat(Array.isArray(p.gtins) ? p.gtins : [])
+    .filter(Boolean);
+
+  all.forEach(g => {
+    const ng = normalizeGTIN(g);
+    if (ng && primary) gtinToPrimary[ng] = primary;
   });
+});
+
 
   // info sus
   info.innerHTML = `
@@ -1675,7 +1805,8 @@ async function initPickingOrderPage() {
   if (btnScan) {
     btnScan.onclick = async () => {
       await startScanWithCallback(async (parsed) => {
-        await handlePickingScan(order, parsed, gtinToPrimary);
+        await handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo);
+
         savePickState();
         await initPickingOrderPage(); // rerender
       });
@@ -1706,8 +1837,9 @@ async function initPickingOrderPage() {
   }
 }
 
+
 // ✅ MODIFICAT: folosește map-ul gtinToPrimary ca să accepte ambele GTIN-uri
-async function handlePickingScan(order, parsed) {
+async function handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo) {
   const scannedGtin = normalizeGTIN(parsed.gtin);
   const scannedLot = String(parsed.lot || "").trim();
 
@@ -1716,155 +1848,129 @@ async function handlePickingScan(order, parsed) {
     return;
   }
 
-  // 1) găsim produsul în comandă după GTIN
-  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === scannedGtin);
+  // map GTIN scanat -> GTIN principal (primul din gtins)
+  const primaryGtin = gtinToPrimary?.[scannedGtin] || scannedGtin;
+
+  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === primaryGtin);
   if (!item) {
     alert("Produsul scanat nu există în această comandă.");
     return;
   }
 
-  // 2) cerem cantitatea imediat (cum ai cerut)
-  const ans = prompt(
-    `Produs: ${item.name}\nLOT scanat: ${scannedLot}\n\nCâte bucăți pui?`,
-    "1"
-  );
-  if (ans == null) return;
+  // calcul rămas TOTAL pe produs în comandă
+  pickState[primaryGtin] = pickState[primaryGtin] || {};
+  const pickedTotal = Object.values(pickState[primaryGtin]).reduce((s, n) => s + Number(n || 0), 0);
+  const needTotal = Number(item.qty || 0);
+  const remainingOrder = Math.max(0, needTotal - pickedTotal);
 
-  const qtyScanned = parseInt(ans, 10);
-  if (!Number.isFinite(qtyScanned) || qtyScanned <= 0) return;
-
-  // 3) încercăm să găsim allocation pe lotul scanat
+  // locație lot scanat (din allocations dacă există, altfel din stoc)
   const allocSameLot = (item.allocations || []).find(a => String(a.lot) === scannedLot);
+  const locationFromAlloc = allocSameLot?.location || "";
+  const stockKey = `${primaryGtin}|${scannedLot}`;
+  const locationFromStock = stockLotInfo?.[stockKey]?.bestLoc || "";
+  const scannedLocation = locationFromAlloc || locationFromStock || "—";
 
-  // ✅ dacă lotul există în comandă → facem picking normal
+  // dacă LOT există în allocations -> modal "Adaugă"
   if (allocSameLot) {
-    const gtinKey = normalizeGTIN(item.gtin);
-
-    pickState[gtinKey] = pickState[gtinKey] || {};
-    const already = Number(pickState[gtinKey][scannedLot] || 0);
+    const already = Number(pickState[primaryGtin][scannedLot] || 0);
     const planned = Number(allocSameLot.qty || 0);
     const remainingLot = Math.max(0, planned - already);
 
-    if (remainingLot <= 0) {
-      alert("Lotul acesta este deja complet pentru această comandă.");
+    openPickModal({
+      mode: "add",
+      order,
+      item,
+      primaryGtin,
+      scannedLot,
+      location: scannedLocation,
+      remainingOrder,
+      defaultQty: Math.max(1, Math.min(remainingLot || 1, remainingOrder || 1)),
+      hint: `Rămas pe LOT ${scannedLot}: ${remainingLot} buc`
+    });
+
+    const btnAdd = document.getElementById("pickModalBtnAdd");
+    btnAdd.onclick = () => {
+      const qty = getPickModalQty();
+      if (!qty) return;
+
+      const remainingLot2 = Math.max(0, planned - already);
+      const remainingOrder2 = Math.max(0, needTotal - pickedTotal);
+
+      if (remainingLot2 <= 0) {
+        alert("Lotul acesta este deja complet pentru această comandă.");
+        closePickModal();
+        return;
+      }
+      if (remainingOrder2 <= 0) {
+        alert("Produsul este deja complet pe comandă.");
+        closePickModal();
+        return;
+      }
+
+      const toAdd = Math.min(qty, remainingLot2, remainingOrder2);
+      pickState[primaryGtin][scannedLot] = already + toAdd;
+
+      savePickState();
+      closePickModal();
+      initPickingOrderPage();
+    };
+
+    return;
+  }
+
+  // LOT diferit -> modal "Actualizează LOT"
+  const oldLot = String(item.allocations?.[0]?.lot || "").trim();
+
+  openPickModal({
+    mode: "replace",
+    order,
+    item,
+    primaryGtin,
+    scannedLot,
+    oldLot,
+    location: scannedLocation,
+    remainingOrder,
+    defaultQty: Math.max(1, remainingOrder || 1)
+  });
+
+  const btnReplace = document.getElementById("pickModalBtnReplaceLot");
+  btnReplace.onclick = async () => {
+    const qty = getPickModalQty();
+    if (!qty) return;
+
+    // nu permite peste rămas total pe produs
+    if (remainingOrder <= 0) {
+      alert("Produsul este deja complet pe comandă.");
       return;
     }
 
-    const toAdd = Math.min(qtyScanned, remainingLot);
-    pickState[gtinKey][scannedLot] = already + toAdd;
+    const qtyFinal = Math.min(qty, remainingOrder);
 
-    if (toAdd < qtyScanned) {
-      alert(`Ai cerut ${qtyScanned}, dar pe lotul din comandă mai sunt doar ${remainingLot}. Am adăugat ${toAdd}.`);
+    closePickModal();
+
+    const res = await apiFetch(`/api/orders/${order.id}/replace-lot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gtin: item.gtin,
+        oldLot,
+        newLot: scannedLot,
+        qty: qtyFinal
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      alert(data.error || "Eroare la actualizare LOT");
+      return;
     }
 
-    return;
-  }
+    localStorage.setItem("pickingOrder", JSON.stringify(data.order));
+    alert("LOT actualizat ✅");
 
-  // ❌ LOT diferit → oferim opțiunea de „Actualizează LOT”
-  showLotMismatchDialog(order, item, scannedLot, qtyScanned);
-}
-async function showLotMismatchDialog(order, item, scannedLot, qtyScanned) {
-  const oldLot = String(item.allocations?.[0]?.lot || "").trim();
-
-  const ok = confirm(
-    `LOT diferit față de comandă.\n\n` +
-    `Produs: ${item.name}\n` +
-    `LOT din comandă: ${oldLot || "-"}\n` +
-    `LOT scanat: ${scannedLot}\n` +
-    `Cantitate: ${qtyScanned}\n\n` +
-    `Vrei să actualizezi LOT-ul din comandă cu LOT-ul scanat?`
-  );
-  if (!ok) return;
-
-  // chemăm serverul să schimbe allocations + stoc
-  const res = await apiFetch(`/api/orders/${order.id}/replace-lot`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      gtin: item.gtin,     // gtin principal din comanda
-      oldLot,
-      newLot: scannedLot,
-      qty: qtyScanned
-    })
-  });
-
-  const data = await res.json();
-  if (!res.ok || !data.ok) {
-    alert(data.error || "Eroare la actualizare LOT");
-    return;
-  }
-
-  // salvăm comanda actualizată primită de la server
-  localStorage.setItem("pickingOrder", JSON.stringify(data.order));
-
-  alert("LOT actualizat ✅");
-
-  // rerender
-  initPickingOrderPage();
+    await initPickingOrderPage();
+  };
 }
 
 
-
-
-
-
-
-
-
-
-
-// ================= BOOT =================
-document.addEventListener("DOMContentLoaded", async () => {
-  const isLoginPage = location.pathname.endsWith("login.html");
-
-  if (isLoginPage) {
-    initLoginPage();
-    initRegister();
-    return;
-  }
-
-  await protectPage();
-  await renderUserBar();
-
-  const savedTheme = localStorage.getItem("theme") || "light";
-  applyTheme(savedTheme);
-
-  // 🎯 FIX: Buton mobil "Vezi comanda"
-  const btnCartMobile = document.getElementById("btnOpenCartMobile");
-  if (btnCartMobile) {
-    btnCartMobile.addEventListener("click", () => {
-      const cartBox = document.getElementById("cartBox");
-      if (cartBox) {
-        cartBox.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        alert("Nu există coș de produse pe această pagină.");
-      }
-    });
-  }
-
-  // 🌙 Tema
-  const btnTheme = document.getElementById("btnToggleTheme");
-  if (btnTheme) {
-    btnTheme.textContent = savedTheme === "dark" ? "☀️" : "🌙";
-    btnTheme.onclick = () => {
-      const isDark = document.body.classList.toggle("dark");
-      const newTheme = isDark ? "dark" : "light";
-      localStorage.setItem("theme", newTheme);
-      btnTheme.textContent = isDark ? "☀️" : "🌙";
-    };
-  }
-
-  // Inițializări pagini
-  if (document.getElementById("inventoryList")) initInventoryPage();
-  if (document.getElementById("stockProduct")) initStockPage();
-  if (document.getElementById("clientsTree")) initAddClientPage();
-  if (document.getElementById("productsTree")) initOrderPage();
-  if (document.getElementById("ordersList")) initOrdersPage();
-if (document.getElementById("productsList")) initCheckPricePage();
-if (document.getElementById("pickingList")) await initPickingOrderPage();
-
-
-
-  initViewCurrentOrderButton();
-});
 
