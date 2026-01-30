@@ -1804,14 +1804,14 @@ products.forEach(p => {
 
   // 4) Scan button (acceptă GTIN secundar!)
   if (btnScan) {
-    btnScan.onclick = async () => {
-      await startScanWithCallback(async (parsed) => {
-        await handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo);
+  btnScan.onclick = async () => {
+  await startScanWithCallback((parsed) => {
+    // NU rerandăm aici!
+    // handlePickingScan deschide modalul și butoanele din modal fac update + rerender.
+    handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo);
+  });
+};
 
-        savePickState();
-        await initPickingOrderPage(); // rerender
-      });
-    };
   }
 
   // 5) Finish button
