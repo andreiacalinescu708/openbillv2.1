@@ -1543,8 +1543,9 @@ function addToCart(product) {
 
   const price = getProductPrice(product, client);
 
-  const g = normalizeGTIN(product.gtin);
+  const g = normalizeGTIN((product.gtins && product.gtins[0]) ? product.gtins[0] : "");
 const found = cart.find(p => normalizeGTIN(p.gtin) === g);
+
 
 
   if (found) {
@@ -1588,7 +1589,8 @@ function savePickState() {
   localStorage.setItem("pickState", JSON.stringify(pickState || {}));
 }
 
-function initPickingOrderPage() {
+// ✅ FULL + CORECT
+async function initPickingOrderPage() {
   const list = document.getElementById("pickingList");
   const info = document.getElementById("pickingInfo");
   const btnScan = document.getElementById("btnScanPick");
@@ -1602,6 +1604,7 @@ function initPickingOrderPage() {
   // încarcă progresul
   if (!pickState) pickState = loadPickState();
 
+  // 1) ia comanda
   const order = JSON.parse(localStorage.getItem("pickingOrder"));
   if (!order) {
     alert("Nu există comandă selectată.");
@@ -1609,21 +1612,39 @@ function initPickingOrderPage() {
     return;
   }
 
+  // 2) ia produsele ca să facem map GTIN secundar -> GTIN principal
+  const products = await apiFetch("/api/products-flat").then(r => r.json());
+
+  // map: normalized_gtin (oricare) -> normalized_primary_gtin (primul din gtins)
+  const gtinToPrimary = {};
+  products.forEach(p => {
+    const primary = normalizeGTIN((p.gtins && p.gtins[0]) ? p.gtins[0] : "");
+    (p.gtins || []).forEach(g => {
+      const ng = normalizeGTIN(g);
+      if (ng && primary) gtinToPrimary[ng] = primary;
+    });
+  });
+
+  // info sus
   info.innerHTML = `
     <strong>${order.client?.name || ""}</strong><br>
     ${new Date(order.createdAt).toLocaleString()}
   `;
 
+  // 3) render listă
   list.innerHTML = "";
 
   (order.items || []).forEach(item => {
     const row = document.createElement("div");
     row.className = "pick-row";
 
-    const gtin = normalizeGTIN(item.gtin);
-    pickState[gtin] = pickState[gtin] || {};
+    // item.gtin = GTIN principal salvat pe comandă
+    const primaryGtin = normalizeGTIN(item.gtin);
+    pickState[primaryGtin] = pickState[primaryGtin] || {};
 
-    const totalPicked = Object.values(pickState[gtin]).reduce((s, n) => s + Number(n || 0), 0);
+    const totalPicked = Object.values(pickState[primaryGtin])
+      .reduce((s, n) => s + Number(n || 0), 0);
+
     if (totalPicked >= Number(item.qty || 0)) row.classList.add("ok");
 
     const allocationsHtml = Array.isArray(item.allocations)
@@ -1637,29 +1658,33 @@ function initPickingOrderPage() {
     row.innerHTML = `
       <div class="pick-title">${item.name} × ${item.qty}</div>
       ${allocationsHtml}
+      <div class="pick-hint">GTIN comandă: <small>${item.gtin || "-"}</small></div>
     `;
 
     list.appendChild(row);
   });
 
-  // legăm butoanele DOAR aici
+  // 4) Scan button (acceptă GTIN secundar!)
   if (btnScan) {
     btnScan.onclick = async () => {
       await startScanWithCallback(async (parsed) => {
-        await handlePickingScan(order, parsed);
+        await handlePickingScan(order, parsed, gtinToPrimary);
         savePickState();
-        initPickingOrderPage(); // rerender ca să devină verde
+        await initPickingOrderPage(); // rerender
       });
     };
   }
 
+  // 5) Finish button
   if (btnFinish) {
     btnFinish.onclick = () => {
       const missing = [];
 
       (order.items || []).forEach(item => {
-        const gtin = normalizeGTIN(item.gtin);
-        const picked = Object.values(pickState?.[gtin] || {}).reduce((s, n) => s + Number(n || 0), 0);
+        const primaryGtin = normalizeGTIN(item.gtin);
+        const picked = Object.values(pickState?.[primaryGtin] || {})
+          .reduce((s, n) => s + Number(n || 0), 0);
+
         const need = Number(item.qty || 0);
         if (picked < need) missing.push(`${item.name}: lipsă ${need - picked}`);
       });
@@ -1674,29 +1699,44 @@ function initPickingOrderPage() {
   }
 }
 
-async function handlePickingScan(order, parsed) {
-  const gtin = normalizeGTIN(parsed.gtin);
+// ✅ MODIFICAT: folosește map-ul gtinToPrimary ca să accepte ambele GTIN-uri
+async function handlePickingScan(order, parsed, gtinToPrimary = {}) {
+  const scanned = normalizeGTIN(parsed.gtin);
   const lot = String(parsed.lot || "").trim();
 
-  if (!gtin || !lot) {
+  if (!scanned || !lot) {
     alert("Cod invalid: lipsește GTIN sau LOT.");
     return;
   }
 
-  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === gtin);
+  // dacă scan-ul e GTIN secundar, îl convertim la principal
+  const primaryScanned = gtinToPrimary[scanned] || scanned;
+
+  // găsim item după GTIN principal din comandă
+  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === primaryScanned);
   if (!item) {
-    alert("Produsul scanat nu există în această comandă.");
+    alert(
+      "Produsul scanat nu există în această comandă.\n\n" +
+      `GTIN scanat: ${parsed.gtin}\n` +
+      `GTIN normalizat: ${scanned}\n` +
+      `GTIN principal mapat: ${primaryScanned}`
+    );
     return;
   }
 
   const alloc = (item.allocations || []).find(a => String(a.lot) === lot);
   if (!alloc) {
-    alert(`LOT diferit față de comandă.\n\nProdus: ${item.name}\nLOT scanat: ${lot}\n\nApasă Scanează și încearcă din nou.`);
+    alert(
+      `LOT diferit față de comandă.\n\n` +
+      `Produs: ${item.name}\n` +
+      `LOT scanat: ${lot}\n\n` +
+      `Apasă Scanează și încearcă din nou.`
+    );
     return;
   }
 
-  pickState[gtin] = pickState[gtin] || {};
-  const already = Number(pickState[gtin][lot] || 0);
+  pickState[primaryScanned] = pickState[primaryScanned] || {};
+  const already = Number(pickState[primaryScanned][lot] || 0);
   const planned = Number(alloc.qty || 0);
   const remainingLot = Math.max(0, planned - already);
 
@@ -1715,8 +1755,9 @@ async function handlePickingScan(order, parsed) {
   if (!Number.isFinite(q) || q <= 0) return;
 
   const toAdd = Math.min(q, remainingLot);
-  pickState[gtin][lot] = already + toAdd;
+  pickState[primaryScanned][lot] = already + toAdd;
 }
+
 
 
 
@@ -1774,7 +1815,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("productsTree")) initOrderPage();
   if (document.getElementById("ordersList")) initOrdersPage();
 if (document.getElementById("productsList")) initCheckPricePage();
-if (document.getElementById("pickingList")) initPickingOrderPage();
+if (document.getElementById("pickingList")) await initPickingOrderPage();
 
 
 
