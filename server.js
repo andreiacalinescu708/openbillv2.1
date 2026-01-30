@@ -53,16 +53,19 @@ function writeJson(filePath, data) {
 
 const AUDIT_FILE = path.join(DATA_DIR, "audit.json");
 
-function logAudit(action, entity, entityId, details = {}) {
+function logAudit(req, action, entity, entityId, details = {}) {
   console.log("📁 AUDIT FILE:", AUDIT_FILE);
 
   const audit = readJson(AUDIT_FILE, []);
+
+  const u = req?.session?.user;
 
   audit.push({
     id: Date.now().toString(),
     action,
     entity,
     entityId,
+    user: u ? { id: u.id, username: u.username, role: u.role } : null,
     details,
     createdAt: new Date().toISOString()
   });
@@ -71,6 +74,7 @@ function logAudit(action, entity, entityId, details = {}) {
 
   console.log("📝 AUDIT:", action, entityId);
 }
+
 
 
 
@@ -529,6 +533,12 @@ app.post("/api/orders/:id/status", (req, res) => {
   order.status = req.body.status;
   writeJson(ORDERS_FILE, orders);
 
+  logAudit(req, "ORDER_STATUS", "order", order.id, {
+  clientName: order.client?.name,
+  newStatus: order.status
+});
+
+
   console.log("✅ STATUS SALVAT IN FILE");
 
   res.json({ ok: true });
@@ -559,11 +569,12 @@ app.post("/api/stock", (req, res) => {
   stock.push(entry);
   writeJson(STOCK_FILE, stock);
 
-  logAudit("STOCK_ADD", "stock", entry.id || "new", {
+ logAudit(req, "STOCK_ADD", "stock", entry.id || "new", {
   productName: entry.productName,
   lot: entry.lot,
   qty: entry.qty
 });
+
 
 
   res.json({ ok: true, entry });
@@ -584,7 +595,7 @@ const beforeLoc = item.location || "A";
 if (req.body.qty != null) item.qty = Number(req.body.qty);
 if (req.body.location != null) item.location = String(req.body.location);
 
-logAudit("STOCK_EDIT", "stock", item.id, {
+logAudit(req, "STOCK_EDIT", "stock", item.id, {
   productName: item.productName,
   lot: item.lot,
   beforeQty,
@@ -592,6 +603,7 @@ logAudit("STOCK_EDIT", "stock", item.id, {
   beforeLoc,
   afterLoc: item.location
 });
+
 
 
   writeJson(STOCK_FILE, stock);
@@ -611,12 +623,13 @@ app.delete("/api/stock/:id", (req, res) => {
   const item = stock[index];
 
   // 🔍 AUDIT (ÎNAINTE de ștergere)
-  logAudit("STOCK_DELETE", "stock", item.id, {
-    productName: item.productName,
-    lot: item.lot,
-    expiresAt: item.expiresAt,
-    qty: item.qty
-  });
+ logAudit(req, "STOCK_DELETE", "stock", item.id, {
+  productName: item.productName,
+  lot: item.lot,
+  expiresAt: item.expiresAt,
+  qty: item.qty
+});
+
 
   stock.splice(index, 1);
   writeJson(STOCK_FILE, stock);

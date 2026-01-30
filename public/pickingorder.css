@@ -1,0 +1,21 @@
+.pick-row {
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 2px solid #dc2626;
+  background: #fee2e2;
+}
+
+.pick-row.ok {
+  border-color: #16a34a;
+  background: #dcfce7;
+}
+
+.pick-title {
+  font-weight: 700;
+}
+
+.pick-lot {
+  font-size: 14px;
+  margin-top: 6px;
+}

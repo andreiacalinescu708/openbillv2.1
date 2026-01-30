@@ -665,5 +665,436 @@
       "afterLoc": "B"
     },
     "createdAt": "2026-01-27T21:38:14.575Z"
+  },
+  {
+    "id": "1769726914615",
+    "action": "STOCK_DELETE",
+    "entity": "stock",
+    "entityId": "17663326773967an37ey7693",
+    "details": {
+      "productName": "ACTIVE/CHILOT - XL",
+      "lot": "1402426349",
+      "expiresAt": "2030-12-31",
+      "qty": 172
+    },
+    "createdAt": "2026-01-29T22:48:34.615Z"
+  },
+  {
+    "id": "1769726930605",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1769461209542svzb2wbinx",
+    "details": {
+      "productName": "Seni Active Classic Medium 30",
+      "lot": "1402345285",
+      "beforeQty": 117,
+      "afterQty": 5,
+      "beforeLoc": "A",
+      "afterLoc": "A"
+    },
+    "createdAt": "2026-01-29T22:48:50.605Z"
+  },
+  {
+    "id": "1769726939622",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "1769541138712jaqovlm0m8q",
+    "details": {
+      "productName": "Seni Active Classic Medium 30",
+      "lot": "1402345285",
+      "beforeQty": 123,
+      "afterQty": 123,
+      "beforeLoc": "A",
+      "afterLoc": "B"
+    },
+    "createdAt": "2026-01-29T22:48:59.622Z"
+  },
+  {
+    "id": "1769727635129",
+    "action": "STOCK_EDIT",
+    "entity": "stock",
+    "entityId": "17663362497388awidpbcplg",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "productName": "SUPER",
+      "lot": "1402345285",
+      "beforeQty": 28,
+      "afterQty": 22,
+      "beforeLoc": "A",
+      "afterLoc": "A"
+    },
+    "createdAt": "2026-01-29T23:00:35.129Z"
+  },
+  {
+    "id": "1769727760959",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:02:40.959Z"
+  },
+  {
+    "id": "1769728788306",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:19:48.306Z"
+  },
+  {
+    "id": "1769728789214",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:19:49.214Z"
+  },
+  {
+    "id": "1769728790963",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:19:50.963Z"
+  },
+  {
+    "id": "1769728792091",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:19:52.091Z"
+  },
+  {
+    "id": "1769728792527",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:19:52.527Z"
+  },
+  {
+    "id": "1769728795278",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769726954378",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gidea FARM",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:19:55.278Z"
+  },
+  {
+    "id": "1769728795765",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769726954378",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gidea FARM",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:19:55.765Z"
+  },
+  {
+    "id": "1769728798895",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:19:58.895Z"
+  },
+  {
+    "id": "1769728800138",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:20:00.138Z"
+  },
+  {
+    "id": "1769728801121",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:20:01.121Z"
+  },
+  {
+    "id": "1769728804064",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:20:04.064Z"
+  },
+  {
+    "id": "1769728804097",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:20:04.097Z"
+  },
+  {
+    "id": "1769728808019",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:20:08.019Z"
+  },
+  {
+    "id": "1769728883765",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:21:23.765Z"
+  },
+  {
+    "id": "1769728885225",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:21:25.225Z"
+  },
+  {
+    "id": "1769728885808",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:21:25.808Z"
+  },
+  {
+    "id": "1769728886876",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:21:26.876Z"
+  },
+  {
+    "id": "1769728888626",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-29T23:21:28.626Z"
+  },
+  {
+    "id": "1769728895973",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769726954378",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gidea FARM",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:21:35.973Z"
+  },
+  {
+    "id": "1769728896931",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-29T23:21:36.931Z"
+  },
+  {
+    "id": "1769728897188",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769727622075",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gentiana TG. JIU",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:21:37.188Z"
+  },
+  {
+    "id": "1769728899472",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769726954378",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Gidea FARM",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-29T23:21:39.472Z"
   }
 ]

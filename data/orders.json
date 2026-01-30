@@ -2716,5 +2716,99 @@
     ],
     "status": "in_procesare",
     "createdAt": "2026-01-27T21:38:25.994Z"
+  },
+  {
+    "id": "1769725595328",
+    "client": {
+      "id": "CL003",
+      "name": "Gentiana TG. JIU",
+      "group": "Exterior",
+      "path": "Exterior / Tg Jiu",
+      "prices": {}
+    },
+    "items": [
+      {
+        "productId": "172",
+        "name": "Seni Active Classic Medium 30",
+        "price": 83.21,
+        "qty": 3,
+        "allocations": [
+          {
+            "stockId": "1769461209542svzb2wbinx",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "A",
+            "qty": 3
+          }
+        ]
+      }
+    ],
+    "status": "in_procesare",
+    "createdAt": "2026-01-29T22:26:35.328Z"
+  },
+  {
+    "id": "1769726954378",
+    "client": {
+      "id": "CL004",
+      "name": "Gidea FARM",
+      "group": "Exterior",
+      "path": "Exterior / Tg Jiu",
+      "prices": {}
+    },
+    "items": [
+      {
+        "productId": "172",
+        "name": "Seni Active Classic Medium 30",
+        "price": 83.21,
+        "qty": 7,
+        "allocations": [
+          {
+            "stockId": "1769461209542svzb2wbinx",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "A",
+            "qty": 5
+          },
+          {
+            "stockId": "1769541138712jaqovlm0m8q",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "B",
+            "qty": 2
+          }
+        ]
+      }
+    ],
+    "status": "facturata",
+    "createdAt": "2026-01-29T22:49:14.378Z"
+  },
+  {
+    "id": "1769727622075",
+    "client": {
+      "id": "CL003",
+      "name": "Gentiana TG. JIU",
+      "group": "Exterior",
+      "path": "Exterior / Tg Jiu",
+      "prices": {}
+    },
+    "items": [
+      {
+        "productId": "172",
+        "name": "Seni Active Classic Medium 30",
+        "price": 83.21,
+        "qty": 1,
+        "allocations": [
+          {
+            "stockId": "1769541138712jaqovlm0m8q",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "B",
+            "qty": 1
+          }
+        ]
+      }
+    ],
+    "status": "facturata",
+    "createdAt": "2026-01-29T23:00:22.075Z"
   }
 ]

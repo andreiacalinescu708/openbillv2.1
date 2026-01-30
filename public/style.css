@@ -252,6 +252,13 @@ button:hover,
 .cards {
   gap: 20px;
 }
+
+.order-status.facturata {
+  background: #facc15;        /* galben */
+  color: #422006;             /* text maro închis */
+  border: 1px solid #eab308;
+}
+
 /* ===== DASHBOARD FIX ===== */
 
 .container {
@@ -705,4 +712,10 @@ body::after{
 
 @media print {
   body::after { display: none; }
+}
+
+.order-status.facturata {
+  background: #facc15;
+  color: #422006;
+  border: 1px solid #eab308;
 }

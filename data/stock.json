@@ -1,21 +1,13 @@
 [
   {
-    "id": "17663326773967an37ey7693",
-    "productId": "4",
-    "productName": "ACTIVE/CHILOT - XL",
-    "lot": "1402426349",
-    "expiresAt": "2030-12-31",
-    "qty": 172,
-    "createdAt": "2025-12-21T15:57:57.396Z"
-  },
-  {
     "id": "17663362497388awidpbcplg",
     "productId": "36",
     "productName": "SUPER",
     "lot": "1402345285",
     "expiresAt": "2030-04-30",
-    "qty": 28,
-    "createdAt": "2025-12-21T16:57:29.738Z"
+    "qty": 22,
+    "createdAt": "2025-12-21T16:57:29.738Z",
+    "location": "A"
   },
   {
     "id": "17664383560758t4nvkin9qd",
@@ -59,8 +51,9 @@
     "productName": "Seni Active Classic Medium 30",
     "lot": "1402345285",
     "expiresAt": "2030-04-30",
-    "qty": 120,
-    "createdAt": "2026-01-26T21:00:09.542Z"
+    "qty": 0,
+    "createdAt": "2026-01-26T21:00:09.542Z",
+    "location": "A"
   },
   {
     "id": "1769539709181lnt5uod4nz",
@@ -77,8 +70,9 @@
     "productName": "Seni Active Classic Medium 30",
     "lot": "1402345285",
     "expiresAt": "2030-04-30",
-    "qty": 123,
-    "createdAt": "2026-01-27T19:12:18.712Z"
+    "qty": 120,
+    "createdAt": "2026-01-27T19:12:18.712Z",
+    "location": "B"
   },
   {
     "id": "1769549456581isnx9uc9h8i",

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pregătire comandă</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="pickingorder.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button onclick="location.href='orders.html'">⬅ Înapoi</button>
+  <h2>📦 Pregătire comandă</h2>
+</header>
+
+<main class="container">
+  <div id="pickingInfo" class="panel"></div>
+  <div id="pickingList" class="panel"></div>
+
+  <div style="margin-top:16px; text-align:right;">
+    <button id="btnScanPick" class="btn primary">📷 Scanează produs</button>
+    <button id="btnFinishPick" class="btn">✅ Finalizează</button>
+  </div>
+</main>
+
+<!-- scanner -->
+<div id="scannerModal" class="modal" style="display:none;">
+  <div class="modal-card">
+    <button id="btnCloseScan" class="btn">✖</button>
+    <video id="scanVideo"></video>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -739,7 +739,7 @@ const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
 head.className = "orderHeader";
 
 
-        const status = o.status || "in_procesare";
+       
 
         head.innerHTML = `
   <span>
@@ -747,16 +747,28 @@ head.className = "orderHeader";
     ${new Date(o.createdAt).toLocaleDateString("ro-RO")}
   </span>
 `;
+const status = o.status || "in_procesare";
+
+const statusLabels = {
+  in_procesare: "În procesare",
+  facturata: "Facturată",
+  livrata: "Livrată"
+};
+
+const nextStatusMap = {
+  in_procesare: "facturata",
+  facturata: "livrata",
+  livrata: "in_procesare"
+};
+
 const statusBtn = document.createElement("button");
 statusBtn.className = `order-status ${status}`;
-statusBtn.textContent =
-  status === "livrata" ? "Livrată" : "În procesare";
+statusBtn.textContent = statusLabels[status] || status;
 
 statusBtn.onclick = async (e) => {
   e.stopPropagation();
 
-  const newStatus =
-    status === "in_procesare" ? "livrata" : "in_procesare";
+  const newStatus = nextStatusMap[o.status || "in_procesare"] || "in_procesare";
 
   const res = await fetch(`/api/orders/${o.id}/status`, {
     method: "POST",
@@ -772,7 +784,26 @@ statusBtn.onclick = async (e) => {
   o.status = newStatus;
   render();
 };
+
 head.appendChild(statusBtn);
+
+
+const pickBtn = document.createElement("button");
+pickBtn.textContent = "📦 Pregătește comanda";
+pickBtn.className = "btnPick";
+
+pickBtn.onclick = (e) => {
+  e.stopPropagation();
+
+  // salvăm comanda selectată
+  localStorage.setItem("pickingOrder", JSON.stringify(o));
+
+  // mergem la pagina de picking
+  location.href = "pickingorder.html";
+};
+
+head.appendChild(pickBtn);
+
 
 
         const body = document.createElement("div");
@@ -822,30 +853,15 @@ o.items.forEach(i => {
             body.style.display === "none" ? "block" : "none";
         };
 
-        // 🔄 schimbare status (click pe badge)
-        const statusEl = head.querySelector(".order-status");
-        statusEl.onclick = async (e) => {
-          e.stopPropagation();
-          if (!o.id) return;
-
-          const newStatus =
-            status === "in_procesare" ? "livrata" : "in_procesare";
-
-          await fetch(`/api/orders/${o.id}/status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: newStatus })
-          });
-
-          o.status = newStatus;
-          render();
-        };
+       
 
         card.appendChild(head);
         card.appendChild(body);
         list.appendChild(card);
-      });
+      }); 
   }
+ 
+
 
   // 🔍 SEARCH LIVE + sugestii
   if (searchInput && searchResults) {
@@ -1136,6 +1152,89 @@ async function startScanIntoInput(qrInputEl) {
   }
 }, 250);
 
+}
+
+async function startScanWithCallback(onScan) {
+  if (!window.isSecureContext) {
+    alert("Camera merge doar pe HTTPS.");
+    return;
+  }
+
+  const modal = document.getElementById("scannerModal");
+  const video = document.getElementById("scanVideo");
+  if (!modal || !video) return;
+
+  closeScanner();
+  modal.style.display = "block";
+
+  video.muted = true;
+  video.setAttribute("muted", "");
+  video.setAttribute("playsinline", "");
+  video.autoplay = true;
+
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+  } catch (e) {
+    closeScanner();
+    alert("Nu pot porni camera. Verifică permisiunile.");
+    return;
+  }
+
+  video.srcObject = scanStream;
+
+  await new Promise(resolve => {
+    video.onloadedmetadata = () => resolve();
+  });
+
+  try { await video.play(); } catch {}
+
+  if (!("BarcodeDetector" in window)) {
+    alert("BarcodeDetector nu e suportat pe acest browser.");
+    return;
+  }
+
+  let formats = ["qr_code", "data_matrix"];
+  try {
+    const supported = await BarcodeDetector.getSupportedFormats?.();
+    if (Array.isArray(supported) && supported.length) {
+      formats = formats.filter(f => supported.includes(f));
+    }
+  } catch {}
+
+  if (!formats.length) formats = ["qr_code"];
+
+  let detector;
+  try { detector = new BarcodeDetector({ formats }); }
+  catch { detector = new BarcodeDetector(); }
+
+  scanTimer = setInterval(async () => {
+    try {
+      if (!video.videoWidth || !video.videoHeight) return;
+
+      const codes = await detector.detect(video);
+      if (!codes || !codes.length) return;
+
+      const raw = codes[0].rawValue || "";
+      if (!raw) return;
+
+      const clean = sanitizeGS1(raw);
+      const parsed = parseGS1(clean);
+
+      if (!parsed.gtin || !parsed.lot) return; // obligatoriu
+
+      closeScanner();
+      onScan(parsed);
+    } catch (e) {
+      console.warn("SCAN ERROR:", e);
+    }
+  }, 250);
 }
 
 
@@ -1435,6 +1534,148 @@ function applyTheme(theme) {
     document.body.classList.remove("dark");
   }
 }
+// ================= PICKING ORDER =================
+let pickState = null; // persist între rerender-uri
+
+function loadPickState() {
+  try { return JSON.parse(localStorage.getItem("pickState")) || {}; }
+  catch { return {}; }
+}
+function savePickState() {
+  localStorage.setItem("pickState", JSON.stringify(pickState || {}));
+}
+
+function initPickingOrderPage() {
+  const list = document.getElementById("pickingList");
+  const info = document.getElementById("pickingInfo");
+  const btnScan = document.getElementById("btnScanPick");
+  const btnFinish = document.getElementById("btnFinishPick");
+  const btnClose = document.getElementById("btnCloseScan");
+
+  if (!list || !info) return;
+
+  if (btnClose) btnClose.onclick = closeScanner;
+
+  // încarcă progresul
+  if (!pickState) pickState = loadPickState();
+
+  const order = JSON.parse(localStorage.getItem("pickingOrder"));
+  if (!order) {
+    alert("Nu există comandă selectată.");
+    location.href = "orders.html";
+    return;
+  }
+
+  info.innerHTML = `
+    <strong>${order.client?.name || ""}</strong><br>
+    ${new Date(order.createdAt).toLocaleString()}
+  `;
+
+  list.innerHTML = "";
+
+  (order.items || []).forEach(item => {
+    const row = document.createElement("div");
+    row.className = "pick-row";
+
+    const gtin = normalizeGTIN(item.gtin);
+    pickState[gtin] = pickState[gtin] || {};
+
+    const totalPicked = Object.values(pickState[gtin]).reduce((s, n) => s + Number(n || 0), 0);
+    if (totalPicked >= Number(item.qty || 0)) row.classList.add("ok");
+
+    const allocationsHtml = Array.isArray(item.allocations)
+      ? item.allocations.map(a => `
+          <div class="pick-lot">
+            LOT ${a.lot} (${a.location || "-"}) → ${a.qty}
+          </div>
+        `).join("")
+      : `<div class="pick-lot">Fără allocations pe comandă</div>`;
+
+    row.innerHTML = `
+      <div class="pick-title">${item.name} × ${item.qty}</div>
+      ${allocationsHtml}
+    `;
+
+    list.appendChild(row);
+  });
+
+  // legăm butoanele DOAR aici
+  if (btnScan) {
+    btnScan.onclick = async () => {
+      await startScanWithCallback(async (parsed) => {
+        await handlePickingScan(order, parsed);
+        savePickState();
+        initPickingOrderPage(); // rerender ca să devină verde
+      });
+    };
+  }
+
+  if (btnFinish) {
+    btnFinish.onclick = () => {
+      const missing = [];
+
+      (order.items || []).forEach(item => {
+        const gtin = normalizeGTIN(item.gtin);
+        const picked = Object.values(pickState?.[gtin] || {}).reduce((s, n) => s + Number(n || 0), 0);
+        const need = Number(item.qty || 0);
+        if (picked < need) missing.push(`${item.name}: lipsă ${need - picked}`);
+      });
+
+      if (missing.length) {
+        alert("Comanda nu este completă:\n\n" + missing.join("\n"));
+        return;
+      }
+
+      alert("Comanda este complet pregătită ✅");
+    };
+  }
+}
+
+async function handlePickingScan(order, parsed) {
+  const gtin = normalizeGTIN(parsed.gtin);
+  const lot = String(parsed.lot || "").trim();
+
+  if (!gtin || !lot) {
+    alert("Cod invalid: lipsește GTIN sau LOT.");
+    return;
+  }
+
+  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === gtin);
+  if (!item) {
+    alert("Produsul scanat nu există în această comandă.");
+    return;
+  }
+
+  const alloc = (item.allocations || []).find(a => String(a.lot) === lot);
+  if (!alloc) {
+    alert(`LOT diferit față de comandă.\n\nProdus: ${item.name}\nLOT scanat: ${lot}\n\nApasă Scanează și încearcă din nou.`);
+    return;
+  }
+
+  pickState[gtin] = pickState[gtin] || {};
+  const already = Number(pickState[gtin][lot] || 0);
+  const planned = Number(alloc.qty || 0);
+  const remainingLot = Math.max(0, planned - already);
+
+  if (remainingLot <= 0) {
+    alert("Lotul acesta este deja complet pentru această comandă.");
+    return;
+  }
+
+  const ans = prompt(
+    `Câte bucăți pui din LOT ${lot} (${alloc.location || "-"})?\nRămas pe acest lot: ${remainingLot}`,
+    String(remainingLot)
+  );
+  if (ans == null) return;
+
+  const q = parseInt(ans, 10);
+  if (!Number.isFinite(q) || q <= 0) return;
+
+  const toAdd = Math.min(q, remainingLot);
+  pickState[gtin][lot] = already + toAdd;
+}
+
+
 
 
 
@@ -1490,6 +1731,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("productsTree")) initOrderPage();
   if (document.getElementById("ordersList")) initOrdersPage();
 if (document.getElementById("productsList")) initCheckPricePage();
+if (document.getElementById("pickingList")) initPickingOrderPage();
+
 
 
   initViewCurrentOrderButton();
