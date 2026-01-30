@@ -167,7 +167,11 @@ function locRank(loc) {
   const i = LOCATION_ORDER.indexOf(String(loc || "").toUpperCase());
   return i === -1 ? 999 : i;
 }
-
+function normalizeGTIN(gtin) {
+  let g = String(gtin || "").replace(/\D/g, "");
+  if (g.length === 14 && g.startsWith("0")) g = g.slice(1);
+  return g;
+}
 
 
 function allocateStockByLocation(stock, gtin, neededQty) {
@@ -467,11 +471,7 @@ app.get("/api/orders", (req, res) => {
 
 
 
-function normalizeGTIN(gtin) {
-  let g = String(gtin || "").replace(/\D/g, "");
-  if (g.length === 14 && g.startsWith("0")) g = g.slice(1);
-  return g;
-}
+
 
 app.post("/api/orders", (req, res) => {
   const orders = readJson(ORDERS_FILE, []);

@@ -1024,8 +1024,16 @@ function selectProductByGTIN(gtin) {
   let found = false;
 
   [...sel.options].forEach(o => {
-    const optGTIN = normalizeGTIN(o.dataset.gtin);
-    if (optGTIN && optGTIN === scanned) {
+    let arr = [];
+    try {
+      arr = JSON.parse(o.dataset.gtins || "[]");
+    } catch {
+      arr = [];
+    }
+
+    const ok = arr.map(normalizeGTIN).includes(scanned);
+
+    if (ok) {
       sel.value = o.value;
       found = true;
     }
@@ -1035,6 +1043,7 @@ function selectProductByGTIN(gtin) {
     sel.dispatchEvent(new Event("change", { bubbles: true }));
   }
 }
+
 
 
 
@@ -1289,7 +1298,8 @@ if (btnScan && qrInput) {
     opt.value = p.id;
     opt.textContent = p.name;
     opt.dataset.name = p.name;
-    opt.dataset.gtin = p.gtin || ""; // 🔑 CHEIA
+    opt.dataset.gtins = JSON.stringify(p.gtins || []);
+
     prodSel.appendChild(opt);
   });
 
@@ -1323,7 +1333,9 @@ const stockLocation = document.getElementById("stockLocation").value;
       alert("Completează toate câmpurile");
       return;
     }
-const gtin = prodSel.selectedOptions[0].dataset.gtin || "";
+const gtins = JSON.parse(prodSel.selectedOptions[0].dataset.gtins || "[]");
+const gtin = gtins[0] || "";
+
     await fetch("/api/stock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1538,9 +1550,11 @@ const found = cart.find(p => normalizeGTIN(p.gtin) === g);
   if (found) {
     found.qty++;
   } else {
-   cart.push({
-  id: product.id,        // intern, nu contează la picking
-  gtin: product.gtin,    // ✅ OBLIGATORIU
+ const gtin = (product.gtins && product.gtins[0]) ? product.gtins[0] : "";
+
+cart.push({
+  id: product.id,
+  gtin,                  // ✅ OBLIGATORIU (principal)
   name: product.name,
   qty: 1,
   price
