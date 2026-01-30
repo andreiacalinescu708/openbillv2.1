@@ -1551,7 +1551,19 @@ const found = cart.find(p => normalizeGTIN(p.gtin) === g);
   if (found) {
     found.qty++;
   } else {
- const gtin = (product.gtins && product.gtins[0]) ? product.gtins[0] : "";
+const primaryGTIN =
+  Array.isArray(product.gtins) && product.gtins.length
+    ? product.gtins[0]
+    : product.gtin || "";
+
+cart.push({
+  id: product.id,
+  gtin: primaryGTIN,   // ← OBLIGATORIU
+  name: product.name,
+  qty: 1,
+  price
+});
+
 
 cart.push({
   id: product.id,
@@ -1656,10 +1668,15 @@ async function initPickingOrderPage() {
       : `<div class="pick-lot">Fără allocations pe comandă</div>`;
 
     row.innerHTML = `
-      <div class="pick-title">${item.name} × ${item.qty}</div>
-      ${allocationsHtml}
-      <div class="pick-hint">GTIN comandă: <small>${item.gtin || "-"}</small></div>
-    `;
+  <div class="pick-title">${item.name} × ${item.qty}</div>
+
+  <div class="pick-hint">
+    GTIN comandă: <small>${item.gtin || "—"}</small>
+  </div>
+
+  ${allocationsHtml}
+`;
+
 
     list.appendChild(row);
   });

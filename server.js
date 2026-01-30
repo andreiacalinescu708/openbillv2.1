@@ -487,6 +487,13 @@ app.post("/api/orders", (req, res) => {
 
   for (const item of items) {
     const gtin = normalizeGTIN(item.gtin);
+
+if (!gtin) {
+  return res.status(400).json({
+    error: `Produs fără GTIN în comandă: ${item.name}`
+  });
+}
+
     if (!gtin) {
       return res.status(400).json({ error: `Produs fără GTIN: ${item.name}` });
     }
