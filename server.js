@@ -430,18 +430,18 @@ app.get("/api/orders", (req, res) => {
     changed = true;
   }
 
-  o.items = o.items.map(i => {
-    if (typeof i !== "object") return null;
+ o.items = o.items.map(i => {
+  if (typeof i !== "object") return null;
 
-    return {
-      productId: i.productId || null,
-      name: i.name || "Produs necunoscut",
-      qty: Number(i.qty) || 0,
-      price: i.price ?? null,
-      allocations: Array.isArray(i.allocations) ? i.allocations : []
-    };
-  }).filter(Boolean);
-});
+  return {
+    gtin: i.gtin ? String(i.gtin) : "",          // ✅ NU îl pierde!
+    name: i.name || "Produs necunoscut",
+    qty: Number(i.qty) || 0,
+    price: i.price ?? null,
+    allocations: Array.isArray(i.allocations) ? i.allocations : []
+  };
+}).filter(Boolean);
+
 
 
     // add id if missing
