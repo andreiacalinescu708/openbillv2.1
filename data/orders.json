@@ -2810,5 +2810,88 @@
     ],
     "status": "facturata",
     "createdAt": "2026-01-29T23:00:22.075Z"
+  },
+  {
+    "id": "1769790335629",
+    "client": {
+      "id": "CL004",
+      "name": "Gidea FARM",
+      "group": "Exterior",
+      "path": "Exterior / Tg Jiu",
+      "prices": {}
+    },
+    "items": [
+      {
+        "gtin": "5900516800062",
+        "name": "Seni Classic Air Large 30",
+        "price": 79.22,
+        "qty": 3,
+        "allocations": [
+          {
+            "stockId": "1769790325626g5s64lpi48m",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "A",
+            "qty": 3
+          }
+        ]
+      }
+    ],
+    "status": "in_procesare",
+    "createdAt": "2026-01-30T16:25:35.629Z"
+  },
+  {
+    "id": "1769792520354",
+    "client": {
+      "id": "CL014",
+      "name": "Medifarm",
+      "group": "Exterior",
+      "path": "Exterior / Valcea",
+      "prices": {
+        "150": 45.84,
+        "151": 51.76,
+        "152": 60.26,
+        "153": 69.29,
+        "158": 54.67,
+        "159": 58.4,
+        "160": 69.22,
+        "161": 78.66,
+        "171": 68.12,
+        "172": 71.41,
+        "173": 77.82,
+        "174": 88.37,
+        "199": 4.72,
+        "200": 6.31,
+        "201": 9,
+        "202": 10.8,
+        "203": 12.6,
+        "204": 10.8,
+        "205": 12.6,
+        "206": 16.46,
+        "208": 19.04,
+        "221": 67.23,
+        "225": 44.18,
+        "227": 40.17
+      }
+    },
+    "items": [
+      {
+        "gtin": "5900516800062",
+        "name": "Seni Classic Air Large 30",
+        "price": 69.22,
+        "qty": 2,
+        "allocations": [
+          {
+            "stockId": "1769790325626g5s64lpi48m",
+            "lot": "1402345285",
+            "expiresAt": "2030-04-30",
+            "location": "A",
+            "qty": 2
+          }
+        ]
+      }
+    ],
+    "status": "in_procesare",
+    "createdAt": "2026-01-30T17:02:00.354Z"
   }
 ]

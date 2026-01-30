@@ -168,15 +168,18 @@ function locRank(loc) {
   return i === -1 ? 999 : i;
 }
 
-function allocateStockByLocation(stock, productId, neededQty) {
+
+
+function allocateStockByLocation(stock, gtin, neededQty) {
+  const g = normalizeGTIN(gtin);
+
   const lots = stock
-    .filter(s => String(s.productId) === String(productId) && Number(s.qty) > 0)
+    .filter(s =>
+      normalizeGTIN(s.gtin) === g && Number(s.qty) > 0
+    )
     .sort((a, b) => {
-      // 1) prioritate locație
       const r = locRank(a.location) - locRank(b.location);
       if (r !== 0) return r;
-
-      // 2) tie-breaker: expirare (opțional, ca să fie stabil)
       return new Date(a.expiresAt) - new Date(b.expiresAt);
     });
 
@@ -186,23 +189,28 @@ function allocateStockByLocation(stock, productId, neededQty) {
   for (const lot of lots) {
     if (remaining <= 0) break;
 
-    const takeQty = Math.min(Number(lot.qty), remaining);
+    const take = Math.min(Number(lot.qty), remaining);
 
     allocated.push({
       stockId: lot.id,
       lot: lot.lot,
       expiresAt: lot.expiresAt,
-      location: lot.location || "A",  // ✅ util în UI
-      qty: takeQty
+      location: lot.location,
+      qty: take
     });
 
-    lot.qty = Number(lot.qty) - takeQty;
-    remaining -= takeQty;
+    lot.qty -= take;
+    remaining -= take;
   }
 
-  if (remaining > 0) throw new Error("Stoc insuficient");
+  if (remaining > 0) {
+    throw new Error("Stoc insuficient");
+  }
+
   return allocated;
 }
+
+
 
 
 
@@ -354,6 +362,8 @@ app.get("/api/products-flat", (req, res) => {
 
 // ----- API ORDERS -----
 app.get("/api/orders", (req, res) => {
+ 
+
   let orders = readJson(ORDERS_FILE, []);
   let changed = false;
   orders.forEach(o => {
@@ -457,6 +467,12 @@ app.get("/api/orders", (req, res) => {
 
 
 
+function normalizeGTIN(gtin) {
+  let g = String(gtin || "").replace(/\D/g, "");
+  if (g.length === 14 && g.startsWith("0")) g = g.slice(1);
+  return g;
+}
+
 app.post("/api/orders", (req, res) => {
   const orders = readJson(ORDERS_FILE, []);
   const stock = readJson(STOCK_FILE, []);
@@ -467,36 +483,43 @@ app.post("/api/orders", (req, res) => {
     return res.status(400).json({ error: "Comandă goală" });
   }
 
- const itemsMap = {};
+  const itemsMap = {};
 
-for (const item of items) {
-  try {
-   const allocations = allocateStockByLocation(stock, item.id, item.qty);
+  for (const item of items) {
+    const gtin = normalizeGTIN(item.gtin);
+    if (!gtin) {
+      return res.status(400).json({ error: `Produs fără GTIN: ${item.name}` });
+    }
 
+    try {
+      const qty = Number(item.qty) || 0;
+      if (qty <= 0) continue;
 
-   itemsMap[item.gtin] = {
-  gtin: item.gtin,           // ✅ CHEIA REALĂ
-  name: item.name,
-  price: item.price ?? null,
-  qty: 0,
-  allocations: []
-};
+      const allocations = allocateStockByLocation(stock, gtin, qty);
 
+      if (!itemsMap[gtin]) {
+        itemsMap[gtin] = {
+          gtin, // ✅ cheia
+          name: item.name,
+          price: item.price ?? null,
+          qty: 0,
+          allocations: []
+        };
+      }
 
-    itemsMap[item.id].qty += item.qty;
-    itemsMap[item.id].allocations.push(...allocations);
+      itemsMap[gtin].qty += qty;
+      itemsMap[gtin].allocations.push(...allocations);
 
-  } catch (e) {
-    return res.status(400).json({
-      error: `Stoc insuficient pentru ${item.name}`
-    });
+    } catch (e) {
+      return res.status(400).json({
+        error: `Stoc insuficient pentru ${item.name}`
+      });
+    }
   }
-}
 
-const finalItems = Object.values(itemsMap);
+  const finalItems = Object.values(itemsMap);
 
-
-  // ✅ salvăm stocul actualizat
+  // ✅ salvăm stocul actualizat (allocateStockByLocation a scăzut din qty)
   writeJson(STOCK_FILE, stock);
 
   const newOrder = {
@@ -512,6 +535,7 @@ const finalItems = Object.values(itemsMap);
 
   res.json({ ok: true });
 });
+
 
 app.post("/api/orders/:id/status", (req, res) => {
   console.log("=== STATUS UPDATE ROUTE HIT ===");
@@ -575,12 +599,14 @@ if (!entry.gtin) {
   stock.push(entry);
   writeJson(STOCK_FILE, stock);
 
- logAudit("STOCK_ADD", "stock", entry.id || "new", {
+logAudit(req, "STOCK_ADD", "stock", entry.id || "new", {
   gtin: entry.gtin,
   productName: entry.productName,
   lot: entry.lot,
   qty: entry.qty
 });
+
+
 
 
 
@@ -603,7 +629,7 @@ const beforeLoc = item.location || "A";
 if (req.body.qty != null) item.qty = Number(req.body.qty);
 if (req.body.location != null) item.location = String(req.body.location);
 
-logAudit("STOCK_EDIT", "stock", item.id, {
+logAudit(req, "STOCK_EDIT", "stock", item.id, {
   gtin: item.gtin,
   productName: item.productName,
   lot: item.lot,
@@ -612,6 +638,8 @@ logAudit("STOCK_EDIT", "stock", item.id, {
   beforeLoc,
   afterLoc: item.location
 });
+
+
 
 
 

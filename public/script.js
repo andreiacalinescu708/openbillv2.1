@@ -168,17 +168,19 @@ function clearCart() {
 // ================= CART =================
 
 
-function incQty(id) {
+function incQtyByGTIN(gtin) {
   const cart = getCart();
-  const p = cart.find(x => x.id === id);
+  const g = normalizeGTIN(gtin);
+  const p = cart.find(x => normalizeGTIN(x.gtin) === g);
   if (p) p.qty++;
   saveCart(cart);
   renderCart();
 }
 
-function decQty(id) {
+function decQtyByGTIN(gtin) {
   const cart = getCart();
-  const p = cart.find(x => x.id === id);
+  const g = normalizeGTIN(gtin);
+  const p = cart.find(x => normalizeGTIN(x.gtin) === g);
   if (!p) return;
 
   p.qty--;
@@ -205,8 +207,9 @@ function setQty(id, value) {
 }
 
 
-function removeItem(id) {
-  saveCart(getCart().filter(x => x.id !== id));
+function removeItemByGTIN(gtin) {
+  const g = normalizeGTIN(gtin);
+  saveCart(getCart().filter(x => normalizeGTIN(x.gtin) !== g));
   renderCart();
 }
 
@@ -262,7 +265,7 @@ function renderCart() {
 
     const btnDec = document.createElement("button");
     btnDec.textContent = "−";
-    btnDec.onclick = () => decQty(i.id);
+    btnDec.onclick = () => decQtyByGTIN(i.gtin);
 
     const qtyInput = document.createElement("input");
     qtyInput.type = "number";
@@ -280,11 +283,11 @@ function renderCart() {
 
     const btnInc = document.createElement("button");
     btnInc.textContent = "+";
-    btnInc.onclick = () => incQty(i.id);
+   btnInc.onclick = () => incQtyByGTIN(i.gtin);
 
     const btnDel = document.createElement("button");
     btnDel.textContent = "🗑";
-    btnDel.onclick = () => removeItem(i.id);
+    btnDel.onclick = () => removeItemByGTIN(i.gtin);
 
     right.append(btnDec, qtyInput, btnInc, btnDel);
     row.append(left, right);
@@ -662,7 +665,15 @@ async function initOrdersPage() {
 
   if (!list) return;
 
-  const orders = await fetch("/api/orders").then(r => r.json());
+ const res = await fetch("/api/orders");
+if (!res.ok) {
+  const txt = await res.text();
+  console.error("API /orders error:", txt);
+  alert("Eroare server la încărcare comenzi (vezi consola server).");
+  return;
+}
+const orders = await res.json();
+
   const clients = await fetch("/api/clients-flat").then(r => r.json());
 
   // 🔹 map clientName -> category
@@ -1334,6 +1345,7 @@ body: JSON.stringify({
 window.location.reload();
   };
 }
+const grouped = {};
 async function initInventoryPage() {
   const list = document.getElementById("inventoryList");
   const btnRefresh = document.getElementById("btnRefreshStock");
@@ -1351,21 +1363,28 @@ async function initInventoryPage() {
     }
 
     // 🔥 GRUPARE CORECTĂ PE PRODUS
-    const grouped = {};
+    
 
-    stock.forEach(s => {
-      if (!grouped[s.productId]) {
-        grouped[s.productId] = {
-          productName: s.productName,
-          totalQty: 0,
-          lots: []
-        };
-      }
+   // 🔥 GRUPARE CORECTĂ PE GTIN
+const grouped = {};
 
-      grouped[s.productId].totalQty += Number(s.qty);
-      grouped[s.productId].lots.push(s);
-      
-    });
+stock.forEach(s => {
+  const key = normalizeGTIN(s.gtin);
+  if (!key) return;
+
+  if (!grouped[key]) {
+    grouped[key] = {
+      gtin: key,
+      productName: s.productName,
+      totalQty: 0,
+      lots: []
+    };
+  }
+
+  grouped[key].totalQty += Number(s.qty) || 0;
+  grouped[key].lots.push(s);
+});
+
 
     list.innerHTML = "";
     // 🔔 ALERTĂ STOC MIC (GLOBAL)
@@ -1512,7 +1531,9 @@ function addToCart(product) {
 
   const price = getProductPrice(product, client);
 
-  const found = cart.find(p => p.id === product.id);
+  const g = normalizeGTIN(product.gtin);
+const found = cart.find(p => normalizeGTIN(p.gtin) === g);
+
 
   if (found) {
     found.qty++;

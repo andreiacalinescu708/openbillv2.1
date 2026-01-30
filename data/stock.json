@@ -183,5 +183,15 @@
     "qty": 243,
     "location": "R3",
     "createdAt": "2026-01-27T21:31:16.834Z"
+  },
+  {
+    "id": "1769790325626g5s64lpi48m",
+    "gtin": "5900516800062",
+    "productName": "Seni Classic Air Large 30",
+    "lot": "1402345285",
+    "expiresAt": "2030-04-30",
+    "qty": 195,
+    "location": "A",
+    "createdAt": "2026-01-30T16:25:25.626Z"
   }
 ]
