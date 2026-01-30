@@ -1707,63 +1707,102 @@ async function initPickingOrderPage() {
 }
 
 // ✅ MODIFICAT: folosește map-ul gtinToPrimary ca să accepte ambele GTIN-uri
-async function handlePickingScan(order, parsed, gtinToPrimary = {}) {
-  const scanned = normalizeGTIN(parsed.gtin);
-  const lot = String(parsed.lot || "").trim();
+async function handlePickingScan(order, parsed) {
+  const scannedGtin = normalizeGTIN(parsed.gtin);
+  const scannedLot = String(parsed.lot || "").trim();
 
-  if (!scanned || !lot) {
+  if (!scannedGtin || !scannedLot) {
     alert("Cod invalid: lipsește GTIN sau LOT.");
     return;
   }
 
-  // dacă scan-ul e GTIN secundar, îl convertim la principal
-  const primaryScanned = gtinToPrimary[scanned] || scanned;
-
-  // găsim item după GTIN principal din comandă
-  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === primaryScanned);
+  // 1) găsim produsul în comandă după GTIN
+  const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === scannedGtin);
   if (!item) {
-    alert(
-      "Produsul scanat nu există în această comandă.\n\n" +
-      `GTIN scanat: ${parsed.gtin}\n` +
-      `GTIN normalizat: ${scanned}\n` +
-      `GTIN principal mapat: ${primaryScanned}`
-    );
+    alert("Produsul scanat nu există în această comandă.");
     return;
   }
 
-  const alloc = (item.allocations || []).find(a => String(a.lot) === lot);
-  if (!alloc) {
-    alert(
-      `LOT diferit față de comandă.\n\n` +
-      `Produs: ${item.name}\n` +
-      `LOT scanat: ${lot}\n\n` +
-      `Apasă Scanează și încearcă din nou.`
-    );
-    return;
-  }
-
-  pickState[primaryScanned] = pickState[primaryScanned] || {};
-  const already = Number(pickState[primaryScanned][lot] || 0);
-  const planned = Number(alloc.qty || 0);
-  const remainingLot = Math.max(0, planned - already);
-
-  if (remainingLot <= 0) {
-    alert("Lotul acesta este deja complet pentru această comandă.");
-    return;
-  }
-
+  // 2) cerem cantitatea imediat (cum ai cerut)
   const ans = prompt(
-    `Câte bucăți pui din LOT ${lot} (${alloc.location || "-"})?\nRămas pe acest lot: ${remainingLot}`,
-    String(remainingLot)
+    `Produs: ${item.name}\nLOT scanat: ${scannedLot}\n\nCâte bucăți pui?`,
+    "1"
   );
   if (ans == null) return;
 
-  const q = parseInt(ans, 10);
-  if (!Number.isFinite(q) || q <= 0) return;
+  const qtyScanned = parseInt(ans, 10);
+  if (!Number.isFinite(qtyScanned) || qtyScanned <= 0) return;
 
-  const toAdd = Math.min(q, remainingLot);
-  pickState[primaryScanned][lot] = already + toAdd;
+  // 3) încercăm să găsim allocation pe lotul scanat
+  const allocSameLot = (item.allocations || []).find(a => String(a.lot) === scannedLot);
+
+  // ✅ dacă lotul există în comandă → facem picking normal
+  if (allocSameLot) {
+    const gtinKey = normalizeGTIN(item.gtin);
+
+    pickState[gtinKey] = pickState[gtinKey] || {};
+    const already = Number(pickState[gtinKey][scannedLot] || 0);
+    const planned = Number(allocSameLot.qty || 0);
+    const remainingLot = Math.max(0, planned - already);
+
+    if (remainingLot <= 0) {
+      alert("Lotul acesta este deja complet pentru această comandă.");
+      return;
+    }
+
+    const toAdd = Math.min(qtyScanned, remainingLot);
+    pickState[gtinKey][scannedLot] = already + toAdd;
+
+    if (toAdd < qtyScanned) {
+      alert(`Ai cerut ${qtyScanned}, dar pe lotul din comandă mai sunt doar ${remainingLot}. Am adăugat ${toAdd}.`);
+    }
+
+    return;
+  }
+
+  // ❌ LOT diferit → oferim opțiunea de „Actualizează LOT”
+  showLotMismatchDialog(order, item, scannedLot, qtyScanned);
 }
+async function showLotMismatchDialog(order, item, scannedLot, qtyScanned) {
+  const oldLot = String(item.allocations?.[0]?.lot || "").trim();
+
+  const ok = confirm(
+    `LOT diferit față de comandă.\n\n` +
+    `Produs: ${item.name}\n` +
+    `LOT din comandă: ${oldLot || "-"}\n` +
+    `LOT scanat: ${scannedLot}\n` +
+    `Cantitate: ${qtyScanned}\n\n` +
+    `Vrei să actualizezi LOT-ul din comandă cu LOT-ul scanat?`
+  );
+  if (!ok) return;
+
+  // chemăm serverul să schimbe allocations + stoc
+  const res = await apiFetch(`/api/orders/${order.id}/replace-lot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      gtin: item.gtin,     // gtin principal din comanda
+      oldLot,
+      newLot: scannedLot,
+      qty: qtyScanned
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    alert(data.error || "Eroare la actualizare LOT");
+    return;
+  }
+
+  // salvăm comanda actualizată primită de la server
+  localStorage.setItem("pickingOrder", JSON.stringify(data.order));
+
+  alert("LOT actualizat ✅");
+
+  // rerender
+  initPickingOrderPage();
+}
+
 
 
 

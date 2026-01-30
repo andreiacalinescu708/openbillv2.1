@@ -214,6 +214,47 @@ function allocateStockByLocation(stock, gtin, neededQty) {
   return allocated;
 }
 
+function allocateFromSpecificLot(stock, gtin, lot, neededQty) {
+  const g = normalizeGTIN(gtin);
+  const lotStr = String(lot || "").trim();
+
+  const lots = stock
+    .filter(s =>
+      normalizeGTIN(s.gtin) === g &&
+      String(s.lot || "").trim() === lotStr &&
+      Number(s.qty) > 0
+    )
+    .sort((a, b) => {
+      const r = locRank(a.location) - locRank(b.location);
+      if (r !== 0) return r;
+      return new Date(a.expiresAt) - new Date(b.expiresAt);
+    });
+
+  let remaining = Number(neededQty);
+  const allocated = [];
+
+  for (const entry of lots) {
+    if (remaining <= 0) break;
+
+    const take = Math.min(Number(entry.qty), remaining);
+
+    allocated.push({
+      stockId: entry.id,
+      lot: entry.lot,
+      expiresAt: entry.expiresAt,
+      location: entry.location || "A",
+      qty: take
+    });
+
+    entry.qty = Number(entry.qty) - take;
+    remaining -= take;
+  }
+
+  if (remaining > 0) throw new Error("Stoc insuficient pe lotul scanat");
+
+  return allocated;
+}
+
 
 
 
@@ -574,6 +615,96 @@ app.post("/api/orders/:id/status", (req, res) => {
 
   res.json({ ok: true });
 });
+
+app.post("/api/orders/:id/replace-lot", (req, res) => {
+  try {
+    const orders = readJson(ORDERS_FILE, []);
+    const stock = readJson(STOCK_FILE, []);
+
+    const order = orders.find(o => String(o.id) === String(req.params.id));
+    if (!order) return res.status(404).json({ error: "Comandă inexistentă" });
+
+    const gtin = normalizeGTIN(req.body.gtin);
+    const oldLot = String(req.body.oldLot || "").trim();
+    const newLot = String(req.body.newLot || "").trim();
+    const qty = Number(req.body.qty);
+
+    if (!gtin || !oldLot || !newLot || !Number.isFinite(qty) || qty <= 0) {
+      return res.status(400).json({ error: "Date invalide (gtin/oldLot/newLot/qty)" });
+    }
+
+    const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === gtin);
+    if (!item) return res.status(400).json({ error: "Produsul nu există în comandă" });
+
+    item.allocations = Array.isArray(item.allocations) ? item.allocations : [];
+
+    // 1) verificăm că există oldLot în allocations și că avem qty suficient acolo
+    const oldAllocs = item.allocations.filter(a => String(a.lot) === oldLot);
+    const oldTotal = oldAllocs.reduce((s, a) => s + Number(a.qty || 0), 0);
+
+    if (oldTotal <= 0) {
+      return res.status(400).json({ error: "Old LOT nu există în allocations" });
+    }
+    if (qty > oldTotal) {
+      return res.status(400).json({ error: `Cantitatea cerută (${qty}) depășește alocarea din lot (${oldTotal})` });
+    }
+
+    // 2) Returnăm qty înapoi în stoc pentru oldLot (pe stockId-urile alocate)
+    let remainingReturn = qty;
+    for (const a of oldAllocs) {
+      if (remainingReturn <= 0) break;
+
+      const takeBack = Math.min(Number(a.qty || 0), remainingReturn);
+
+      // punem înapoi în stock entry-ul original
+      const st = stock.find(s => String(s.id) === String(a.stockId));
+      if (st) st.qty = Number(st.qty || 0) + takeBack;
+
+      // scădem din allocation
+      a.qty = Number(a.qty || 0) - takeBack;
+      remainingReturn -= takeBack;
+    }
+
+    // curățăm allocations cu qty 0
+    item.allocations = item.allocations.filter(a => Number(a.qty || 0) > 0);
+
+    // 3) Alocăm qty din NEW LOT (scanat) și scădem din stoc
+    const newAllocs = allocateFromSpecificLot(stock, gtin, newLot, qty);
+
+    // 4) le adăugăm în comandă (dacă există deja același lot, îl cumulăm)
+    newAllocs.forEach(na => {
+      const existing = item.allocations.find(a =>
+        String(a.lot) === String(na.lot) &&
+        String(a.location || "") === String(na.location || "")
+      );
+
+      if (existing) {
+        existing.qty = Number(existing.qty || 0) + Number(na.qty || 0);
+      } else {
+        item.allocations.push(na);
+      }
+    });
+
+    // 5) salvăm fișierele
+    writeJson(STOCK_FILE, stock);
+    writeJson(ORDERS_FILE, orders);
+
+    // audit
+    logAudit(req, "ORDER_REPLACE_LOT", "order", order.id, {
+      gtin,
+      oldLot,
+      newLot,
+      qty
+    });
+
+    res.json({ ok: true, order });
+
+  } catch (e) {
+    console.error("replace-lot error:", e);
+    res.status(400).json({ error: e.message || "Eroare" });
+  }
+});
+
 
 // GET stock
 app.get("/api/stock", (req, res) => {
