@@ -1543,41 +1543,31 @@ function addToCart(product) {
 
   const price = getProductPrice(product, client);
 
-  const g = normalizeGTIN((product.gtins && product.gtins[0]) ? product.gtins[0] : "");
-const found = cart.find(p => normalizeGTIN(p.gtin) === g);
+  // GTIN principal (primul din gtins sau fallback pe gtin vechi)
+  const primaryGTIN =
+    (Array.isArray(product.gtins) && product.gtins.length)
+      ? product.gtins[0]
+      : (product.gtin || "");
 
-
+  const g = normalizeGTIN(primaryGTIN);
+  const found = cart.find(p => normalizeGTIN(p.gtin) === g);
 
   if (found) {
     found.qty++;
   } else {
-const primaryGTIN =
-  Array.isArray(product.gtins) && product.gtins.length
-    ? product.gtins[0]
-    : product.gtin || "";
-
-cart.push({
-  id: product.id,
-  gtin: primaryGTIN,   // ← OBLIGATORIU
-  name: product.name,
-  qty: 1,
-  price
-});
-
-
-cart.push({
-  id: product.id,
-  gtin,                  // ✅ OBLIGATORIU (principal)
-  name: product.name,
-  qty: 1,
-  price
-});
-
+    cart.push({
+      id: product.id,
+      gtin: primaryGTIN,   // ✅ GTIN principal
+      name: product.name,
+      qty: 1,
+      price
+    });
   }
 
   saveCart(cart);
   renderCart();
 }
+
 const orderItemsMap = {};
 
 
