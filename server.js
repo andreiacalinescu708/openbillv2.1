@@ -474,15 +474,14 @@ for (const item of items) {
    const allocations = allocateStockByLocation(stock, item.id, item.qty);
 
 
-    if (!itemsMap[item.id]) {
-      itemsMap[item.id] = {
-        productId: item.id,
-        name: item.name,
-        price: item.price ?? null,
-        qty: 0,
-        allocations: []
-      };
-    }
+   itemsMap[item.gtin] = {
+  gtin: item.gtin,           // ✅ CHEIA REALĂ
+  name: item.name,
+  price: item.price ?? null,
+  qty: 0,
+  allocations: []
+};
+
 
     itemsMap[item.id].qty += item.qty;
     itemsMap[item.id].allocations.push(...allocations);
@@ -554,26 +553,35 @@ app.get("/api/stock", (req, res) => {
 app.post("/api/stock", (req, res) => {
   const stock = readJson(STOCK_FILE, []);
 
- const entry = {
+const entry = {
   id: Date.now().toString() + Math.random().toString(36).slice(2),
-  productId: req.body.productId,
-  productName: req.body.productName,
-  lot: req.body.lot,
+
+  gtin: String(req.body.gtin || "").trim(),          // ✅ CHEIA
+  productName: String(req.body.productName || ""),   // pt UI
+
+  lot: String(req.body.lot || "").trim(),
   expiresAt: req.body.expiresAt,
   qty: Number(req.body.qty),
-  location: req.body.location || "A",   // ✅ NOU
+  location: req.body.location || "A",
   createdAt: new Date().toISOString()
 };
+
+if (!entry.gtin) {
+  return res.status(400).json({ error: "Lipsește GTIN" });
+}
+
 
 
   stock.push(entry);
   writeJson(STOCK_FILE, stock);
 
- logAudit(req, "STOCK_ADD", "stock", entry.id || "new", {
+ logAudit("STOCK_ADD", "stock", entry.id || "new", {
+  gtin: entry.gtin,
   productName: entry.productName,
   lot: entry.lot,
   qty: entry.qty
 });
+
 
 
 
@@ -595,7 +603,8 @@ const beforeLoc = item.location || "A";
 if (req.body.qty != null) item.qty = Number(req.body.qty);
 if (req.body.location != null) item.location = String(req.body.location);
 
-logAudit(req, "STOCK_EDIT", "stock", item.id, {
+logAudit("STOCK_EDIT", "stock", item.id, {
+  gtin: item.gtin,
   productName: item.productName,
   lot: item.lot,
   beforeQty,
@@ -603,6 +612,7 @@ logAudit(req, "STOCK_EDIT", "stock", item.id, {
   beforeLoc,
   afterLoc: item.location
 });
+
 
 
 

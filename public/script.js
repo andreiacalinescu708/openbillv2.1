@@ -231,7 +231,8 @@ function renderCart() {
   cart.forEach(i => {
     const row = document.createElement("div");
 
-    const available = stockMap[i.id] || 0;
+   const available = stockMap[normalizeGTIN(i.gtin)] || 0;
+
     const insufficient = i.qty > available;
 
     row.className = "cartItem" + (insufficient ? " out-of-stock" : "");
@@ -533,8 +534,9 @@ async function initOrderPage() {
 const stock = await fetch("/api/stock").then(r => r.json());
 
 stock.forEach(s => {
-stockMap[s.productId] =
-  (stockMap[s.productId] || 0) + Number(s.qty);
+stockMap[normalizeGTIN(s.gtin)] =
+  (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
+
 });
 
   const treeBox = document.getElementById("productsTree");
@@ -1310,18 +1312,21 @@ const stockLocation = document.getElementById("stockLocation").value;
       alert("Completează toate câmpurile");
       return;
     }
-
+const gtin = prodSel.selectedOptions[0].dataset.gtin || "";
     await fetch("/api/stock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-  productId,
+ 
+
+body: JSON.stringify({
+  gtin,
   productName,
   lot,
   expiresAt,
   qty,
   location: stockLocation
 })
+
 
 
     });
@@ -1512,11 +1517,14 @@ function addToCart(product) {
   if (found) {
     found.qty++;
   } else {
-    cart.push({
-      ...product,
-      qty: 1,
-      price
-    });
+   cart.push({
+  id: product.id,        // intern, nu contează la picking
+  gtin: product.gtin,    // ✅ OBLIGATORIU
+  name: product.name,
+  qty: 1,
+  price
+});
+
   }
 
   saveCart(cart);
