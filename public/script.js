@@ -1745,10 +1745,11 @@ products.forEach(p => {
   const primary = normalizeGTIN(primaryRaw);
 
   // IMPORTANT: includem și gtin-ul vechi + toate gtins
-  const all = []
-    .concat(p.gtin || [])
-    .concat(Array.isArray(p.gtins) ? p.gtins : [])
-    .filter(Boolean);
+ const all = []
+  .concat(p.gtin ? [p.gtin] : [])
+  .concat(Array.isArray(p.gtins) ? p.gtins : [])
+  .filter(Boolean);
+
 
   all.forEach(g => {
     const ng = normalizeGTIN(g);
@@ -1971,6 +1972,29 @@ async function handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo) {
     await initPickingOrderPage();
   };
 }
+// ================= BOOT =================
+document.addEventListener("DOMContentLoaded", async () => {
+  const isLoginPage = location.pathname.endsWith("login.html");
+
+  if (isLoginPage) {
+    initLoginPage();
+    initRegister();
+    return;
+  }
+
+  await protectPage();
+  await renderUserBar();
+
+  if (document.getElementById("inventoryList")) initInventoryPage();
+  if (document.getElementById("stockProduct")) initStockPage();
+  if (document.getElementById("clientsTree")) initAddClientPage();
+  if (document.getElementById("productsTree")) initOrderPage();
+  if (document.getElementById("ordersList")) initOrdersPage();
+  if (document.getElementById("productsList")) initCheckPricePage();
+  if (document.getElementById("pickingList")) await initPickingOrderPage();
+
+  initViewCurrentOrderButton();
+});
 
 
 
