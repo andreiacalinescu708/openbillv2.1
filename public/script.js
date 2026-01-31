@@ -1834,27 +1834,45 @@ products.forEach(p => {
   }
 
   // 5) Finish button
-  if (btnFinish) {
-    btnFinish.onclick = () => {
-      const missing = [];
+ if (btnFinish) {
+  btnFinish.onclick = async () => {
+    const missing = [];
 
-      (order.items || []).forEach(item => {
-        const primaryGtin = normalizeGTIN(item.gtin);
-        const picked = Object.values(pickState?.[primaryGtin] || {})
-          .reduce((s, n) => s + Number(n || 0), 0);
+    (order.items || []).forEach(item => {
+      const primaryGtin = normalizeGTIN(item.gtin);
+      const picked = Object.values(pickState?.[primaryGtin] || {})
+        .reduce((s, n) => s + Number(n || 0), 0);
 
-        const need = Number(item.qty || 0);
-        if (picked < need) missing.push(`${item.name}: lipsă ${need - picked}`);
-      });
+      const need = Number(item.qty || 0);
+      if (picked < need) missing.push(`${item.name}: lipsă ${need - picked}`);
+    });
 
-      if (missing.length) {
-        alert("Comanda nu este completă:\n\n" + missing.join("\n"));
-        return;
-      }
+    if (missing.length) {
+      alert("Comanda nu este completă:\n\n" + missing.join("\n"));
+      return;
+    }
 
-      alert("Comanda este complet pregătită ✅");
-    };
-  }
+    // ✅ SCHIMBĂ STATUSUL ÎN "gata_de_livrare"
+    const res = await apiFetch(`/api/orders/${order.id}/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "gata_de_livrare" })
+    });
+
+    if (!res.ok) {
+      alert("Eroare la schimbarea statusului comenzii.");
+      return;
+    }
+
+    alert("Comanda este pregătită și gata de livrare 🚚");
+
+    // curățăm picking state
+    localStorage.removeItem("pickState");
+
+    // ne întoarcem la lista de comenzi
+    location.href = "orders.html";
+  };
+}
 }
 
 
@@ -1990,11 +2008,23 @@ dbg("gtin raw=" + parsed.gtin + " lot=" + parsed.lot);
       return;
     }
 
-    localStorage.setItem("pickingOrder", JSON.stringify(data.order));
-    alert("LOT actualizat ✅");
+ localStorage.setItem("pickingOrder", JSON.stringify(data.order));
 
-    await initPickingOrderPage();
-  };
+/* ✅ FOARTE IMPORTANT
+   Marcam cantitatea ca PICK-uita,
+   altfel produsul nu se înverzește
+   și Finalizează zice că lipsește
+*/
+pickState[primaryGtin] = pickState[primaryGtin] || {};
+pickState[primaryGtin][scannedLot] =
+  Number(pickState[primaryGtin][scannedLot] || 0) + qtyFinal;
+
+savePickState();
+
+alert("LOT actualizat ✅ și cantitatea a fost marcată ca pregătită");
+
+await initPickingOrderPage();
+  }
 }
 // ================= BOOT =================
 document.addEventListener("DOMContentLoaded", async () => {
