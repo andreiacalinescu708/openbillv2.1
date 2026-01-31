@@ -587,6 +587,11 @@ if (!gtin) {
 
 
 app.post("/api/orders/:id/status", (req, res) => {
+  const allowed = new Set(["in_procesare", "facturata", "gata_de_livrare", "livrata"]);
+if (!allowed.has(req.body.status)) {
+  return res.status(400).json({ error: "Status invalid" });
+}
+
   console.log("=== STATUS UPDATE ROUTE HIT ===");
   console.log("ID primit:", req.params.id);
   console.log("Status primit:", req.body.status);

@@ -1146,5 +1146,117 @@
       "newStatus": "livrata"
     },
     "createdAt": "2026-01-30T20:12:02.989Z"
+  },
+  {
+    "id": "1769891137770",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-31T20:25:37.770Z"
+  },
+  {
+    "id": "1769891138331",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-31T20:25:38.332Z"
+  },
+  {
+    "id": "1769891139123",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "gata_de_livrare"
+    },
+    "createdAt": "2026-01-31T20:25:39.123Z"
+  },
+  {
+    "id": "1769891139161",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "gata_de_livrare"
+    },
+    "createdAt": "2026-01-31T20:25:39.161Z"
+  },
+  {
+    "id": "1769891140892",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "livrata"
+    },
+    "createdAt": "2026-01-31T20:25:40.892Z"
+  },
+  {
+    "id": "1769891142463",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "in_procesare"
+    },
+    "createdAt": "2026-01-31T20:25:42.463Z"
+  },
+  {
+    "id": "1769891147260",
+    "action": "ORDER_STATUS",
+    "entity": "order",
+    "entityId": "1769792520354",
+    "user": {
+      "id": "1766340524961",
+      "username": "alex",
+      "role": "user"
+    },
+    "details": {
+      "clientName": "Medifarm",
+      "newStatus": "facturata"
+    },
+    "createdAt": "2026-01-31T20:25:47.260Z"
   }
 ]

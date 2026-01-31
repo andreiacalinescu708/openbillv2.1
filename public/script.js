@@ -765,16 +765,17 @@ const status = o.status || "in_procesare";
 const statusLabels = {
   in_procesare: "În procesare",
   facturata: "Facturată",
+  gata_de_livrare: "Gata de livrare",
   livrata: "Livrată"
 };
 
 const nextStatusMap = {
   in_procesare: "facturata",
-  facturata: "livrata",
+  facturata: "gata_de_livrare",
+  gata_de_livrare: "livrata",
   livrata: "in_procesare"
 };
-
-const statusBtn = document.createElement("button");
+ statusBtn = document.createElement("button");
 statusBtn.className = `order-status ${status}`;
 statusBtn.textContent = statusLabels[status] || status;
 

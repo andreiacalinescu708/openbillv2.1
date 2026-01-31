@@ -719,3 +719,191 @@ body::after{
   color: #422006;
   border: 1px solid #eab308;
 }
+/* ===== Pick Modal (frumos) ===== */
+.modal{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.modalCard{
+  width: min(520px, 96vw);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.35);
+  padding: 18px 18px 16px;
+  position: relative;
+}
+
+body.dark .modalCard{
+  background: #17181b;
+  color: #f2f2f2;
+}
+
+.modalClose{
+  position:absolute;
+  right: 12px;
+  top: 10px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: .75;
+}
+body.dark .modalClose{ color:#fff; }
+
+.modalTitle{
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.modalBody{ display:flex; flex-direction:column; gap: 10px; }
+
+.modalRow{
+  display:grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  align-items:center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.03);
+}
+body.dark .modalRow{ background: rgba(255,255,255,.06); }
+
+.modalLabel{
+  font-size: 13px;
+  opacity: .75;
+}
+
+.modalValue{
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.modalInput{
+  width: 120px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.15);
+  font-size: 14px;
+}
+body.dark .modalInput{
+  background:#101114;
+  border-color: rgba(255,255,255,.15);
+  color:#fff;
+}
+
+.modalHint{
+  grid-column: 1 / -1;
+  font-size: 12px;
+  opacity: .75;
+  margin-top: 6px;
+}
+
+.modalActions{
+  display:flex;
+  gap: 10px;
+  justify-content:flex-end;
+  padding-top: 6px;
+}
+
+.btnPrimary, .btnDanger, .btnGhost{
+  border:none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor:pointer;
+  font-weight: 700;
+}
+
+.btnPrimary{ background:#0b5cff; color:#fff; }
+.btnDanger{ background:#e24a4a; color:#fff; }
+.btnGhost{
+  background: transparent;
+  border: 1px solid rgba(0,0,0,.18);
+}
+body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
+
+
+.modal{
+  position:fixed; inset:0; background:rgba(0,0,0,.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999;
+}
+.modalCard{
+  width:min(520px, 92vw);
+  background:#fff; border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  overflow:hidden;
+}
+.modalHead{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid #eee;
+}
+.modalTitle{ font-weight:800; font-size:18px; }
+.modalSub{ opacity:.8; margin-top:2px; }
+.modalX{
+  border:0; background:transparent; font-size:20px; cursor:pointer;
+}
+.modalBody{ padding:14px 16px; }
+.modalGrid{
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px 14px; margin-bottom:12px;
+}
+.modalGrid small{ opacity:.6; display:block; margin-bottom:2px; }
+.qtyRow{ display:flex; align-items:center; gap:10px; }
+.qtyRow input{ width:120px; padding:8px 10px; border:1px solid #ddd; border-radius:10px; }
+.hintBox{ margin-top:10px; background:#f6f6f6; padding:10px; border-radius:12px; font-size:13px; }
+.modalFoot{
+  display:flex; gap:10px; justify-content:flex-end;
+  padding:12px 16px; border-top:1px solid #eee;
+}
+.btn{ padding:10px 12px; border-radius:12px; border:0; cursor:pointer; font-weight:700; }
+.btn.ghost{ background:#f1f1f1; }
+.btn.ok{ background:#1db954; color:#fff; }
+.btn.warn{ background:#ffb020; }
+
+/* ================= STATUS COMENZI ================= */
+
+.order-status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* În procesare – gri */
+.order-status.in_procesare {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* Facturată – galben */
+.order-status.facturata {
+  background: #fde68a;
+  color: #92400e;
+}
+
+/* 🟦 Gata de livrare – ALBASTRU */
+.order-status.gata_de_livrare {
+  background: #dbeafe;   /* albastru deschis */
+  color: #1e40af;        /* albastru închis */
+  border: 1px solid #93c5fd;
+}
+
+/* Livrată – verde */
+.order-status.livrata {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Hover subtil */
+.order-status:hover {
+  filter: brightness(0.97);
+}
