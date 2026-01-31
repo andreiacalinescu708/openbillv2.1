@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+const db = require("./db");
+
 
 // middleware
 app.use(express.json());
@@ -406,184 +408,82 @@ app.get("/api/products-flat", (req, res) => {
 
 
 // ----- API ORDERS -----
-app.get("/api/orders", (req, res) => {
- 
+app.get("/api/orders", async (req, res) => {
+  try {
+    const dbOn = db.hasDb();
 
-  let orders = readJson(ORDERS_FILE, []);
-  let changed = false;
-  orders.forEach(o => {
-  // id
-  if (o.id !== undefined && typeof o.id !== "string") {
-    o.id = String(o.id);
-    changed = true;
-  }
+    if (!dbOn) {
+      // fallback JSON (local)
+      const orders = readJson(ORDERS_FILE, []);
+      return res.json(orders);
+    }
 
-  // status default
-  if (!o.status) {
-    o.status = "in_procesare";
-    changed = true;
-  }
+    const r = await db.q(
+      `SELECT id, client, items, status, created_at
+       FROM orders
+       ORDER BY created_at DESC`
+    );
 
-  // data veche -> createdAt
-  if (!o.createdAt && o.data) {
-    o.createdAt = o.data;
-    delete o.data;
-    changed = true;
-  }
-
-  // 🔁 CONVERSIE PRODUSE VECHI → ITEMS
-  if (!Array.isArray(o.items) && Array.isArray(o.produse)) {
-    const counts = {};
-
-    o.produse.forEach(name => {
-      counts[name] = (counts[name] || 0) + 1;
-    });
-
-    o.items = Object.entries(counts).map(([name, qty]) => ({
-      productId: null,
-      name,
-      qty,
-      price: null,
-      allocations: []   // nu exista la comenzile vechi
+    const orders = r.rows.map(x => ({
+      id: x.id,
+      client: x.client,
+      items: x.items,
+      status: x.status,
+      createdAt: x.created_at
     }));
 
-    delete o.produse;
-    changed = true;
-  }
-
-  // siguranță finală
-  if (!Array.isArray(o.items)) {
-    o.items = [];
-    changed = true;
+    res.json(orders);
+  } catch (e) {
+    console.error("GET /api/orders error:", e);
+    res.status(500).json({ error: "Eroare DB la încărcare comenzi" });
   }
 });
 
 
-  orders.forEach(o => {
-    // normalize id
-    if (o.id !== undefined && typeof o.id !== "string") {
-      o.id = String(o.id);
-      changed = true;
+
+
+
+
+
+app.post("/api/orders", async (req, res) => {
+  try {
+    const { client, items } = req.body;
+    if (!items || !items.length) {
+      return res.status(400).json({ error: "Comandă goală" });
     }
-    orders.forEach(o => {
-  if (!Array.isArray(o.items)) {
-    o.items = [];
-    changed = true;
+
+    // păstrăm exact structura existentă (cu allocations deja făcute în frontend sau server)
+    // momentan NU atingem stocul aici (îl mutăm în DB imediat după ce confirmi că orders persistă)
+
+    const newOrder = {
+      id: Date.now().toString(),
+      client,
+      items,
+      status: "in_procesare",
+      createdAt: new Date().toISOString()
+    };
+
+    if (!db.hasDb()) {
+      // fallback JSON (local)
+      const orders = readJson(ORDERS_FILE, []);
+      orders.push(newOrder);
+      writeJson(ORDERS_FILE, orders);
+      return res.json({ ok: true });
+    }
+
+    await db.q(
+      `INSERT INTO orders (id, client, items, status, created_at)
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz)`,
+      [newOrder.id, JSON.stringify(client), JSON.stringify(items), newOrder.status, newOrder.createdAt]
+    );
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("POST /api/orders error:", e);
+    res.status(500).json({ error: "Eroare DB la salvare comandă" });
   }
-
- o.items = o.items.map(i => {
-  if (typeof i !== "object") return null;
-
-  return {
-    gtin: i.gtin ? String(i.gtin) : "",          // ✅ NU îl pierde!
-    name: i.name || "Produs necunoscut",
-    qty: Number(i.qty) || 0,
-    price: i.price ?? null,
-    allocations: Array.isArray(i.allocations) ? i.allocations : []
-  };
-}).filter(Boolean);
-
 });
 
-
-    // add id if missing
-    if (!o.id) {
-      o.id =
-        Date.now().toString() +
-        Math.random().toString(36).slice(2);
-      changed = true;
-    }
-
-    // default status
-    if (!o.status) {
-      o.status = "in_procesare";
-      changed = true;
-    }
-  });
-
-  if (changed) {
-    writeJson(ORDERS_FILE, orders);
-    console.log("✔️ ORDERS NORMALIZATE (id string + status)");
-  }
-  if (changed) writeJson(ORDERS_FILE, orders);
-
-
-  res.json(orders);
-});
-
-
-
-
-
-app.post("/api/orders", (req, res) => {
-  const orders = readJson(ORDERS_FILE, []);
-  const stock = readJson(STOCK_FILE, []);
-
-  const { client, items } = req.body;
-
-  if (!items || !items.length) {
-    return res.status(400).json({ error: "Comandă goală" });
-  }
-
-  const itemsMap = {};
-
-  for (const item of items) {
-    const gtin = normalizeGTIN(item.gtin);
-
-if (!gtin) {
-  return res.status(400).json({
-    error: `Produs fără GTIN în comandă: ${item.name}`
-  });
-}
-
-    if (!gtin) {
-      return res.status(400).json({ error: `Produs fără GTIN: ${item.name}` });
-    }
-
-    try {
-      const qty = Number(item.qty) || 0;
-      if (qty <= 0) continue;
-
-      const allocations = allocateStockByLocation(stock, gtin, qty);
-
-      if (!itemsMap[gtin]) {
-        itemsMap[gtin] = {
-          gtin, // ✅ cheia
-          name: item.name,
-          price: item.price ?? null,
-          qty: 0,
-          allocations: []
-        };
-      }
-
-      itemsMap[gtin].qty += qty;
-      itemsMap[gtin].allocations.push(...allocations);
-
-    } catch (e) {
-      return res.status(400).json({
-        error: `Stoc insuficient pentru ${item.name}`
-      });
-    }
-  }
-
-  const finalItems = Object.values(itemsMap);
-
-  // ✅ salvăm stocul actualizat (allocateStockByLocation a scăzut din qty)
-  writeJson(STOCK_FILE, stock);
-
-  const newOrder = {
-    id: Date.now().toString(),
-    client,
-    items: finalItems,
-    status: "in_procesare",
-    createdAt: new Date().toISOString()
-  };
-
-  orders.push(newOrder);
-  writeJson(ORDERS_FILE, orders);
-
-  res.json({ ok: true });
-});
 
 
 app.post("/api/orders/:id/status", (req, res) => {
@@ -885,6 +785,10 @@ app.post("/api/logout", (req, res) => {
 
 
 const PORT = process.env.PORT || 3000;
+db.ensureTables()
+  .then(() => console.log("✅ DB ready"))
+  .catch(e => console.error("❌ DB init error:", e.message));
+
 
 app.listen(PORT, () => {
   console.log("Server pornit pe port", PORT);
