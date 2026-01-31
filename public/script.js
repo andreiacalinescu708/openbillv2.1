@@ -1056,6 +1056,15 @@ function selectProductByGTIN(gtin) {
 let scanStream = null;
 let scanTimer = null;
 
+function dbg(msg) {
+  const box = document.getElementById("debugBox");
+  if (!box) return;
+  box.style.display = "block";
+  box.innerHTML += `<div>${new Date().toLocaleTimeString()} • ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+
 function closeScanner() {
   if (scanTimer) {
     clearInterval(scanTimer);
@@ -1188,6 +1197,8 @@ async function startScanWithCallback(onScan) {
   const modal = document.getElementById("scannerModal");
   const video = document.getElementById("scanVideo");
   if (!modal || !video) return;
+  dbg("SCAN OK: gtin=" + parsed.gtin + " lot=" + parsed.lot);
+
 
   closeScanner();
   modal.style.display = "block";
@@ -1841,6 +1852,9 @@ products.forEach(p => {
 
 // ✅ MODIFICAT: folosește map-ul gtinToPrimary ca să accepte ambele GTIN-uri
 async function handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo) {
+  dbg("handlePickingScan start");
+dbg("gtin raw=" + parsed.gtin + " lot=" + parsed.lot);
+
   const scannedGtin = normalizeGTIN(parsed.gtin);
   const scannedLot = String(parsed.lot || "").trim();
 
@@ -1857,6 +1871,8 @@ async function handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo) {
     alert("Produsul scanat nu există în această comandă.");
     return;
   }
+  dbg("found item: " + item.name);
+
 
   // calcul rămas TOTAL pe produs în comandă
   pickState[primaryGtin] = pickState[primaryGtin] || {};
