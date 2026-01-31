@@ -1196,10 +1196,12 @@ async function startScanWithCallback(onScan) {
 
   const modal = document.getElementById("scannerModal");
   const video = document.getElementById("scanVideo");
-  if (!modal || !video) return;
-  dbg("SCAN OK: gtin=" + parsed.gtin + " lot=" + parsed.lot);
+  if (!modal || !video) {
+    alert("Lipsește scannerModal sau scanVideo din HTML.");
+    return;
+  }
 
-
+  // oprește sesiune veche și deschide modalul
   closeScanner();
   modal.style.display = "block";
 
@@ -1263,15 +1265,20 @@ async function startScanWithCallback(onScan) {
       const clean = sanitizeGS1(raw);
       const parsed = parseGS1(clean);
 
+      // ✅ DEBUG AICI (acum parsed există)
+      dbg("SCAN OK: gtin=" + (parsed.gtin || "-") + " lot=" + (parsed.lot || "-"));
+
       if (!parsed.gtin || !parsed.lot) return; // obligatoriu
 
       closeScanner();
       onScan(parsed);
     } catch (e) {
+      dbg("SCAN ERROR: " + (e?.message || e));
       console.warn("SCAN ERROR:", e);
     }
   }, 250);
 }
+
 
 
 
