@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Comenzi</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="ordershtml-mobile.css" />
 
 </head>
 <div id="userBar"></div>
@@ -18,6 +18,40 @@
 
  
 </header>
+<div class="mApp">
+  <div class="mTopbar">
+    <button class="mBack" onclick="location.href='index.html'">← Înapoi</button>
+    <div id="userBar" class="mUserBar"></div>
+  </div>
+
+  <div class="mCard mHeader">
+    <h1 class="mTitle">Comenzi existente</h1>
+
+    <div class="mFilters">
+      <div class="mFilterRow">
+        <!-- păstrezi SELECT-urile/INPUT-urile tale cu aceleași ID-uri -->
+        <select id="filterGroup"></select>
+        <select id="filterCategory"></select>
+        <select id="filterStatus"></select>
+      </div>
+
+      <div class="mSearchRow">
+        <input id="orderSearch" placeholder="Caută client..." />
+      </div>
+
+      <button id="btnResetFilters" class="mResetBtn">☰ Reset</button>
+
+      <!-- opțional: zona de sugestii, dacă o ai -->
+      <div id="orderSearchResults" class="mSuggest"></div>
+    </div>
+
+    <!-- Tabs (le facem din CSS pe select status + contor) -->
+    <!-- Dacă vrei tabs reale, ți le fac după ce-mi trimiți HTML-ul actual -->
+  </div>
+
+  <div id="ordersList" class="mOrders"></div>
+</div>
+
 
 
 <main class="container">
