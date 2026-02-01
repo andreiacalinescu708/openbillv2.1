@@ -85,6 +85,7 @@ async function ensureTables() {
     )
   `);
 
+  // IMPORTANT: clients.id = TEXT ca să poți avea CL001
   await q(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
