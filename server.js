@@ -1,4 +1,5 @@
 
+const db = require("./db.js");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const express = require("express");
@@ -43,6 +44,35 @@ const PRODUCTS_FILE = path.join(DATA_DIR, "products.json");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const STOCK_FILE = path.join(DATA_DIR, "stock.json");
+
+async function seedClientsFromFileIfEmpty() {
+  if (!db.hasDb()) return;
+
+  // există tabelă, dar e goală? -> seed din clients.json
+  const r = await db.q("SELECT COUNT(*)::int AS n FROM clients");
+  if ((r.rows?.[0]?.n ?? 0) > 0) return;
+
+  const fileClients = readJson(CLIENTS_FILE, []);
+  for (const c of fileClients) {
+    const id = String(c.id ?? Date.now());
+    const name = String(c.name ?? "").trim();
+    if (!name) continue;
+
+    const group = String(c.group ?? "");
+    const category = String(c.category ?? "");
+    const prices = c.prices && typeof c.prices === "object" ? c.prices : {};
+
+    await db.q(
+      `INSERT INTO clients (id, name, group_name, category, prices)
+       VALUES ($1,$2,$3,$4,$5::jsonb)
+       ON CONFLICT (id) DO NOTHING`,
+      [id, name, group, category, JSON.stringify(prices)]
+    );
+  }
+
+  console.log("✅ Clients seeded into DB from clients.json");
+}
+
 
 
 
@@ -1257,13 +1287,15 @@ app.post("/api/clients", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 db.ensureTables()
-  .then(() => {
+  .then(async () => {
     console.log("✅ DB ready");
+    await seedClientsFromFileIfEmpty();
     app.listen(PORT, () => console.log("Server pornit pe port", PORT));
   })
   .catch(e => {
     console.error("❌ DB init error:", e.message);
     process.exit(1);
   });
+
 
 

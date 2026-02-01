@@ -640,6 +640,114 @@ if (searchInput && resultsBox) {
 }
 
 
+async function loadClientsAdmin() {
+  const res = await apiFetch("/api/clients-flat");
+  const clients = await res.json();
+
+  const box = document.getElementById("clientsList");
+  const details = document.getElementById("clientDetails");
+  if (!box || !details) return;
+
+  box.innerHTML = "";
+
+  clients.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "btnClient";
+    btn.textContent = c.name;
+    btn.onclick = () => renderClientDetails(c);
+    box.appendChild(btn);
+  });
+
+  function renderClientDetails(c) {
+    const prices = c.prices || {};
+    const lines = Object.entries(prices);
+
+    details.innerHTML = `
+      <h3>${c.name}</h3>
+      <div><b>Grup:</b> ${c.group || "-"}</div>
+      <div><b>Categorie:</b> ${c.category || "-"}</div>
+      <hr/>
+      <h4>Prețuri speciale</h4>
+      ${lines.length ? `
+        <ul>
+          ${lines.map(([pid, pr]) => `<li>Produs ID ${pid}: <b>${pr}</b></li>`).join("")}
+        </ul>
+      ` : `<div>(Nu are prețuri speciale)</div>`}
+    `;
+  }
+}
+async function initAddClientForm() {
+  const form = document.getElementById("addClientForm");
+  if (!form) return;
+
+  const addPriceBtn = document.getElementById("btnAddSpecialPrice");
+  const pricesBox = document.getElementById("specialPricesBox");
+
+  addPriceBtn.onclick = () => {
+    const row = document.createElement("div");
+    row.className = "spRow";
+    row.innerHTML = `
+      <input class="spGtin" placeholder="GTIN" />
+      <input class="spPrice" placeholder="Preț" type="number" step="0.01" />
+      <button type="button" class="spRemove">X</button>
+    `;
+    row.querySelector(".spRemove").onclick = () => row.remove();
+    pricesBox.appendChild(row);
+  };
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("newClientName").value.trim();
+    const group = document.getElementById("newClientGroup").value;
+    const category = document.getElementById("newClientCategory").value;
+
+    if (!name) return alert("Completează numele.");
+
+    // luam produse ca să mapăm GTIN->id
+    const prodRes = await apiFetch("/api/products-flat");
+    const products = await prodRes.json();
+
+const gtinToId = new Map();
+
+products.forEach(p => {
+  const all = []
+    .concat(p.gtin ? [p.gtin] : [])
+    .concat(Array.isArray(p.gtins) ? p.gtins : [])
+    .filter(Boolean);
+
+  all.forEach(g => gtinToId.set(normalizeGTIN(g), String(p.id)));
+});
+
+    const prices = {};
+    [...pricesBox.querySelectorAll(".spRow")].forEach(r => {
+const gtin = normalizeGTIN(r.querySelector(".spGtin").value.trim());
+      const pr = r.querySelector(".spPrice").value.trim();
+      if (!gtin || !pr) return;
+
+      const pid = gtinToId.get(gtin);
+      if (!pid) return; // GTIN necunoscut
+
+      prices[pid] = Number(pr);
+    });
+
+    const res = await apiFetch("/api/clients", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ name, group, category, prices })
+    });
+
+    const out = await res.json();
+    if (!res.ok) return alert(out.error || "Eroare");
+
+    alert("Client adăugat!");
+    form.reset();
+    pricesBox.innerHTML = "";
+    await loadClientsAdmin();
+  };
+}
+
+
 function getProductClass(name) {
   const n = name.toLowerCase();
 
@@ -1546,24 +1654,26 @@ function renderStock(stock) {
 }
 
 function getProductPrice(product, client) {
-  // preț custom?
-  if (
-    client &&
-    client.prices &&
-    client.prices[product.id] != null
-  ) {
-    return Number(client.prices[product.id]);
-  }
+  const base = Number(product.price || 0);
 
-  // fallback la preț de listă
-  return Number(product.price || 0);
+  if (!client || !client.prices) return base;
+
+  const key = String(product.id);        // ✅ important: cheie string
+  const sp = client.prices[key];
+
+  if (sp === undefined || sp === null || sp === "") return base;
+
+  return Number(sp);
 }
+
 
 function addToCart(product) {
   const cart = getCart();
   const client = getSelectedClient();
 
   const price = getProductPrice(product, client);
+  const isSpecial = client?.prices && client.prices[String(product.id)] != null;
+
 
   // GTIN principal (primul din gtins sau fallback pe gtin vechi)
   const primaryGTIN =
@@ -1578,12 +1688,14 @@ function addToCart(product) {
     found.qty++;
   } else {
     cart.push({
-      id: product.id,
-      gtin: primaryGTIN,   // ✅ GTIN principal
-      name: product.name,
-      qty: 1,
-      price
-    });
+  id: product.id,
+  gtin: primaryGTIN,
+  name: product.name,
+  qty: 1,
+  price,
+  isSpecial: client?.prices?.[String(product.id)] != null
+});
+
   }
 
   saveCart(cart);
@@ -2027,92 +2139,7 @@ await initPickingOrderPage();
   }
 }
 
-async function initClientsAdminPage() {
-  const listEl = document.getElementById("clientsList");
-  const searchEl = document.getElementById("clientsSearch");
-  const btnAdd = document.getElementById("btnAddClient");
-  const msgEl = document.getElementById("clientMsg");
 
-  if (!listEl) return; // nu suntem pe clienti.html
-
-  // 1) load list
-  let clients = [];
-  async function load() {
-    msgEl.textContent = "";
-    const res = await apiFetch("/api/clients-flat");
-    clients = await res.json();
-    render(clients);
-  }
-
-  function render(arr) {
-    const q = (searchEl?.value || "").toLowerCase().trim();
-    const filtered = !q ? arr : arr.filter(c =>
-      String(c.name || "").toLowerCase().includes(q) ||
-      String(c.path || "").toLowerCase().includes(q)
-    );
-
-    listEl.innerHTML = "";
-
-    if (!filtered.length) {
-      listEl.innerHTML = "<div class='hint'>Nu există clienți.</div>";
-      return;
-    }
-
-    filtered
-      .sort((a,b)=> String(a.name).localeCompare(String(b.name), "ro"))
-      .forEach(c => {
-        const row = document.createElement("div");
-        row.className = "listItem";
-        row.innerHTML = `
-          <div>
-            <strong>${c.name}</strong>
-            <div class="hint">${c.path || ""}</div>
-          </div>
-        `;
-        listEl.appendChild(row);
-      });
-  }
-
-  if (searchEl) {
-    searchEl.addEventListener("input", () => render(clients));
-  }
-
-  // 2) add client
-  if (btnAdd) {
-    btnAdd.onclick = async () => {
-      msgEl.textContent = "";
-
-      const name = document.getElementById("newClientName").value.trim();
-      const group = document.getElementById("newClientGroup").value.trim();
-      const category = document.getElementById("newClientCategory").value.trim();
-
-      if (!name || !group || !category) {
-        msgEl.textContent = "Completează nume, grup și categorie.";
-        return;
-      }
-
-      const res = await apiFetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, group, category })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        msgEl.textContent = data.error || "Eroare la salvare client.";
-        return;
-      }
-
-      document.getElementById("newClientName").value = "";
-      document.getElementById("newClientCategory").value = "";
-      msgEl.textContent = "✅ Client adăugat.";
-
-      await load();
-    };
-  }
-
-  await load();
-}
 
 // ================= BOOT =================
 document.addEventListener("DOMContentLoaded", async () => {
@@ -2134,6 +2161,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (document.getElementById("ordersList")) initOrdersPage();
   if (document.getElementById("productsList")) initCheckPricePage();
   if (document.getElementById("pickingList")) await initPickingOrderPage();
+if (document.getElementById("clientsList")) {
+  await loadClientsAdmin();
+  await initAddClientForm();
+}
+
 
   initViewCurrentOrderButton();
 });

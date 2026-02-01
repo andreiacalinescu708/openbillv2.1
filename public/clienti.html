@@ -22,32 +22,50 @@
       <div id="clientsList" class="list"></div>
 
       <hr />
+<hr />
 
-      <h3>Adaugă client</h3>
+<h3>Adaugă client</h3>
 
-      <div class="formRow">
-        <label>Nume</label>
-        <input id="newClientName" class="input" placeholder="ex: Farmacia X" />
-      </div>
-
-      <div class="formRow">
-        <label>Grup</label>
-        <select id="newClientGroup" class="input">
-          <option value="Craiova">Craiova</option>
-          <option value="Exterior">Exterior</option>
-        </select>
-      </div>
-
-      <div class="formRow">
-        <label>Categorie (ex: Vâlcea / Dolj / etc.)</label>
-        <input id="newClientCategory" class="input" placeholder="ex: Vâlcea" />
-      </div>
-
-      <button id="btnAddClient" class="btnPrimary">➕ Adaugă client</button>
-
-      <div id="clientMsg" class="hint"></div>
-    </div>
+<form id="addClientForm">
+  <div class="formRow">
+    <label>Nume</label>
+    <input id="newClientName" class="input" placeholder="ex: Farmacia X" />
   </div>
+
+  <div class="formRow">
+    <label>Grup</label>
+    <select id="newClientGroup" class="input">
+      <option value="Craiova">Craiova</option>
+      <option value="Exterior">Exterior</option>
+    </select>
+  </div>
+
+  <div class="formRow">
+    <label>Categorie</label>
+    <input id="newClientCategory" class="input" placeholder="ex: Vâlcea" />
+  </div>
+
+  <hr />
+
+  <h4>Prețuri speciale</h4>
+  <div id="specialPricesBox"></div>
+
+  <button type="button" id="btnAddSpecialPrice" class="btnSecondary">
+    ➕ Adaugă preț special
+  </button>
+
+  <br /><br />
+
+  <button type="submit" class="btnPrimary">💾 Salvează client</button>
+
+  <div id="clientMsg" class="hint"></div>
+</form>
+
+<hr />
+
+<h3>Detalii client</h3>
+<div id="clientDetails" class="card"></div>
+
 
   <script src="script.js"></script>
 </body>
