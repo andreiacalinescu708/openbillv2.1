@@ -1374,6 +1374,33 @@ async function initEditOrderPage() {
   // 2) luăm lista de produse ca să putem adăuga din catalog
   const prodRes = await apiFetch("/api/products-flat");
   const products = await prodRes.json();
+  // ===== PRICE MAPS (pentru total) =====
+const priceById = new Map();
+const priceByGtin = new Map();
+
+products.forEach(p => {
+  const price = Number(p.price || 0);
+
+  if (p.id != null) priceById.set(String(p.id), price);
+
+  const all = []
+    .concat(p.gtin ? [p.gtin] : [])
+    .concat(Array.isArray(p.gtins) ? p.gtins : [])
+    .filter(Boolean);
+
+  all.forEach(g => priceByGtin.set(normalizeGTIN(g), price));
+});
+
+function resolvePrice(it) {
+  const pid = (it.id != null) ? String(it.id) : "";
+  if (pid && priceById.has(pid)) return priceById.get(pid);
+
+  const g = normalizeGTIN(it.gtin);
+  if (g && priceByGtin.has(g)) return priceByGtin.get(g);
+
+  return Number(it.price || 0);
+}
+
 
   // state local: items editabile (fără allocations; server le va recalcula)
   let editItems = Array.isArray(order.items) ? order.items.map(it => ({
@@ -1414,11 +1441,14 @@ function renderTotal() {
   function renderItems() {
     list.innerHTML = "";
 
-    if (!editItems.length) {
-      list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
-      if (countEl) countEl.textContent = "0";
-      return;
-    }
+   if (!editItems.length) {
+  list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
+  if (countEl) countEl.textContent = "0";
+  renderTotal();    
+  renderTotal();   // ✅ mereu, după fiecare rerender// ✅
+  return;
+}
+
 
     editItems.forEach((it, idx) => {
       const row = document.createElement("div");
@@ -1430,6 +1460,8 @@ function renderTotal() {
         <div class="rowTitle">${it.name || "Produs"}</div>
         <div class="muted small">GTIN: ${it.gtin || "-"}</div>
       `;
+      <div class="muted small">Preț: ${Number(it.price||0).toFixed(2)} RON</div>
+
 
       const right = document.createElement("div");
       right.className = "rowRight";
@@ -1452,7 +1484,6 @@ function renderTotal() {
         if (!Number.isFinite(v) || v <= 0) return;
         it.qty = v;
         renderItems();
-        renderTotal();
 
       };
 
