@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+app.set("trust proxy", 1);
+
 const db = require("./db");
 
 
@@ -14,14 +16,22 @@ app.use(express.json());
 app.use(express.static("public"));
 app.use(session({
   name: "magazin.sid",
-  secret: "schimba-asta-cu-o-cheie-lunga",
+  secret: process.env.SESSION_SECRET || "schimba-asta-cu-o-cheie-lunga",
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: "lax"
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" // IMPORTANT pe Railway
   }
 }));
+
+// Cine sunt eu (pentru frontend)
+app.get("/api/me", (req, res) => {
+  if (!req.session.user) return res.json({ loggedIn: false });
+  res.json({ loggedIn: true, user: req.session.user });
+});
+
 
 
 
