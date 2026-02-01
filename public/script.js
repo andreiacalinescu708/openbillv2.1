@@ -2026,6 +2026,94 @@ alert("LOT actualizat ✅ și cantitatea a fost marcată ca pregătită");
 await initPickingOrderPage();
   }
 }
+
+async function initClientsAdminPage() {
+  const listEl = document.getElementById("clientsList");
+  const searchEl = document.getElementById("clientsSearch");
+  const btnAdd = document.getElementById("btnAddClient");
+  const msgEl = document.getElementById("clientMsg");
+
+  if (!listEl) return; // nu suntem pe clienti.html
+
+  // 1) load list
+  let clients = [];
+  async function load() {
+    msgEl.textContent = "";
+    const res = await apiFetch("/api/clients-flat");
+    clients = await res.json();
+    render(clients);
+  }
+
+  function render(arr) {
+    const q = (searchEl?.value || "").toLowerCase().trim();
+    const filtered = !q ? arr : arr.filter(c =>
+      String(c.name || "").toLowerCase().includes(q) ||
+      String(c.path || "").toLowerCase().includes(q)
+    );
+
+    listEl.innerHTML = "";
+
+    if (!filtered.length) {
+      listEl.innerHTML = "<div class='hint'>Nu există clienți.</div>";
+      return;
+    }
+
+    filtered
+      .sort((a,b)=> String(a.name).localeCompare(String(b.name), "ro"))
+      .forEach(c => {
+        const row = document.createElement("div");
+        row.className = "listItem";
+        row.innerHTML = `
+          <div>
+            <strong>${c.name}</strong>
+            <div class="hint">${c.path || ""}</div>
+          </div>
+        `;
+        listEl.appendChild(row);
+      });
+  }
+
+  if (searchEl) {
+    searchEl.addEventListener("input", () => render(clients));
+  }
+
+  // 2) add client
+  if (btnAdd) {
+    btnAdd.onclick = async () => {
+      msgEl.textContent = "";
+
+      const name = document.getElementById("newClientName").value.trim();
+      const group = document.getElementById("newClientGroup").value.trim();
+      const category = document.getElementById("newClientCategory").value.trim();
+
+      if (!name || !group || !category) {
+        msgEl.textContent = "Completează nume, grup și categorie.";
+        return;
+      }
+
+      const res = await apiFetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, group, category })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msgEl.textContent = data.error || "Eroare la salvare client.";
+        return;
+      }
+
+      document.getElementById("newClientName").value = "";
+      document.getElementById("newClientCategory").value = "";
+      msgEl.textContent = "✅ Client adăugat.";
+
+      await load();
+    };
+  }
+
+  await load();
+}
+
 // ================= BOOT =================
 document.addEventListener("DOMContentLoaded", async () => {
   const isLoginPage = location.pathname.endsWith("login.html");

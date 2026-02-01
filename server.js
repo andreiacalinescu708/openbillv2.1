@@ -1047,49 +1047,61 @@ app.delete("/api/stock/:id", async (req, res) => {
 
 
 // Login
-app.post("/api/login", (req, res) => {
-  const { username, password } = req.body;
+app.post("/api/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  const users = readJson(USERS_FILE, []);
-  const user = users.find(u => u.username === username && u.active);
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-  if (!user) return res.status(401).json({ error: "User sau parolă greșită" });
+    const r = await db.q(
+      `SELECT id, username, password_hash, role, active
+       FROM users
+       WHERE username=$1
+       LIMIT 1`,
+      [username]
+    );
 
-  const ok = bcrypt.compareSync(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: "User sau parolă greșită" });
+    const u = r.rows[0];
+    if (!u || !u.active) return res.status(401).json({ error: "User sau parolă greșită" });
 
-  req.session.user = { id: user.id, username: user.username, role: user.role };
-  res.json({ ok: true, user: req.session.user });
+    const ok = bcrypt.compareSync(password, u.password_hash);
+    if (!ok) return res.status(401).json({ error: "User sau parolă greșită" });
+
+    req.session.user = { id: u.id, username: u.username, role: u.role };
+    res.json({ ok: true, user: req.session.user });
+  } catch (e) {
+    console.error("LOGIN error:", e);
+    res.status(500).json({ error: "Eroare login" });
+  }
 });
+
 // Register 
-app.post("/api/register", (req, res) => {
-  const { username, password } = req.body;
+app.post("/api/register", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ error: "Date lipsă" });
+    if (!username || !password) return res.status(400).json({ error: "Date lipsă" });
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
+
+    const passwordHash = bcrypt.hashSync(password, 10);
+
+    const r = await db.q(
+      `INSERT INTO users (username, password_hash, role, active)
+       VALUES ($1,$2,'user',true)
+       RETURNING id, username, role`,
+      [username.trim(), passwordHash]
+    );
+
+    res.json({ ok: true, user: r.rows[0] });
+  } catch (e) {
+    if (String(e.message || "").includes("duplicate key")) {
+      return res.status(400).json({ error: "Utilizator existent" });
+    }
+    console.error("REGISTER error:", e);
+    res.status(500).json({ error: "Eroare register" });
   }
-
-  const users = readJson(USERS_FILE, []);
-
-  if (users.find(u => u.username === username)) {
-    return res.status(400).json({ error: "Utilizator existent" });
-  }
-
-  const passwordHash = bcrypt.hashSync(password, 10);
-
-  const user = {
-    id: Date.now().toString(),
-    username,
-    passwordHash,   // 🔑 IMPORTANT
-    role: "user",
-    active: true
-  };
-
-  users.push(user);
-  writeJson(USERS_FILE, users);
-
-  res.json({ ok: true });
 });
+
 
 
 
@@ -1097,6 +1109,143 @@ app.post("/api/register", (req, res) => {
 app.post("/api/logout", (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
 });
+
+app.get("/api/clients-flat", async (req, res) => {
+  try {
+    if (!db.hasDb()) return res.json(readJson(CLIENTS_FILE, [])); // fallback temporar
+
+    const r = await db.q(
+      `SELECT id, name, group_name, category, prices
+       FROM clients
+       ORDER BY name ASC`
+    );
+
+    res.json(r.rows.map(c => ({
+      id: String(c.id),
+      name: c.name,
+      group: c.group_name || "",
+      category: c.category || "",
+      path: `${c.group_name || ""} / ${c.category || ""}`.trim(),
+      prices: c.prices || {}
+    })));
+  } catch (e) {
+    console.error("GET clients error:", e);
+    res.status(500).json({ error: "Eroare DB clients" });
+  }
+});
+
+app.post("/api/clients", async (req, res) => {
+  try {
+    const { name, group, category } = req.body;
+    if (!name) return res.status(400).json({ error: "Lipsește numele" });
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
+
+    const r = await db.q(
+      `INSERT INTO clients (name, group_name, category, prices)
+       VALUES ($1,$2,$3,'{}'::jsonb)
+       RETURNING id`,
+      [name.trim(), group || "", category || ""]
+    );
+
+    logAudit(req, "CLIENT_ADD", "client", String(r.rows[0].id), { name, group, category });
+
+    res.json({ ok: true, id: String(r.rows[0].id) });
+  } catch (e) {
+    console.error("POST client error:", e);
+    res.status(500).json({ error: "Eroare DB client add" });
+  }
+});
+
+app.get("/api/products-flat", async (req, res) => {
+  try {
+    if (!db.hasDb()) return res.json(readJson(PRODUCTS_FILE, [])); // fallback temporar
+
+    const r = await db.q(
+      `SELECT id, name, gtin, gtins, category, price
+       FROM products
+       ORDER BY name ASC`
+    );
+
+    res.json(r.rows.map(p => ({
+      id: String(p.id),
+      name: p.name,
+      gtin: p.gtin || "",
+      gtins: p.gtins || [],
+      category: p.category || "Altele",
+      price: p.price != null ? Number(p.price) : null,
+      path: `Produse / ${p.category || "Altele"}`
+    })));
+  } catch (e) {
+    console.error("GET products error:", e);
+    res.status(500).json({ error: "Eroare DB products" });
+  }
+});
+
+app.post("/api/products", async (req, res) => {
+  try {
+    const { name, gtin, category, price, gtins } = req.body;
+    if (!name) return res.status(400).json({ error: "Lipsește numele" });
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
+
+    const gtinClean = String(gtin || "").trim() || null;
+    const gtinsArr = Array.isArray(gtins) ? gtins : (gtinClean ? [gtinClean] : []);
+
+    const r = await db.q(
+      `INSERT INTO products (name, gtin, gtins, category, price)
+       VALUES ($1,$2,$3::jsonb,$4,$5)
+       RETURNING id`,
+      [name.trim(), gtinClean, JSON.stringify(gtinsArr), category || "Altele", (price != null ? Number(price) : null)]
+    );
+
+    logAudit(req, "PRODUCT_ADD", "product", String(r.rows[0].id), { name, gtin: gtinClean, category, price });
+
+    res.json({ ok: true, id: String(r.rows[0].id) });
+  } catch (e) {
+    if (String(e.message || "").includes("duplicate key")) {
+      return res.status(400).json({ error: "GTIN existent deja" });
+    }
+    console.error("POST product error:", e);
+    res.status(500).json({ error: "Eroare DB product add" });
+  }
+});
+
+app.post("/api/clients", async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const group = String(req.body.group || "").trim();
+    const category = String(req.body.category || "").trim();
+
+    if (!name || !group || !category) {
+      return res.status(400).json({ error: "Lipsește name/group/category" });
+    }
+
+    // momentan: salvăm în JSON (următorul pas îl mutăm în DB)
+    const flat = readJson(CLIENTS_FILE, []);
+    const exists = flat.some(c => String(c.name).toLowerCase() === name.toLowerCase());
+    if (exists) return res.status(400).json({ error: "Client existent" });
+
+    const nextId = Math.max(0, ...flat.map(x => Number(x.id || 0))) + 1;
+
+    const newClient = {
+      id: nextId,
+      name,
+      group,
+      category,
+      prices: {}
+    };
+
+    flat.push(newClient);
+    writeJson(CLIENTS_FILE, flat);
+
+    logAudit(req, "CLIENT_ADD", "client", String(newClient.id), { name, group, category });
+
+    res.json({ ok: true, client: newClient });
+  } catch (e) {
+    console.error("POST /api/clients error:", e);
+    res.status(500).json({ error: "Eroare server la add client" });
+  }
+});
+
 
 
 

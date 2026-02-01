@@ -35,7 +35,6 @@ async function ensureTables() {
     ON orders (created_at DESC)
   `);
 
-  // ✅ STOCK
   await q(`
     CREATE TABLE IF NOT EXISTS stock (
       id TEXT PRIMARY KEY,
@@ -43,7 +42,7 @@ async function ensureTables() {
       product_name TEXT NOT NULL,
       lot TEXT NOT NULL,
       expires_at DATE NOT NULL,
-      qty INTEGER NOT NULL,
+      qty INT NOT NULL DEFAULT 0,
       location TEXT NOT NULL DEFAULT 'A',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
@@ -55,20 +54,11 @@ async function ensureTables() {
   `);
 
   await q(`
-    CREATE INDEX IF NOT EXISTS stock_gtin_lot_idx
-    ON stock (gtin, lot)
-  `);
-
-  await q(`
-    CREATE INDEX IF NOT EXISTS stock_created_at_idx
-    ON stock (created_at DESC)
-  `);
-    await q(`
     CREATE TABLE IF NOT EXISTS audit (
       id TEXT PRIMARY KEY,
       action TEXT NOT NULL,
       entity TEXT NOT NULL,
-      entity_id TEXT NOT NULL,
+      entity_id TEXT,
       user_json JSONB,
       details JSONB,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -80,7 +70,42 @@ async function ensureTables() {
     ON audit (created_at DESC)
   `);
 
+  await q(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+
+  await q(`
+    CREATE TABLE IF NOT EXISTS clients (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      code TEXT UNIQUE,
+      group_name TEXT,
+      category TEXT,
+      prices JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+
+  await q(`
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      gtin TEXT UNIQUE,
+      gtins JSONB NOT NULL DEFAULT '[]'::jsonb,
+      category TEXT,
+      price NUMERIC(12,2),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
 }
+
 
 
 

@@ -907,3 +907,13 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 .order-status:hover {
   filter: brightness(0.97);
 }
+
+.page { padding: 12px; }
+.card { background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.topbar { display:flex; align-items:center; gap:10px; padding: 10px; }
+.btnBack { text-decoration:none; padding:8px 10px; border-radius:10px; background:#f3f3f3; color:#111; }
+.input { width:100%; padding:10px; margin:6px 0; border:1px solid #ddd; border-radius:10px; }
+.list { margin-top: 10px; }
+.listItem { padding:10px; border:1px solid #eee; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+.btnPrimary { padding:10px 12px; border-radius:10px; border:0; background:#111; color:#fff; }
+.formRow { margin-bottom: 6px; }

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Administrare clienți</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <a href="index.html" class="btnBack">← Înapoi</a>
+    <h2>Administrare clienți</h2>
+    <div id="userBar"></div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <h3>Clienți</h3>
+
+      <input id="clientsSearch" class="input" placeholder="Caută client..." />
+
+      <div id="clientsList" class="list"></div>
+
+      <hr />
+
+      <h3>Adaugă client</h3>
+
+      <div class="formRow">
+        <label>Nume</label>
+        <input id="newClientName" class="input" placeholder="ex: Farmacia X" />
+      </div>
+
+      <div class="formRow">
+        <label>Grup</label>
+        <select id="newClientGroup" class="input">
+          <option value="Craiova">Craiova</option>
+          <option value="Exterior">Exterior</option>
+        </select>
+      </div>
+
+      <div class="formRow">
+        <label>Categorie (ex: Vâlcea / Dolj / etc.)</label>
+        <input id="newClientCategory" class="input" placeholder="ex: Vâlcea" />
+      </div>
+
+      <button id="btnAddClient" class="btnPrimary">➕ Adaugă client</button>
+
+      <div id="clientMsg" class="hint"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
