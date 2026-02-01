@@ -1301,6 +1301,8 @@ async function initEditOrderPage() {
   const hint = document.getElementById("editOrderHint");
   const list = document.getElementById("editItemsList");
   const countEl = document.getElementById("editItemsCount");
+  const totalEl = document.getElementById("editOrderTotal");
+
 
   const search = document.getElementById("editProductSearch");
   const results = document.getElementById("editProductResults");
@@ -1352,6 +1354,23 @@ async function initEditOrderPage() {
     price: it.price // optional
   })) : [];
 
+  function calcTotal() {
+  let total = 0;
+  for (const it of editItems) {
+    const price = Number(it.price || 0);
+    const qty = Number(it.qty || 0);
+    total += price * qty;
+  }
+  return total;
+}
+
+function renderTotal() {
+  if (!totalEl) return;
+  const t = calcTotal();
+  totalEl.textContent = `${t.toFixed(2)} RON`;
+}
+
+
   function renderMeta() {
     if (!meta) return;
     meta.innerHTML = `
@@ -1402,6 +1421,8 @@ async function initEditOrderPage() {
         if (!Number.isFinite(v) || v <= 0) return;
         it.qty = v;
         renderItems();
+        renderTotal();
+
       };
 
       const btnPlus = document.createElement("button");
