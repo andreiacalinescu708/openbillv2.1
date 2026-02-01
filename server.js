@@ -1,5 +1,4 @@
 
-const db = require("./db.js");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const express = require("express");
@@ -9,6 +8,7 @@ const path = require("path");
 const app = express();
 app.set("trust proxy", 1);
 
+const db = require("./db");
 
 
 // middleware
