@@ -416,45 +416,56 @@ app.put("/api/orders/:id", async (req, res) => {
       await db.q("BEGIN");
       try {
         const r = await db.q(`SELECT * FROM orders WHERE id=$1 FOR UPDATE`, [id]);
-        const order = r.rows?.[0];
-        if (!order) {
-          await db.q("ROLLBACK");
-          return res.status(404).json({ error: "Comandă inexistentă" });
-        }
+const order = r.rows?.[0];
+if (!order) {
+  await db.q("ROLLBACK");
+  return res.status(404).json({ error: "Comandă inexistentă" });
+}
 
-        const status = order.status || "in_procesare";
-        if (status !== "in_procesare") {
-          await db.q("ROLLBACK");
-          return res.status(400).json({ error: "Poți modifica doar comenzi în procesare" });
-        }
+const status = order.status || "in_procesare";
+if (status !== "in_procesare") {
+  await db.q("ROLLBACK");
+  return res.status(400).json({ error: "Poți modifica doar comenzi în procesare" });
+}
 
-        const oldItems = order.items || [];
+// ✅ BEFORE (înainte de modificare)
+const beforeItems = Array.isArray(order.items) ? order.items : [];
 
-        // 1) RESTORE stoc din allocations vechi
-        for (const it of oldItems) {
-          await restoreAllocationsToStock_DB(it.allocations || []);
-        }
+// 1) RESTORE stoc din allocations vechi
+for (const it of beforeItems) {
+  await restoreAllocationsToStock_DB(it.allocations || []);
+}
 
-        // 2) ALOCĂ din nou după locație (și scade stoc)
-        const newItems = [];
-        for (const it of items) {
-          const gtin = normalizeGTIN(it.gtin);
-          const qty = Number(it.qty || 0);
-          if (!gtin) throw new Error("GTIN lipsă");
-          if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
+// 2) ALOCĂ din nou după locație (și scade stoc)
+const newItems = [];
+for (const it of items) {
+  const gtin = normalizeGTIN(it.gtin);
+  const qty = Number(it.qty || 0);
+  if (!gtin) throw new Error("GTIN lipsă");
+  if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
 
-          const allocations = await allocateByLocation_DB(gtin, qty);
-          newItems.push({ ...it, allocations });
-        }
+  const allocations = await allocateByLocation_DB(gtin, qty);
+  newItems.push({ ...it, allocations });
+}
 
-        // 3) update order
-        await db.q(
-          `UPDATE orders SET items=$2::jsonb WHERE id=$1`,
-          [id, JSON.stringify(newItems)]
-        );
+// 3) update order
+await db.q(
+  `UPDATE orders SET items=$2::jsonb WHERE id=$1`,
+  [id, JSON.stringify(newItems)]
+);
 
-        await db.q("COMMIT");
-        return res.json({ ok: true });
+// ✅ AUDIT (în tranzacție e ok; user e din req.session.user)
+await logAudit(req, "ORDER_EDIT", "order", id, {
+  clientName: order.client?.name || "",
+  beforeItemsCount: beforeItems.length,
+  afterItemsCount: newItems.length,
+  beforeItems,
+  afterItems: newItems
+});
+
+await db.q("COMMIT");
+return res.json({ ok: true });
+
       } catch (e) {
         await db.q("ROLLBACK");
         return res.status(400).json({ error: e.message || "Eroare update comandă" });
@@ -489,12 +500,23 @@ app.put("/api/orders/:id", async (req, res) => {
     });
 
     // 3) salvează
-    order.items = newItems;
-    orders[idx] = order;
-    writeJson(STOCK_FILE, stock);
-    writeJson(ORDERS_FILE, orders);
+   const beforeItems = Array.isArray(order.items) ? order.items : [];
 
-    res.json({ ok: true });
+order.items = newItems;
+orders[idx] = order;
+writeJson(STOCK_FILE, stock);
+writeJson(ORDERS_FILE, orders);
+
+await logAudit(req, "ORDER_EDIT", "order", id, {
+  clientName: order.client?.name || "",
+  beforeItemsCount: beforeItems.length,
+  afterItemsCount: newItems.length,
+  beforeItems,
+  afterItems: newItems
+});
+
+res.json({ ok: true });
+
   } catch (e) {
     console.error("PUT /api/orders/:id error:", e);
     res.status(400).json({ error: e.message || "Eroare" });

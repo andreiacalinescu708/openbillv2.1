@@ -109,5 +109,28 @@ async function ensureTables() {
     )
   `);
 }
+const crypto = require("crypto");
+
+async function auditLog({ action, entity, entity_id = null, user = null, details = null }) {
+  const id = crypto.randomUUID();
+
+  await q(
+    `INSERT INTO audit (id, action, entity, entity_id, user_json, details)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)`,
+    [
+      id,
+      String(action),
+      String(entity),
+      entity_id ? String(entity_id) : null,
+      JSON.stringify(user || null),
+      JSON.stringify(details || null),
+    ]
+  );
+
+  return id;
+}
+
 
 module.exports = { q, ensureTables, hasDb };
+module.exports = { q, ensureTables, hasDb, auditLog };
+
