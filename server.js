@@ -65,27 +65,56 @@ function writeJson(filePath, data) {
 
 const AUDIT_FILE = path.join(DATA_DIR, "audit.json");
 
-function logAudit(req, action, entity, entityId, details = {}) {
-  console.log("📁 AUDIT FILE:", AUDIT_FILE);
+async function logAudit(req, action, entity, entityId, details = {}) {
+  const u = req?.session?.user || null;
 
-  const audit = readJson(AUDIT_FILE, []);
-
-  const u = req?.session?.user;
-
-  audit.push({
-    id: Date.now().toString(),
+  const row = {
+    id: Date.now().toString() + Math.random().toString(36).slice(2),
     action,
     entity,
-    entityId,
+    entityId: String(entityId || ""),
     user: u ? { id: u.id, username: u.username, role: u.role } : null,
     details,
     createdAt: new Date().toISOString()
+  };
+
+  // ✅ dacă avem DB -> scriem în Postgres
+  if (db.hasDb()) {
+    try {
+      await db.q(
+        `INSERT INTO audit (id, action, entity, entity_id, user_json, details, created_at)
+         VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::timestamptz)`,
+        [
+          row.id,
+          row.action,
+          row.entity,
+          row.entityId,
+          JSON.stringify(row.user),
+          JSON.stringify(row.details),
+          row.createdAt
+        ]
+      );
+      return;
+    } catch (e) {
+      console.error("AUDIT DB ERROR:", e.message);
+      // dacă pică DB-ul, NU blocăm aplicația — continuăm cu fallback
+    }
+  }
+
+  // ✅ fallback JSON (local)
+  const audit = readJson(AUDIT_FILE, []);
+  audit.push({
+    id: row.id,
+    action: row.action,
+    entity: row.entity,
+    entityId: row.entityId,
+    user: row.user,
+    details: row.details,
+    createdAt: row.createdAt
   });
-
   writeJson(AUDIT_FILE, audit);
-
-  console.log("📝 AUDIT:", action, entityId);
 }
+
 
 
 
@@ -529,7 +558,7 @@ app.post("/api/orders/:id/status", async (req, res) => {
       order.status = newStatus;
       writeJson(ORDERS_FILE, orders);
 
-      logAudit(req, "ORDER_STATUS", "order", order.id, {
+      await logAudit(req, "ORDER_STATUS", "order", order.id, {
         clientName: order.client?.name,
         newStatus: order.status
       });
@@ -540,7 +569,7 @@ app.post("/api/orders/:id/status", async (req, res) => {
     const r = await db.q(`UPDATE orders SET status=$1 WHERE id=$2 RETURNING id, client`, [newStatus, id]);
     if (!r.rows.length) return res.status(404).json({ error: "Comandă inexistentă" });
 
-    logAudit(req, "ORDER_STATUS", "order", id, {
+   await logAudit(req, "ORDER_STATUS", "order", id, {
       clientName: r.rows[0].client?.name,
       newStatus
     });
@@ -616,7 +645,7 @@ app.post("/api/orders/:id/replace-lot", async (req, res) => {
       writeJson(STOCK_FILE, stock);
       writeJson(ORDERS_FILE, orders);
 
-      logAudit(req, "ORDER_REPLACE_LOT", "order", order.id, { gtin, oldLot, newLot, qty: qtyReq });
+     await logAudit(req, "ORDER_REPLACE_LOT", "order", order.id, { gtin, oldLot, newLot, qty: qtyReq });
 
       return res.json({ ok: true, order });
     } catch (e) {
@@ -739,7 +768,7 @@ app.post("/api/orders/:id/replace-lot", async (req, res) => {
 
     await db.q("COMMIT");
 
-    logAudit(req, "ORDER_REPLACE_LOT", "order", orderId, {
+   await logAudit(req, "ORDER_REPLACE_LOT", "order", orderId, {
       gtin,
       oldLot,
       newLot,
@@ -811,6 +840,30 @@ app.get("/api/stock", async (req, res) => {
   }
 });
 
+app.get("/api/audit", async (req, res) => {
+  try {
+    if (!db.hasDb()) return res.json(readJson(AUDIT_FILE, []));
+    const r = await db.q(
+      `SELECT id, action, entity, entity_id, user_json, details, created_at
+       FROM audit
+       ORDER BY created_at DESC
+       LIMIT 200`
+    );
+    res.json(r.rows.map(x => ({
+      id: x.id,
+      action: x.action,
+      entity: x.entity,
+      entityId: x.entity_id,
+      user: x.user_json,
+      details: x.details,
+      createdAt: x.created_at
+    })));
+  } catch (e) {
+    res.status(500).json({ error: "Eroare audit" });
+  }
+});
+
+
 // ADD stock
 app.post("/api/stock", async (req, res) => {
   try {
@@ -832,7 +885,7 @@ app.post("/api/stock", async (req, res) => {
       stock.push(entry);
       writeJson(STOCK_FILE, stock);
 
-      logAudit(req, "STOCK_ADD", "stock", entry.id, {
+     await logAudit(req, "STOCK_ADD", "stock", entry.id, {
         gtin: entry.gtin,
         productName: entry.productName,
         lot: entry.lot,
@@ -856,7 +909,7 @@ if (!Number.isFinite(entry.qty) || entry.qty <= 0) {
       [entry.id, entry.gtin, entry.productName, entry.lot, entry.expiresAt, entry.qty, entry.location, entry.createdAt]
     );
 
-    logAudit(req, "STOCK_ADD", "stock", entry.id, {
+   await logAudit(req, "STOCK_ADD", "stock", entry.id, {
       gtin: entry.gtin,
       productName: entry.productName,
       lot: entry.lot,
@@ -888,7 +941,7 @@ app.put("/api/stock/:id", async (req, res) => {
 
       writeJson(STOCK_FILE, stock);
 
-      logAudit(req, "STOCK_EDIT", "stock", item.id, {
+await logAudit(req, "STOCK_EDIT", "stock", item.id, {
         gtin: item.gtin,
         productName: item.productName,
         lot: item.lot,
@@ -910,7 +963,7 @@ app.put("/api/stock/:id", async (req, res) => {
 
     await db.q(`UPDATE stock SET qty=$1, location=$2 WHERE id=$3`, [newQty, newLoc, id]);
 
-    logAudit(req, "STOCK_EDIT", "stock", id, {
+   await logAudit(req, "STOCK_EDIT", "stock", id, {
       gtin: before.gtin,
       productName: before.product_name,
       lot: before.lot,
@@ -939,7 +992,7 @@ app.delete("/api/stock/:id", async (req, res) => {
 
       const item = stock[index];
 
-      logAudit(req, "STOCK_DELETE", "stock", item.id, {
+     await logAudit(req, "STOCK_DELETE", "stock", item.id, {
         productName: item.productName,
         lot: item.lot,
         expiresAt: item.expiresAt,
@@ -958,7 +1011,7 @@ app.delete("/api/stock/:id", async (req, res) => {
 
     await db.q(`DELETE FROM stock WHERE id=$1`, [id]);
 
-    logAudit(req, "STOCK_DELETE", "stock", id, {
+   await logAudit(req, "STOCK_DELETE", "stock", id, {
       productName: item.product_name,
       lot: item.lot,
       expiresAt: item.expires_at,

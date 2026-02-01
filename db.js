@@ -63,6 +63,23 @@ async function ensureTables() {
     CREATE INDEX IF NOT EXISTS stock_created_at_idx
     ON stock (created_at DESC)
   `);
+    await q(`
+    CREATE TABLE IF NOT EXISTS audit (
+      id TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      entity TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      user_json JSONB,
+      details JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+
+  await q(`
+    CREATE INDEX IF NOT EXISTS audit_created_at_idx
+    ON audit (created_at DESC)
+  `);
+
 }
 
 
