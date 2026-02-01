@@ -932,7 +932,7 @@ if (!res.ok) {
 }
 const orders = await res.json();
 
-  const clients = await apiFetchfetch("/api/clients-flat").then(r => r.json());
+  const clients = await apiFetch("/api/clients-flat").then(r => r.json());
 
   // 🔹 map clientName -> category
  // 🔹 map clientName -> category (safe)
