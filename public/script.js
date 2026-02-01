@@ -821,10 +821,14 @@ const orders = await res.json();
   const clients = await fetch("/api/clients-flat").then(r => r.json());
 
   // 🔹 map clientName -> category
-  const clientCategoryMap = {};
-  clients.forEach(c => {
-    clientCategoryMap[c.name] = c.path.split(" / ")[1] || "";
-  });
+ // 🔹 map clientName -> category (safe)
+const clientCategoryMap = {};
+clients.forEach(c => {
+  const path = String(c.path || "");          // <-- dacă lipsește, devine ""
+  const parts = path.split(" / ");
+  clientCategoryMap[c.name] = parts[1] || ""; // categoria e partea a 2-a
+});
+
 
   // 🔹 populăm filtrele
   const groups = new Set();
