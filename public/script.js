@@ -1250,7 +1250,7 @@ o.items.forEach(i => {
   if (searchInput) searchInput.value = "";
   if (searchResults) searchResults.innerHTML = "";
 
-  if (selStatus) selStatus.value = "in_procesare"; // default ca în poză
+  if (selStatus) selStatus.value = "Toate"; // default
   renderTabs();
   render();
 };
