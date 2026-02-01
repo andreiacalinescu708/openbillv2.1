@@ -802,6 +802,26 @@ app.post("/api/orders/:id/replace-lot", async (req, res) => {
   }
 });
 
+app.get("/api/debug-db", async (req, res) => {
+  try {
+    if (!db.hasDb()) return res.json({ hasDb: false });
+
+    const r = await db.q("select current_database() as db, inet_server_addr() as host");
+    const c1 = await db.q("select count(*)::int as n from orders");
+    let c2 = { rows: [{ n: null }] };
+    try { c2 = await db.q("select count(*)::int as n from stock"); } catch {}
+
+    res.json({
+      hasDb: true,
+      db: r.rows[0],
+      ordersCount: c1.rows[0].n,
+      stockCount: c2.rows[0].n
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 
 // GET stock
