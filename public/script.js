@@ -1444,7 +1444,6 @@ function renderTotal() {
    if (!editItems.length) {
   list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
   if (countEl) countEl.textContent = "0";
-  renderTotal();    
   renderTotal();   // ✅ mereu, după fiecare rerender// ✅
   return;
 }
@@ -1457,10 +1456,11 @@ function renderTotal() {
       const left = document.createElement("div");
       left.className = "rowLeft";
       left.innerHTML = `
-        <div class="rowTitle">${it.name || "Produs"}</div>
-        <div class="muted small">GTIN: ${it.gtin || "-"}</div>
-      `;
-      <div class="muted small">Preț: ${Number(it.price||0).toFixed(2)} RON</div>
+  <div class="rowTitle">${it.name || "Produs"}</div>
+  <div class="muted small">GTIN: ${it.gtin || "-"}</div>
+  <div class="muted small">Preț: ${Number(it.price || 0).toFixed(2)} RON</div>
+`;
+
 
 
       const right = document.createElement("div");
