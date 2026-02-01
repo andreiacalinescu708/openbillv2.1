@@ -747,23 +747,23 @@ async function loadClientsAdmin() {
   }
 
   function renderSearchResults(list) {
-    // rezultatele le punem în resultsBox (dacă există), altfel în box
-    const target = resultsBox || box;
-    target.innerHTML = "";
+  // ✅ întotdeauna afișăm rezultatele în box (lista de clienți)
+  box.innerHTML = "";
 
-    if (!list.length) {
-      target.innerHTML = "<p class='hint'>Niciun client găsit.</p>";
-      return;
-    }
-
-    list.slice(0, 50).forEach(c => {
-      const b = document.createElement("button");
-      b.className = "itembtn";
-      b.textContent = c.name;
-      b.onclick = () => renderClientDetails(c);
-      target.appendChild(b);
-    });
+  if (!list.length) {
+    box.innerHTML = "<p class='hint'>Niciun client găsit.</p>";
+    return;
   }
+
+  list.slice(0, 50).forEach(c => {
+    const b = document.createElement("button");
+    b.className = "itembtn";
+    b.textContent = c.name;
+    b.onclick = () => renderClientDetails(c);
+    box.appendChild(b);
+  });
+}
+
 
   // render default (tree)
   renderTreeAdmin();
@@ -780,8 +780,7 @@ async function loadClientsAdmin() {
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.toLowerCase().trim();
 
-    // curățăm zona de rezultate
-    if (resultsBox) resultsBox.innerHTML = "";
+   
 
     if (!q) {
       renderTreeAdmin();
