@@ -646,6 +646,36 @@ async function loadClientsAdmin() {
 
   const prodRes = await apiFetch("/api/products-flat");
   const products = await prodRes.json();
+  // map prețuri din catalog
+const priceById = new Map();
+const priceByGtin = new Map();
+
+products.forEach(p => {
+  const price = Number(p.price || 0);
+
+  // by id
+  if (p.id != null) priceById.set(String(p.id), price);
+
+  // by gtin(s)
+  const all = []
+    .concat(p.gtin ? [p.gtin] : [])
+    .concat(Array.isArray(p.gtins) ? p.gtins : [])
+    .filter(Boolean);
+
+  all.forEach(g => priceByGtin.set(normalizeGTIN(g), price));
+});
+
+// helper: găsește prețul corect
+function resolvePrice(it) {
+  const pid = (it.id != null) ? String(it.id) : "";
+  if (pid && priceById.has(pid)) return priceById.get(pid);
+
+  const g = normalizeGTIN(it.gtin);
+  if (g && priceByGtin.has(g)) return priceByGtin.get(g);
+
+  return Number(it.price || 0); // fallback
+}
+
 
   const tree = await apiFetch("/api/clients-tree").then(r => r.json());
 
@@ -1347,12 +1377,13 @@ async function initEditOrderPage() {
 
   // state local: items editabile (fără allocations; server le va recalcula)
   let editItems = Array.isArray(order.items) ? order.items.map(it => ({
-    id: it.id,
-    name: it.name,
-    gtin: it.gtin,
-    qty: Number(it.qty || 1),
-    price: it.price // optional
-  })) : [];
+  id: it.id,
+  name: it.name,
+  gtin: it.gtin,
+  qty: Number(it.qty || 1),
+  price: resolvePrice(it) // ✅ ia preț din catalog
+})) : [];
+
 
   function calcTotal() {
   let total = 0;
@@ -1467,7 +1498,7 @@ function renderTotal() {
         name: p.name,
         gtin: primaryGTIN,
         qty: 1,
-        price: p.price
+price: Number(p.price || 0)
       });
     }
 
