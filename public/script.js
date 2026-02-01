@@ -21,10 +21,12 @@ async function apiFetch(url, options = {}) {
 async function initLoginPage() {
   if (!location.pathname.endsWith("login.html")) return;
 
-  const btn = document.getElementById("btnLogin");
+  const form = document.getElementById("loginForm");
   const msg = document.getElementById("loginMsg");
+  if (!form) return;
 
-  btn.onclick = async () => {
+  form.onsubmit = async (e) => {
+    e.preventDefault();
     msg.textContent = "";
 
     const username = document.getElementById("loginUser").value.trim();
@@ -36,7 +38,7 @@ async function initLoginPage() {
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       msg.textContent = data.error || "Eroare la login";
       return;
@@ -45,13 +47,16 @@ async function initLoginPage() {
     location.href = "index.html";
   };
 }
+
 async function initRegister() {
-  const btn = document.getElementById("btnRegister");
-  if (!btn) return;
+  if (!location.pathname.endsWith("register.html")) return;
 
+  const form = document.getElementById("registerForm");
   const msg = document.getElementById("registerMsg");
+  if (!form) return;
 
-  btn.onclick = async () => {
+  form.onsubmit = async (e) => {
+    e.preventDefault();
     msg.textContent = "";
 
     const username = document.getElementById("regUser").value.trim();
@@ -68,17 +73,17 @@ async function initRegister() {
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
-
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       msg.textContent = data.error || "Eroare";
       return;
     }
 
     alert("Cont creat. Te poți loga.");
-    location.reload();
+    location.href = "login.html";
   };
 }
+
 
 
 async function protectPage() {
@@ -2598,13 +2603,13 @@ await initPickingOrderPage();
 
 // ================= BOOT =================
 document.addEventListener("DOMContentLoaded", async () => {
-  const isLoginPage = location.pathname.endsWith("login.html");
 
-  if (isLoginPage) {
-    initLoginPage();
-    initRegister();
-    return;
-  }
+ const isLoginPage = location.pathname.endsWith("login.html");
+const isRegisterPage = location.pathname.endsWith("register.html");
+
+if (isLoginPage) { initLoginPage(); return; }
+if (isRegisterPage) { initRegister(); return; }
+
 
   await protectPage();
   await renderUserBar();

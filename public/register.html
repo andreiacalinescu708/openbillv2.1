@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Creează cont</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="authBody">
+  <div class="authCard">
+    <div class="authHeader">
+      <div class="authLogo">👤</div>
+      <h1>Creează cont</h1>
+      <p class="muted">Alege un username și o parolă.</p>
+    </div>
+
+    <form id="registerForm" class="authForm" autocomplete="on">
+      <label class="authLabel">
+        Username
+        <input id="regUser" class="authInput" type="text" autocomplete="username" required />
+      </label>
+
+      <label class="authLabel">
+        Parolă
+        <input id="regPass" class="authInput" type="password" autocomplete="new-password" required />
+      </label>
+
+      <button id="btnRegister" class="authBtn" type="submit">Creează cont</button>
+      <div id="registerMsg" class="authMsg"></div>
+    </form>
+
+    <div class="authFooter">
+      <a class="authLinkBtn" href="login.html">Am deja cont</a>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

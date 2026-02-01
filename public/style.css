@@ -1080,3 +1080,131 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
   font-weight: 800;
 }
 
+/* ===== AUTH (login/register) ===== */
+.authBody{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background: radial-gradient(1200px 600px at 20% 10%, rgba(0,0,0,.06), transparent),
+              radial-gradient(1000px 500px at 80% 30%, rgba(0,0,0,.05), transparent),
+              #f6f7fb;
+}
+
+.authCard{
+  width:100%;
+  max-width:420px;
+  background:#fff;
+  border:1px solid #ececf4;
+  border-radius:16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  padding:22px;
+}
+
+.authHeader{
+  text-align:center;
+  margin-bottom:14px;
+}
+
+.authLogo{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  margin:0 auto 10px;
+  background:#f0f3ff;
+  border:1px solid #e7ecff;
+  font-size:22px;
+}
+
+.authHeader h1{
+  margin:0;
+  font-size:22px;
+  letter-spacing:-0.2px;
+}
+
+.authHeader .muted{
+  margin:6px 0 0;
+  color:#6b7280;
+  font-size:13px;
+}
+
+.authForm{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:14px;
+}
+
+.authLabel{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:13px;
+  color:#111827;
+}
+
+.authInput{
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:12px 12px;
+  font-size:14px;
+  outline:none;
+  transition: 120ms ease;
+  background:#fff;
+}
+
+.authInput:focus{
+  border-color:#c7d2fe;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.15);
+}
+
+.authBtn{
+  margin-top:4px;
+  border:none;
+  border-radius:12px;
+  padding:12px 14px;
+  font-weight:700;
+  font-size:14px;
+  cursor:pointer;
+  background:#111827;
+  color:#fff;
+}
+
+.authBtn:hover{
+  filter: brightness(1.05);
+}
+
+.authMsg{
+  min-height:18px;
+  color:#b91c1c;
+  font-size:13px;
+  text-align:center;
+  margin-top:2px;
+}
+
+.authFooter{
+  margin-top:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+.authLinkBtn{
+  display:inline-block;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  text-decoration:none;
+  color:#111827;
+  font-weight:600;
+  font-size:13px;
+}
+
+.authLinkBtn:hover{
+  background:#f9fafb;
+}
