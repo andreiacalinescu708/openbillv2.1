@@ -21,10 +21,10 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" // IMPORTANT pe Railway
+    sameSite: "lax"
   }
 }));
+
 
 // Cine sunt eu (pentru frontend)
 app.get("/api/me", (req, res) => {
