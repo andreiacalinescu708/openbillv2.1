@@ -4,11 +4,12 @@ const bcrypt = require("bcrypt");
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const db = require("./db");
 
 const app = express();
 app.set("trust proxy", 1);
 
-const db = require("./db");
+
 
 
 // middleware
@@ -47,7 +48,7 @@ const STOCK_FILE = path.join(DATA_DIR, "stock.json");
 async function seedClientsFromFileIfEmpty() {
   if (!db.hasDb()) return;
 
-  // există tabelă, dar e goală? -> seed din clients.json
+  // există tabelă, dar e goală? -  > seed din clients.json
   const r = await db.q("SELECT COUNT(*)::int AS n FROM clients");
   if ((r.rows?.[0]?.n ?? 0) > 0) return;
 
