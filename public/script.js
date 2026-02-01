@@ -923,7 +923,7 @@ async function initOrdersPage() {
 
   if (!list) return;
 
- const res = await fetch("/api/orders");
+const res = await apiFetch("/api/orders");
 if (!res.ok) {
   const txt = await res.text();
   console.error("API /orders error:", txt);
@@ -932,7 +932,7 @@ if (!res.ok) {
 }
 const orders = await res.json();
 
-  const clients = await fetch("/api/clients-flat").then(r => r.json());
+  const clients = await apiFetchfetch("/api/clients-flat").then(r => r.json());
 
   // 🔹 map clientName -> category
  // 🔹 map clientName -> category (safe)
@@ -1447,7 +1447,9 @@ function renderTotal() {
   renderTotal();   // ✅ mereu, după fiecare rerender// ✅
   return;
 }
-
+const price = Number(it.price || 0);
+const qtyNum = Number(it.qty || 0);
+const line = price * qtyNum;
 
     editItems.forEach((it, idx) => {
       const row = document.createElement("div");
@@ -1459,7 +1461,13 @@ function renderTotal() {
   <div class="rowTitle">${it.name || "Produs"}</div>
   <div class="muted small">GTIN: ${it.gtin || "-"}</div>
   <div class="muted small">Preț: ${Number(it.price || 0).toFixed(2)} RON</div>
+    <div class="muted small">Subtotal: <b>${line.toFixed(2)} RON</b></div>
+
 `;
+if (countEl) countEl.textContent = String(editItems.length);
+if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
+
+renderTotal(); // ✅ asta lipsea
 
 
 
