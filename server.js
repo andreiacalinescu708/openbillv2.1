@@ -169,6 +169,22 @@ function locRank(loc) {
   const i = LOCATION_ORDER.indexOf(String(loc || "").toUpperCase());
   return i === -1 ? 999 : i;
 }
+
+function sqlLocOrderCase(colName = "location") {
+  // ordinea ta: A, B, C, R1, R2, R3, restul la final
+  return `
+    CASE UPPER(${colName})
+      WHEN 'A' THEN 1
+      WHEN 'B' THEN 2
+      WHEN 'C' THEN 3
+      WHEN 'R1' THEN 4
+      WHEN 'R2' THEN 5
+      WHEN 'R3' THEN 6
+      ELSE 999
+    END
+  `;
+}
+
 function normalizeGTIN(gtin) {
   let g = String(gtin || "").replace(/\D/g, "");
   if (g.length === 14 && g.startsWith("0")) g = g.slice(1);
@@ -485,86 +501,171 @@ app.post("/api/orders", async (req, res) => {
 
 
 
-app.post("/api/orders/:id/status", (req, res) => {
-  const allowed = new Set(["in_procesare", "facturata", "gata_de_livrare", "livrata"]);
-if (!allowed.has(req.body.status)) {
-  return res.status(400).json({ error: "Status invalid" });
-}
-
-  console.log("=== STATUS UPDATE ROUTE HIT ===");
-  console.log("ID primit:", req.params.id);
-  console.log("Status primit:", req.body.status);
-
-  const orders = readJson(ORDERS_FILE, []);
-  console.log("Comenzi existente:", orders.map(o => o.id));
-
-  const order = orders.find(o => String(o.id) === String(req.params.id));
-
-
-  if (!order) {
-    console.log("❌ COMANDA NU A FOST GASITA");
-    return res.status(404).json({ error: "Comandă inexistentă" });
-  }
-
-  order.status = req.body.status;
-  writeJson(ORDERS_FILE, orders);
-
-  logAudit(req, "ORDER_STATUS", "order", order.id, {
-  clientName: order.client?.name,
-  newStatus: order.status
-});
-
-
-  console.log("✅ STATUS SALVAT IN FILE");
-
-  res.json({ ok: true });
-});
-
-app.post("/api/orders/:id/replace-lot", (req, res) => {
+app.post("/api/orders/:id/status", async (req, res) => {
   try {
-    const orders = readJson(ORDERS_FILE, []);
-    const stock = readJson(STOCK_FILE, []);
-
-    const order = orders.find(o => String(o.id) === String(req.params.id));
-    if (!order) return res.status(404).json({ error: "Comandă inexistentă" });
-
-    const gtin = normalizeGTIN(req.body.gtin);
-    const oldLot = String(req.body.oldLot || "").trim();
-    const newLot = String(req.body.newLot || "").trim();
-    const qty = Number(req.body.qty);
-
-    if (!gtin || !oldLot || !newLot || !Number.isFinite(qty) || qty <= 0) {
-      return res.status(400).json({ error: "Date invalide (gtin/oldLot/newLot/qty)" });
+    const allowed = new Set(["in_procesare", "facturata", "gata_de_livrare", "livrata"]);
+    if (!allowed.has(req.body.status)) {
+      return res.status(400).json({ error: "Status invalid" });
     }
 
-    const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === gtin);
-    if (!item) return res.status(400).json({ error: "Produsul nu există în comandă" });
+    const id = String(req.params.id);
+    const newStatus = req.body.status;
+
+    if (!db.hasDb()) {
+      const orders = readJson(ORDERS_FILE, []);
+      const order = orders.find(o => String(o.id) === id);
+      if (!order) return res.status(404).json({ error: "Comandă inexistentă" });
+
+      order.status = newStatus;
+      writeJson(ORDERS_FILE, orders);
+
+      logAudit(req, "ORDER_STATUS", "order", order.id, {
+        clientName: order.client?.name,
+        newStatus: order.status
+      });
+
+      return res.json({ ok: true });
+    }
+
+    const r = await db.q(`UPDATE orders SET status=$1 WHERE id=$2 RETURNING id, client`, [newStatus, id]);
+    if (!r.rows.length) return res.status(404).json({ error: "Comandă inexistentă" });
+
+    logAudit(req, "ORDER_STATUS", "order", id, {
+      clientName: r.rows[0].client?.name,
+      newStatus
+    });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("POST /api/orders/:id/status error:", e);
+    res.status(500).json({ error: "Eroare DB status" });
+  }
+});
+
+
+app.post("/api/orders/:id/replace-lot", async (req, res) => {
+  const orderId = String(req.params.id);
+
+  const gtin = normalizeGTIN(req.body.gtin);
+  const oldLot = String(req.body.oldLot || "").trim();
+  const newLot = String(req.body.newLot || "").trim();
+  const qtyReq = Number(req.body.qty);
+
+  if (!gtin || !oldLot || !newLot || !Number.isFinite(qtyReq) || qtyReq <= 0) {
+    return res.status(400).json({ error: "Date invalide (gtin/oldLot/newLot/qty)" });
+  }
+
+  // ====== FALLBACK JSON (dacă nu există DB) ======
+  if (!db.hasDb()) {
+    try {
+      const orders = readJson(ORDERS_FILE, []);
+      const stock = readJson(STOCK_FILE, []);
+
+      const order = orders.find(o => String(o.id) === orderId);
+      if (!order) return res.status(404).json({ error: "Comandă inexistentă" });
+
+      const item = (order.items || []).find(i => normalizeGTIN(i.gtin) === gtin);
+      if (!item) return res.status(400).json({ error: "Produsul nu există în comandă" });
+
+      item.allocations = Array.isArray(item.allocations) ? item.allocations : [];
+
+      const oldAllocs = item.allocations.filter(a => String(a.lot) === oldLot);
+      const oldTotal = oldAllocs.reduce((s, a) => s + Number(a.qty || 0), 0);
+      if (oldTotal <= 0) return res.status(400).json({ error: "Old LOT nu există în allocations" });
+      if (qtyReq > oldTotal) {
+        return res.status(400).json({ error: `Cantitatea cerută (${qtyReq}) depășește alocarea din lot (${oldTotal})` });
+      }
+
+      // return în stoc pt oldLot
+      let remainingReturn = qtyReq;
+      for (const a of oldAllocs) {
+        if (remainingReturn <= 0) break;
+
+        const takeBack = Math.min(Number(a.qty || 0), remainingReturn);
+        const st = stock.find(s => String(s.id) === String(a.stockId));
+        if (st) st.qty = Number(st.qty || 0) + takeBack;
+
+        a.qty = Number(a.qty || 0) - takeBack;
+        remainingReturn -= takeBack;
+      }
+
+      item.allocations = item.allocations.filter(a => Number(a.qty || 0) > 0);
+
+      // alocare din newLot
+      const newAllocs = allocateFromSpecificLot(stock, gtin, newLot, qtyReq);
+
+      newAllocs.forEach(na => {
+        const existing = item.allocations.find(a =>
+          String(a.lot) === String(na.lot) &&
+          String(a.location || "") === String(na.location || "")
+        );
+        if (existing) existing.qty = Number(existing.qty || 0) + Number(na.qty || 0);
+        else item.allocations.push(na);
+      });
+
+      writeJson(STOCK_FILE, stock);
+      writeJson(ORDERS_FILE, orders);
+
+      logAudit(req, "ORDER_REPLACE_LOT", "order", order.id, { gtin, oldLot, newLot, qty: qtyReq });
+
+      return res.json({ ok: true, order });
+    } catch (e) {
+      console.error("replace-lot JSON error:", e);
+      return res.status(400).json({ error: e.message || "Eroare" });
+    }
+  }
+
+  // ====== DB MODE ======
+  try {
+    await db.q("BEGIN");
+
+    // 1) luăm comanda (lock)
+    const rOrder = await db.q(
+      `SELECT id, client, items, status, created_at
+       FROM orders
+       WHERE id=$1
+       FOR UPDATE`,
+      [orderId]
+    );
+
+    if (!rOrder.rows.length) {
+      await db.q("ROLLBACK");
+      return res.status(404).json({ error: "Comandă inexistentă" });
+    }
+
+    const orderRow = rOrder.rows[0];
+    const items = Array.isArray(orderRow.items) ? orderRow.items : [];
+
+    const item = items.find(i => normalizeGTIN(i.gtin) === gtin);
+    if (!item) {
+      await db.q("ROLLBACK");
+      return res.status(400).json({ error: "Produsul nu există în comandă" });
+    }
 
     item.allocations = Array.isArray(item.allocations) ? item.allocations : [];
 
-    // 1) verificăm că există oldLot în allocations și că avem qty suficient acolo
+    // 2) validăm oldLot allocations
     const oldAllocs = item.allocations.filter(a => String(a.lot) === oldLot);
     const oldTotal = oldAllocs.reduce((s, a) => s + Number(a.qty || 0), 0);
 
     if (oldTotal <= 0) {
+      await db.q("ROLLBACK");
       return res.status(400).json({ error: "Old LOT nu există în allocations" });
     }
-    if (qty > oldTotal) {
-      return res.status(400).json({ error: `Cantitatea cerută (${qty}) depășește alocarea din lot (${oldTotal})` });
+    if (qtyReq > oldTotal) {
+      await db.q("ROLLBACK");
+      return res.status(400).json({ error: `Cantitatea cerută (${qtyReq}) depășește alocarea din lot (${oldTotal})` });
     }
 
-    // 2) Returnăm qty înapoi în stoc pentru oldLot (pe stockId-urile alocate)
-    let remainingReturn = qty;
+    // 3) returnăm qty în stoc pe stockId-urile vechi
+    let remainingReturn = qtyReq;
     for (const a of oldAllocs) {
       if (remainingReturn <= 0) break;
 
       const takeBack = Math.min(Number(a.qty || 0), remainingReturn);
-
-      // punem înapoi în stock entry-ul original
-      const st = stock.find(s => String(s.id) === String(a.stockId));
-      if (st) st.qty = Number(st.qty || 0) + takeBack;
-
-      // scădem din allocation
+      if (a.stockId) {
+        await db.q(`UPDATE stock SET qty = qty + $1 WHERE id=$2`, [takeBack, String(a.stockId)]);
+      }
       a.qty = Number(a.qty || 0) - takeBack;
       remainingReturn -= takeBack;
     }
@@ -572,157 +673,295 @@ app.post("/api/orders/:id/replace-lot", (req, res) => {
     // curățăm allocations cu qty 0
     item.allocations = item.allocations.filter(a => Number(a.qty || 0) > 0);
 
-    // 3) Alocăm qty din NEW LOT (scanat) și scădem din stoc
-    const newAllocs = allocateFromSpecificLot(stock, gtin, newLot, qty);
+    // 4) alocăm qtyReq din NEW LOT: luăm rânduri stock din lotul nou (lock)
+    const locCase = sqlLocOrderCase("location");
+    const rStock = await db.q(
+      `SELECT id, gtin, lot, expires_at, qty, location
+       FROM stock
+       WHERE gtin=$1 AND lot=$2 AND qty > 0
+       ORDER BY ${locCase} ASC, expires_at ASC
+       FOR UPDATE`,
+      [gtin, newLot]
+    );
 
-    // 4) le adăugăm în comandă (dacă există deja același lot, îl cumulăm)
+    let remainingNeed = qtyReq;
+    const newAllocs = [];
+
+    for (const s of rStock.rows) {
+      if (remainingNeed <= 0) break;
+
+      const avail = Number(s.qty || 0);
+      if (avail <= 0) continue;
+
+      const take = Math.min(avail, remainingNeed);
+
+      // scădem din stock
+      await db.q(`UPDATE stock SET qty = qty - $1 WHERE id=$2`, [take, s.id]);
+
+      newAllocs.push({
+        stockId: s.id,
+        lot: s.lot,
+        expiresAt: String(s.expires_at).slice(0, 10),
+        location: s.location || "A",
+        qty: take
+      });
+
+      remainingNeed -= take;
+    }
+
+    if (remainingNeed > 0) {
+      await db.q("ROLLBACK");
+      return res.status(400).json({ error: "Stoc insuficient pe lotul scanat (DB)" });
+    }
+
+    // 5) mergem allocations: cumulăm dacă există deja lot+location
     newAllocs.forEach(na => {
       const existing = item.allocations.find(a =>
         String(a.lot) === String(na.lot) &&
         String(a.location || "") === String(na.location || "")
       );
-
-      if (existing) {
-        existing.qty = Number(existing.qty || 0) + Number(na.qty || 0);
-      } else {
-        item.allocations.push(na);
-      }
+      if (existing) existing.qty = Number(existing.qty || 0) + Number(na.qty || 0);
+      else item.allocations.push(na);
     });
 
-    // 5) salvăm fișierele
-    writeJson(STOCK_FILE, stock);
-    writeJson(ORDERS_FILE, orders);
+    // 6) salvăm items în DB
+    await db.q(`UPDATE orders SET items=$1::jsonb WHERE id=$2`, [JSON.stringify(items), orderId]);
 
-    // audit
-    logAudit(req, "ORDER_REPLACE_LOT", "order", order.id, {
+    await db.q("COMMIT");
+
+    logAudit(req, "ORDER_REPLACE_LOT", "order", orderId, {
       gtin,
       oldLot,
       newLot,
-      qty
+      qty: qtyReq
     });
 
-    res.json({ ok: true, order });
+    // return order “fresh”
+    const rFresh = await db.q(
+      `SELECT id, client, items, status, created_at
+       FROM orders
+       WHERE id=$1`,
+      [orderId]
+    );
+
+    const x = rFresh.rows[0];
+    return res.json({
+      ok: true,
+      order: {
+        id: x.id,
+        client: x.client,
+        items: x.items,
+        status: x.status,
+        createdAt: x.created_at
+      }
+    });
 
   } catch (e) {
-    console.error("replace-lot error:", e);
-    res.status(400).json({ error: e.message || "Eroare" });
+    try { await db.q("ROLLBACK"); } catch {}
+    console.error("replace-lot DB error:", e);
+    return res.status(500).json({ error: e.message || "Eroare DB replace-lot" });
   }
 });
+
 
 
 // GET stock
-app.get("/api/stock", (req, res) => {
-  const stock = readJson(STOCK_FILE, []);
-  res.json(stock);
+// ===== STOCK (DB + fallback JSON) =====
+
+// GET stock
+app.get("/api/stock", async (req, res) => {
+  try {
+    if (!db.hasDb()) {
+      const stock = readJson(STOCK_FILE, []);
+      return res.json(stock);
+    }
+
+    const r = await db.q(
+      `SELECT id, gtin, product_name, lot, expires_at, qty, location, created_at
+       FROM stock
+       ORDER BY created_at DESC`
+    );
+
+    // map la cheile pe care frontend-ul tău le folosește acum
+    const out = r.rows.map(s => ({
+      id: s.id,
+      gtin: s.gtin,
+      productName: s.product_name,
+      lot: s.lot,
+      expiresAt: s.expires_at,   // ok (front-ul îl afișează)
+      qty: Number(s.qty || 0),
+      location: s.location || "A",
+      createdAt: s.created_at
+    }));
+
+    res.json(out);
+  } catch (e) {
+    console.error("GET /api/stock error:", e);
+    res.status(500).json({ error: "Eroare DB stock" });
+  }
 });
 
 // ADD stock
-app.post("/api/stock", (req, res) => {
-  const stock = readJson(STOCK_FILE, []);
+app.post("/api/stock", async (req, res) => {
+  try {
+    const entry = {
+      id: Date.now().toString() + Math.random().toString(36).slice(2),
+      gtin: String(req.body.gtin || "").trim(),
+      productName: String(req.body.productName || "").trim(),
+      lot: String(req.body.lot || "").trim(),
+      expiresAt: String(req.body.expiresAt || "").slice(0, 10),
+      qty: Number(req.body.qty),
+      location: String(req.body.location || "A").trim(),
+      createdAt: new Date().toISOString()
+    };
 
-const entry = {
-  id: Date.now().toString() + Math.random().toString(36).slice(2),
+    if (!entry.gtin) return res.status(400).json({ error: "Lipsește GTIN" });
 
-  gtin: String(req.body.gtin || "").trim(),          // ✅ CHEIA
-  productName: String(req.body.productName || ""),   // pt UI
+    if (!db.hasDb()) {
+      const stock = readJson(STOCK_FILE, []);
+      stock.push(entry);
+      writeJson(STOCK_FILE, stock);
 
-  lot: String(req.body.lot || "").trim(),
-  expiresAt: req.body.expiresAt,
-  qty: Number(req.body.qty),
-  location: req.body.location || "A",
-  createdAt: new Date().toISOString()
-};
+      logAudit(req, "STOCK_ADD", "stock", entry.id, {
+        gtin: entry.gtin,
+        productName: entry.productName,
+        lot: entry.lot,
+        qty: entry.qty
+      });
 
-if (!entry.gtin) {
-  return res.status(400).json({ error: "Lipsește GTIN" });
+      return res.json({ ok: true, entry });
+    }
+
+    if (!entry.expiresAt || entry.expiresAt.length !== 10) {
+  return res.status(400).json({ error: "Data expirării invalidă" });
+}
+if (!Number.isFinite(entry.qty) || entry.qty <= 0) {
+  return res.status(400).json({ error: "Cantitate invalidă" });
 }
 
 
+    await db.q(
+      `INSERT INTO stock (id, gtin, product_name, lot, expires_at, qty, location, created_at)
+       VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8::timestamptz)`,
+      [entry.id, entry.gtin, entry.productName, entry.lot, entry.expiresAt, entry.qty, entry.location, entry.createdAt]
+    );
 
-  stock.push(entry);
-  writeJson(STOCK_FILE, stock);
+    logAudit(req, "STOCK_ADD", "stock", entry.id, {
+      gtin: entry.gtin,
+      productName: entry.productName,
+      lot: entry.lot,
+      qty: entry.qty
+    });
 
-logAudit(req, "STOCK_ADD", "stock", entry.id || "new", {
-  gtin: entry.gtin,
-  productName: entry.productName,
-  lot: entry.lot,
-  qty: entry.qty
-});
-
-
-
-
-
-
-  res.json({ ok: true, entry });
-});
-
-// UPDATE cantitate stoc (pe LOT)
-app.put("/api/stock/:id", (req, res) => {
-  const stock = readJson(STOCK_FILE, []);
-  const item = stock.find(s => s.id === req.params.id);
-
-  if (!item) {
-    return res.status(404).json({ error: "Intrare stoc inexistentă" });
+    res.json({ ok: true, entry });
+  } catch (e) {
+    console.error("POST /api/stock error:", e);
+    res.status(500).json({ error: "Eroare DB stock add" });
   }
-
- const beforeQty = item.qty;
-const beforeLoc = item.location || "A";
-
-if (req.body.qty != null) item.qty = Number(req.body.qty);
-if (req.body.location != null) item.location = String(req.body.location);
-
-logAudit(req, "STOCK_EDIT", "stock", item.id, {
-  gtin: item.gtin,
-  productName: item.productName,
-  lot: item.lot,
-  beforeQty,
-  afterQty: item.qty,
-  beforeLoc,
-  afterLoc: item.location
 });
 
+// UPDATE stock lot
+app.put("/api/stock/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id);
 
+    if (!db.hasDb()) {
+      const stock = readJson(STOCK_FILE, []);
+      const item = stock.find(s => String(s.id) === id);
+      if (!item) return res.status(404).json({ error: "Intrare stoc inexistentă" });
 
+      const beforeQty = item.qty;
+      const beforeLoc = item.location || "A";
 
+      if (req.body.qty != null) item.qty = Number(req.body.qty);
+      if (req.body.location != null) item.location = String(req.body.location);
 
+      writeJson(STOCK_FILE, stock);
 
-  writeJson(STOCK_FILE, stock);
+      logAudit(req, "STOCK_EDIT", "stock", item.id, {
+        gtin: item.gtin,
+        productName: item.productName,
+        lot: item.lot,
+        beforeQty,
+        afterQty: item.qty,
+        beforeLoc,
+        afterLoc: item.location
+      });
 
-  res.json({ ok: true, item });
-});
+      return res.json({ ok: true, item });
+    }
 
-// DELETE intrare stoc (LOT)
-app.delete("/api/stock/:id", (req, res) => {
-  const stock = readJson(STOCK_FILE, []);
-  const index = stock.findIndex(s => s.id === req.params.id);
+    const r0 = await db.q(`SELECT * FROM stock WHERE id=$1`, [id]);
+    if (!r0.rows.length) return res.status(404).json({ error: "Intrare stoc inexistentă" });
 
-  if (index === -1) {
-    return res.status(404).json({ error: "Intrare stoc inexistentă" });
+    const before = r0.rows[0];
+    const newQty = req.body.qty != null ? Number(req.body.qty) : Number(before.qty);
+    const newLoc = req.body.location != null ? String(req.body.location) : String(before.location || "A");
+
+    await db.q(`UPDATE stock SET qty=$1, location=$2 WHERE id=$3`, [newQty, newLoc, id]);
+
+    logAudit(req, "STOCK_EDIT", "stock", id, {
+      gtin: before.gtin,
+      productName: before.product_name,
+      lot: before.lot,
+      beforeQty: Number(before.qty),
+      afterQty: newQty,
+      beforeLoc: before.location,
+      afterLoc: newLoc
+    });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("PUT /api/stock/:id error:", e);
+    res.status(500).json({ error: "Eroare DB stock edit" });
   }
-
-  const item = stock[index];
-
-  // 🔍 AUDIT (ÎNAINTE de ștergere)
- logAudit(req, "STOCK_DELETE", "stock", item.id, {
-  productName: item.productName,
-  lot: item.lot,
-  expiresAt: item.expiresAt,
-  qty: item.qty
 });
 
+// DELETE stock lot
+app.delete("/api/stock/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id);
 
-  stock.splice(index, 1);
-  writeJson(STOCK_FILE, stock);
+    if (!db.hasDb()) {
+      const stock = readJson(STOCK_FILE, []);
+      const index = stock.findIndex(s => String(s.id) === id);
+      if (index === -1) return res.status(404).json({ error: "Intrare stoc inexistentă" });
 
-  res.json({ ok: true });
+      const item = stock[index];
+
+      logAudit(req, "STOCK_DELETE", "stock", item.id, {
+        productName: item.productName,
+        lot: item.lot,
+        expiresAt: item.expiresAt,
+        qty: item.qty
+      });
+
+      stock.splice(index, 1);
+      writeJson(STOCK_FILE, stock);
+      return res.json({ ok: true });
+    }
+
+    const r0 = await db.q(`SELECT * FROM stock WHERE id=$1`, [id]);
+    if (!r0.rows.length) return res.status(404).json({ error: "Intrare stoc inexistentă" });
+
+    const item = r0.rows[0];
+
+    await db.q(`DELETE FROM stock WHERE id=$1`, [id]);
+
+    logAudit(req, "STOCK_DELETE", "stock", id, {
+      productName: item.product_name,
+      lot: item.lot,
+      expiresAt: item.expires_at,
+      qty: Number(item.qty || 0)
+    });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("DELETE /api/stock/:id error:", e);
+    res.status(500).json({ error: "Eroare DB stock delete" });
+  }
 });
 
-// Cine sunt eu (pentru frontend)
-app.get("/api/me", (req, res) => {
-  if (!req.session.user) return res.json({ loggedIn: false });
-  res.json({ loggedIn: true, user: req.session.user });
-});
 
 // Login
 app.post("/api/login", (req, res) => {
@@ -784,12 +1023,15 @@ app.post("/api/logout", (req, res) => {
 
 
 const PORT = process.env.PORT || 3000;
+
 db.ensureTables()
-  .then(() => console.log("✅ DB ready"))
-  .catch(e => console.error("❌ DB init error:", e.message));
+  .then(() => {
+    console.log("✅ DB ready");
+    app.listen(PORT, () => console.log("Server pornit pe port", PORT));
+  })
+  .catch(e => {
+    console.error("❌ DB init error:", e.message);
+    process.exit(1);
+  });
 
-
-app.listen(PORT, () => {
-  console.log("Server pornit pe port", PORT);
-});
 
