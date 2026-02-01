@@ -514,6 +514,24 @@ app.get("/api/products-flat", (req, res) => {
   const flat = flattenProductsTree(data);
   res.json(flat);
 });
+// ----- API PRODUCTS (flat) -----
+app.get("/api/products-flat", async (req, res) => {
+  try {
+    // DB mode
+    if (db.hasDb()) {
+      const r = await db.q(`SELECT id, name FROM products ORDER BY name ASC`);
+      return res.json(r.rows.map(x => ({ id: String(x.id), name: x.name })));
+    }
+
+    // fallback JSON
+    const list = readProductsAsList(); // deja există în server.js
+    return res.json(list.map(p => ({ id: String(p.id), name: p.name })));
+  } catch (e) {
+    console.error("products-flat error:", e);
+    res.status(500).json({ error: "Eroare la produse" });
+  }
+});
+
 
 
 
