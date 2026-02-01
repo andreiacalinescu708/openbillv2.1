@@ -917,15 +917,17 @@ function getProductClass(name) {
 // ================= ORDERS.HTML =================
 // ================= ORDERS.HTML =================
 async function initOrdersPage() {
-  const selStatus = document.getElementById("filterStatus");
-
   const list = document.getElementById("ordersList");
+  if (!list) return;
+
   const selGroup = document.getElementById("filterGroup");
   const selCategory = document.getElementById("filterCategory");
+  const selStatus = document.getElementById("filterStatus"); // poate fi ascuns, dar îl păstrăm pt state
+  const tabsBox = document.getElementById("statusTabs");
+
   const searchInput = document.getElementById("orderSearch");
   const searchResults = document.getElementById("orderSearchResults");
   const btnReset = document.getElementById("btnResetFilters");
-    const tabsBox = document.getElementById("statusTabs");
 
   const statusLabels = {
     "": "Toate",
@@ -935,33 +937,121 @@ async function initOrdersPage() {
     livrata: "Livrată"
   };
 
+  // ordinea din poză (poți schimba cum vrei)
   const TAB_ORDER = ["gata_de_livrare", "in_procesare", "facturata", "livrata", ""];
 
+  function getSafeStatus(o) {
+    return o.status || "in_procesare";
+  }
+
+  function getFilterState() {
+    return {
+      gFilter: selGroup ? (selGroup.value || "") : "",
+      cFilter: selCategory ? (selCategory.value || "") : "",
+      sFilter: selStatus ? (selStatus.value || "") : "",
+      q: searchInput ? (searchInput.value || "").toLowerCase().trim() : ""
+    };
+  }
+
   function setStatusFilter(v) {
-    if (selStatus) selStatus.value = v || "";
-    // active tab UI
+    const val = v || "";
+    if (selStatus) selStatus.value = val;
+
     if (tabsBox) {
       [...tabsBox.querySelectorAll(".mTab")].forEach(b => {
-        b.classList.toggle("active", (b.dataset.status || "") === (v || ""));
+        b.classList.toggle("active", (b.dataset.status || "") === val);
       });
     }
   }
 
+  // 1) LOAD ORDERS
+  const res = await apiFetch("/api/orders");
+  if (!res.ok) {
+    const txt = await res.text();
+    console.error("API /orders error:", txt);
+    alert("Eroare server la încărcare comenzi (vezi consola server).");
+    return;
+  }
+  const orders = await res.json();
 
-  if (!list) return;
+  // 2) LOAD CLIENTS (pt group/category corecte)
+  const clients = await apiFetch("/api/clients-flat").then(r => r.json());
 
-const res = await apiFetch("/api/orders");
-if (!res.ok) {
-  const txt = await res.text();
-  console.error("API /orders error:", txt);
-  alert("Eroare server la încărcare comenzi (vezi consola server).");
-  return;
-}
-const orders = await res.json();
+  // map clientName -> group / category (din DB/clients)
+  const clientGroupMap = {};
+  const clientCategoryMap = {};
+  clients.forEach(c => {
+    const name = String(c.name || "").trim();
+    if (!name) return;
+    clientGroupMap[name] = String(c.group || "").trim();
+    clientCategoryMap[name] = String(c.category || "").trim();
+  });
+
+  // helper: group-ul real pt o comandă
+  function getOrderGroup(o) {
+    const name = o?.client?.name;
+    return clientGroupMap[name] || o?.client?.group || "";
+  }
+
+  // helper: categoria reală pt o comandă
+  function getOrderCategory(o) {
+    const name = o?.client?.name;
+    return clientCategoryMap[name] || "";
+  }
+
+  // 3) BUILD GROUP OPTIONS (Traseu)
+  function buildGroupOptions() {
+    if (!selGroup) return;
+
+    const groups = new Set();
+    orders.forEach(o => {
+      const g = getOrderGroup(o);
+      if (g) groups.add(g);
+    });
+
+    selGroup.innerHTML = `<option value="">Toate</option>`;
+    [...groups].sort((a, b) => a.localeCompare(b, "ro")).forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g;
+      opt.textContent = g;
+      selGroup.appendChild(opt);
+    });
+  }
+
+  // 4) CATEGORY OPTIONS REBUILT by group
+  function rebuildCategoryOptions() {
+    if (!selCategory) return;
+
+    const gFilter = selGroup ? (selGroup.value || "") : "";
+
+    const cats = new Set();
+    orders.forEach(o => {
+      const g = getOrderGroup(o);
+      if (gFilter && g !== gFilter) return;
+
+      const cat = getOrderCategory(o);
+      if (cat) cats.add(cat);
+    });
+
+    const prev = selCategory.value || "";
+    selCategory.innerHTML = `<option value="">Toate</option>`;
+
+    [...cats].sort((a, b) => a.localeCompare(b, "ro")).forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      selCategory.appendChild(opt);
+    });
+
+    // păstrează selecția dacă e validă
+    selCategory.value = cats.has(prev) ? prev : "";
+  }
+
+  // 5) COUNTS + TABS
   function getCounts() {
     const counts = { "": 0, gata_de_livrare: 0, in_procesare: 0, facturata: 0, livrata: 0 };
     orders.forEach(o => {
-      const s = o.status || "in_procesare";
+      const s = getSafeStatus(o);
       if (counts[s] == null) counts[s] = 0;
       counts[s]++;
       counts[""]++;
@@ -980,6 +1070,7 @@ const orders = await res.json();
       btn.type = "button";
       btn.className = "mTab";
       btn.dataset.status = st;
+
       btn.innerHTML = `
         <span>${statusLabels[st] || st}</span>
         <span class="badge">${counts[st] || 0}</span>
@@ -993,70 +1084,28 @@ const orders = await res.json();
       tabsBox.appendChild(btn);
     });
 
-    // default: “În procesare” (ca în poză) sau păstrează ce e selectat
-    const current = selStatus ? selStatus.value : "";
-    setStatusFilter(current || "in_procesare");
+    // default = Toate
+    const current = selStatus ? (selStatus.value || "") : "";
+    setStatusFilter(current);
   }
 
-
-  const clients = await apiFetch("/api/clients-flat").then(r => r.json());
-
-  // 🔹 map clientName -> category
- // 🔹 map clientName -> category (safe)
-const clientCategoryMap = {};
-clients.forEach(c => {
-  const path = String(c.path || "");          // <-- dacă lipsește, devine ""
-  const parts = path.split(" / ");
-  clientCategoryMap[c.name] = parts[1] || ""; // categoria e partea a 2-a
-});
-
-
-  // 🔹 populăm filtrele
-  const groups = new Set();
-  const categories = new Set();
-
-  orders.forEach(o => {
-    if (o.client?.group) groups.add(o.client.group);
-    const cat = clientCategoryMap[o.client?.name];
-    if (cat) categories.add(cat);
-  });
-
-  groups.forEach(g => {
-    const opt = document.createElement("option");
-    opt.value = g;
-    opt.textContent = g;
-    selGroup.appendChild(opt);
-  });
-
-  categories.forEach(c => {
-    const opt = document.createElement("option");
-    opt.value = c;
-    opt.textContent = c;
-    selCategory.appendChild(opt);
-  });
-
+  // 6) RENDER LIST
   function render() {
-   const gFilter = selGroup.value;
-const cFilter = selCategory.value;
-const sFilter = selStatus ? selStatus.value : "";
-const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
-
+    const { gFilter, cFilter, sFilter, q } = getFilterState();
     list.innerHTML = "";
 
     const filtered = orders.filter(o => {
-      if (gFilter && o.client.group !== gFilter) return false;
+      const g = getOrderGroup(o);
+      if (gFilter && g !== gFilter) return false;
 
-      if (cFilter) {
-        const cat = clientCategoryMap[o.client.name];
-        if (cat !== cFilter) return false;
-      }
-      if (sFilter) {
-  const status = o.status || "in_procesare";
-  if (status !== sFilter) return false;
-}
+      const cat = getOrderCategory(o);
+      if (cFilter && cat !== cFilter) return false;
 
+      const st = getSafeStatus(o);
+      if (sFilter && st !== sFilter) return false;
 
-      if (q && !o.client.name.toLowerCase().includes(q)) return false;
+      const clientName = String(o?.client?.name || "").toLowerCase();
+      if (q && !clientName.includes(q)) return false;
 
       return true;
     });
@@ -1070,153 +1119,125 @@ const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .forEach(o => {
         if (!o || !Array.isArray(o.items)) {
-  console.warn("Comandă invalidă ignorată:", o);
-  return;
-}
+          console.warn("Comandă invalidă ignorată:", o);
+          return;
+        }
 
         const card = document.createElement("div");
         card.className = "orderCard";
 
         const head = document.createElement("div");
-head.className = "orderHeader";
-
-
-       
+        head.className = "orderHeader";
 
         head.innerHTML = `
-  <span>
-    ${o.client.name} (${o.client.group}) –
-    ${new Date(o.createdAt).toLocaleDateString("ro-RO")}
-  </span>
-`;
-const status = o.status || "in_procesare";
+          <span>
+            ${o.client.name} (${getOrderGroup(o)}) –
+            ${new Date(o.createdAt).toLocaleDateString("ro-RO")}
+          </span>
+        `;
 
+        const status = getSafeStatus(o);
 
+        const nextStatusMap = {
+          in_procesare: "facturata",
+          facturata: "gata_de_livrare",
+          gata_de_livrare: "livrata",
+          livrata: "in_procesare"
+        };
 
-const nextStatusMap = {
-  in_procesare: "facturata",
-  facturata: "gata_de_livrare",
-  gata_de_livrare: "livrata",
-  livrata: "in_procesare"
-};
-const statusBtn = document.createElement("button");
-statusBtn.className = `order-status ${status}`;
-statusBtn.textContent = statusLabels[status] || status;
+        const statusBtn = document.createElement("button");
+        statusBtn.className = `order-status ${status}`;
+        statusBtn.textContent = statusLabels[status] || status;
 
-statusBtn.onclick = async (e) => {
-  e.stopPropagation();
+        statusBtn.onclick = async (e) => {
+          e.stopPropagation();
 
-  const newStatus = nextStatusMap[o.status || "in_procesare"] || "in_procesare";
+          const newStatus = nextStatusMap[status] || "in_procesare";
 
-  const res = await fetch(`/api/orders/${o.id}/status`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status: newStatus })
-  });
-    
+          const r = await fetch(`/api/orders/${o.id}/status`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus })
+          });
 
-  o.status = newStatus;
-     
-  renderTabs();
-  render();
-};
+          if (!r.ok) {
+            alert("Eroare la schimbare status");
+            return;
+          }
 
-head.appendChild(statusBtn);
+          o.status = newStatus;
 
-const statusNow = o.status || "in_procesare";
-if (statusNow === "in_procesare") {
-  const editBtn = document.createElement("button");
-  editBtn.textContent = "✏️ Modifică";
-  editBtn.className = "btnEdit";
-  editBtn.onclick = (e) => {
-    e.stopPropagation();
-    localStorage.setItem("editOrder", JSON.stringify(o));
-    location.href = "editorder.html";
-  };
-  head.appendChild(editBtn);
-}
+          // IMPORTANT: nu schimbăm tab-ul (rămâne filtrul curent)
+          renderTabs();
+          render();
+        };
 
+        head.appendChild(statusBtn);
 
+        // buton modifică doar în procesare
+        if (status === "in_procesare") {
+          const editBtn = document.createElement("button");
+          editBtn.textContent = "✏️ Modifică";
+          editBtn.className = "btnEdit";
+          editBtn.onclick = (e) => {
+            e.stopPropagation();
+            localStorage.setItem("editOrder", JSON.stringify(o));
+            location.href = "editorder.html";
+          };
+          head.appendChild(editBtn);
+        }
 
-const pickBtn = document.createElement("button");
-pickBtn.textContent = "📦 Pregătește comanda";
-pickBtn.className = "btnPick";
-
-pickBtn.onclick = (e) => {
-  e.stopPropagation();
-
-
-  // salvăm comanda selectată
-  localStorage.setItem("pickingOrder", JSON.stringify(o));
-  localStorage.removeItem("pickState");
-
-
-  // mergem la pagina de picking
-  location.href = "pickingorder.html";
-};
-
-head.appendChild(pickBtn);
-
-
+        const pickBtn = document.createElement("button");
+        pickBtn.textContent = "📦 Pregătește comanda";
+        pickBtn.className = "btnPick";
+        pickBtn.onclick = (e) => {
+          e.stopPropagation();
+          localStorage.setItem("pickingOrder", JSON.stringify(o));
+          localStorage.removeItem("pickState");
+          location.href = "pickingorder.html";
+        };
+        head.appendChild(pickBtn);
 
         const body = document.createElement("div");
         body.className = "orderBody";
         body.style.display = "none";
 
-    if (!Array.isArray(o.items)) return;
+        o.items.forEach(i => {
+          const row = document.createElement("div");
+          row.className = `orderItem ${getProductClass(i.name)}`;
 
-o.items.forEach(i => {
-  const row = document.createElement("div");
-  row.className = `orderItem ${getProductClass(i.name)}`;
+          let html = `<strong>${i.name}</strong> × ${i.qty}`;
 
-  // TITLU PRODUS (O SINGURĂ DATĂ)
-  let html = `
-    <strong>${i.name}</strong> × ${i.qty}
-  `;
+          if (Array.isArray(i.allocations) && i.allocations.length > 0) {
+            html += `<div class="lots">`;
+            i.allocations.forEach(a => {
+              html += `
+                <div class="lot">
+                  LOC: <strong>${a.location || "-"}</strong>
+                  | LOT: ${a.lot}
+                  | EXP: ${a.expiresAt}
+                  | Qty: ${a.qty}
+                </div>
+              `;
+            });
+            html += `</div>`;
+          }
 
-  // LOTURI FEFO (SUB-SECȚIUNE)
-  if (Array.isArray(i.allocations) && i.allocations.length > 0) {
-    html += `<div class="lots">`;
-    i.allocations.forEach(a => {
-  html += `
-    <div class="lot">
-      LOC: <strong>${a.location || "-"}</strong>
-      | LOT: ${a.lot}
-      | EXP: ${a.expiresAt}
-      | Qty: ${a.qty}
-    </div>
-  `;
-});
+          row.innerHTML = html;
+          body.appendChild(row);
+        });
 
-    html += `</div>`;
-  }
-
-  row.innerHTML = html;
-  body.appendChild(row);
-});
-
-
-
-
-
-
-        // toggle detalii
         head.onclick = () => {
-          body.style.display =
-            body.style.display === "none" ? "block" : "none";
+          body.style.display = (body.style.display === "none") ? "block" : "none";
         };
-
-       
 
         card.appendChild(head);
         card.appendChild(body);
         list.appendChild(card);
-      }); 
+      });
   }
- 
 
-
-  // 🔍 SEARCH LIVE + sugestii
+  // 7) SEARCH LIVE
   if (searchInput && searchResults) {
     searchInput.oninput = () => {
       const q = searchInput.value.toLowerCase().trim();
@@ -1224,13 +1245,15 @@ o.items.forEach(i => {
       if (!q) return;
 
       const matches = orders
-        .map(o => o.client.name)
+        .map(o => o.client?.name)
+        .filter(Boolean)
         .filter((v, i, a) => a.indexOf(v) === i)
         .filter(name => name.toLowerCase().includes(q))
         .slice(0, 10);
 
       matches.forEach(name => {
         const b = document.createElement("button");
+        b.type = "button";
         b.textContent = name;
         b.onclick = () => {
           searchInput.value = name;
@@ -1242,29 +1265,38 @@ o.items.forEach(i => {
     };
   }
 
-  // 🔄 RESET FILTRE
-  if (btnReset) {
-  btnReset.onclick = () => {
-  selGroup.value = "";
-  selCategory.value = "";
-  if (searchInput) searchInput.value = "";
-  if (searchResults) searchResults.innerHTML = "";
-
-  if (selStatus) selStatus.value = "Toate"; // default
-  renderTabs();
-  render();
-};
-
+  // 8) EVENTS
+  if (selGroup) {
+    selGroup.onchange = () => {
+      rebuildCategoryOptions();
+      render();
+    };
   }
-
-  selGroup.onchange = render;
-  selCategory.onchange = render;
+  if (selCategory) selCategory.onchange = render;
   if (selStatus) selStatus.onchange = render;
 
-  renderTabs();
+  if (btnReset) {
+    btnReset.onclick = () => {
+      if (selGroup) selGroup.value = "";
+      if (selCategory) selCategory.value = "";
+      if (searchInput) searchInput.value = "";
+      if (searchResults) searchResults.innerHTML = "";
 
+      setStatusFilter("");       // ✅ Tabs = Toate
+      rebuildCategoryOptions();  // ✅ refă categorii pt toate traseele
+      renderTabs();              // ✅ refă badges
+      render();
+    };
+  }
+
+  // 9) INIT
+  buildGroupOptions();
+  rebuildCategoryOptions();
+  if (selStatus && !selStatus.value) selStatus.value = ""; // default Toate
+  renderTabs();
   render();
 }
+
 
 
 function yymmddToISO(v) {
