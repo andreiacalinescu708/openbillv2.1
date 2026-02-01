@@ -53,7 +53,8 @@ async function seedClientsFromFileIfEmpty() {
 
   const fileClients = readJson(CLIENTS_FILE, []);
   for (const c of fileClients) {
-    const id = String(c.id ?? Date.now());
+    const id = String(c.id ?? (Date.now().toString() + Math.random().toString(36).slice(2)));
+
     const name = String(c.name ?? "").trim();
     if (!name) continue;
 
@@ -1164,76 +1165,11 @@ app.post("/api/logout", (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
 });
 
-app.get("/api/clients-flat", async (req, res) => {
-  try {
-    if (!db.hasDb()) return res.json(readJson(CLIENTS_FILE, [])); // fallback temporar
 
-    const r = await db.q(
-      `SELECT id, name, group_name, category, prices
-       FROM clients
-       ORDER BY name ASC`
-    );
 
-    res.json(r.rows.map(c => ({
-      id: String(c.id),
-      name: c.name,
-      group: c.group_name || "",
-      category: c.category || "",
-      path: `${c.group_name || ""} / ${c.category || ""}`.trim(),
-      prices: c.prices || {}
-    })));
-  } catch (e) {
-    console.error("GET clients error:", e);
-    res.status(500).json({ error: "Eroare DB clients" });
-  }
-});
 
-app.post("/api/clients", async (req, res) => {
-  try {
-    const { name, group, category } = req.body;
-    if (!name) return res.status(400).json({ error: "Lipsește numele" });
-    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-    const r = await db.q(
-      `INSERT INTO clients (name, group_name, category, prices)
-       VALUES ($1,$2,$3,'{}'::jsonb)
-       RETURNING id`,
-      [name.trim(), group || "", category || ""]
-    );
 
-    logAudit(req, "CLIENT_ADD", "client", String(r.rows[0].id), { name, group, category });
-
-    res.json({ ok: true, id: String(r.rows[0].id) });
-  } catch (e) {
-    console.error("POST client error:", e);
-    res.status(500).json({ error: "Eroare DB client add" });
-  }
-});
-
-app.get("/api/products-flat", async (req, res) => {
-  try {
-    if (!db.hasDb()) return res.json(readJson(PRODUCTS_FILE, [])); // fallback temporar
-
-    const r = await db.q(
-      `SELECT id, name, gtin, gtins, category, price
-       FROM products
-       ORDER BY name ASC`
-    );
-
-    res.json(r.rows.map(p => ({
-      id: String(p.id),
-      name: p.name,
-      gtin: p.gtin || "",
-      gtins: p.gtins || [],
-      category: p.category || "Altele",
-      price: p.price != null ? Number(p.price) : null,
-      path: `Produse / ${p.category || "Altele"}`
-    })));
-  } catch (e) {
-    console.error("GET products error:", e);
-    res.status(500).json({ error: "Eroare DB products" });
-  }
-});
 
 app.post("/api/products", async (req, res) => {
   try {
