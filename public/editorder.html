@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modifică comandă</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="userBar"></div>
+
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <h2 class="pageTitle">✏️ Modifică comandă</h2>
+        <div id="editOrderMeta" class="muted"></div>
+      </div>
+      <div class="topbarActions">
+        <button class="btn ghost" id="btnBackOrders">⟵ Înapoi</button>
+        <button class="btn danger" id="btnDiscardEdit">Anulează</button>
+        <button class="btn primary" id="btnSaveEdit">Salvează</button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <!-- LEFT: items -->
+      <div class="card">
+        <div class="cardHead">
+          <h3>Produse în comandă</h3>
+          <div class="muted" id="editOrderHint"></div>
+        </div>
+
+        <div id="editItemsList" class="list"></div>
+        <div class="footerLine">
+          <div class="muted">Total poziții: <span id="editItemsCount">0</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: add products -->
+      <div class="card">
+        <div class="cardHead">
+          <h3>Adaugă produs</h3>
+          <div class="muted">Caută după nume sau categorie</div>
+        </div>
+
+        <input id="editProductSearch" class="input" placeholder="Caută produs..." autocomplete="off" />
+        <div id="editProductResults" class="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

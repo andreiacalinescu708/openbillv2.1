@@ -1033,6 +1033,20 @@ statusBtn.onclick = async (e) => {
 
 head.appendChild(statusBtn);
 
+const statusNow = o.status || "in_procesare";
+if (statusNow === "in_procesare") {
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "✏️ Modifică";
+  editBtn.className = "btnEdit";
+  editBtn.onclick = (e) => {
+    e.stopPropagation();
+    localStorage.setItem("editOrder", JSON.stringify(o));
+    location.href = "editorder.html";
+  };
+  head.appendChild(editBtn);
+}
+
+
 
 const pickBtn = document.createElement("button");
 pickBtn.textContent = "📦 Pregătește comanda";
@@ -1282,6 +1296,235 @@ function selectProductByGTIN(gtin) {
 
 
 
+async function initEditOrderPage() {
+  const meta = document.getElementById("editOrderMeta");
+  const hint = document.getElementById("editOrderHint");
+  const list = document.getElementById("editItemsList");
+  const countEl = document.getElementById("editItemsCount");
+
+  const search = document.getElementById("editProductSearch");
+  const results = document.getElementById("editProductResults");
+
+  const btnBack = document.getElementById("btnBackOrders");
+  const btnDiscard = document.getElementById("btnDiscardEdit");
+  const btnSave = document.getElementById("btnSaveEdit");
+
+  if (!list || !search || !results || !btnSave) return;
+
+  btnBack.onclick = () => (location.href = "orders.html");
+  btnDiscard.onclick = () => {
+    localStorage.removeItem("editOrder");
+    location.href = "orders.html";
+  };
+
+  // 1) încărcăm comanda selectată din localStorage
+  let order;
+  try {
+    order = JSON.parse(localStorage.getItem("editOrder") || "null");
+  } catch {
+    order = null;
+  }
+
+  if (!order) {
+    alert("Nu există comandă de modificat.");
+    location.href = "orders.html";
+    return;
+  }
+
+  // protecție: doar în procesare
+  const statusNow = order.status || "in_procesare";
+  if (statusNow !== "in_procesare") {
+    alert("Poți modifica doar comenzi în procesare.");
+    location.href = "orders.html";
+    return;
+  }
+
+  // 2) luăm lista de produse ca să putem adăuga din catalog
+  const prodRes = await apiFetch("/api/products-flat");
+  const products = await prodRes.json();
+
+  // state local: items editabile (fără allocations; server le va recalcula)
+  let editItems = Array.isArray(order.items) ? order.items.map(it => ({
+    id: it.id,
+    name: it.name,
+    gtin: it.gtin,
+    qty: Number(it.qty || 1),
+    price: it.price // optional
+  })) : [];
+
+  function renderMeta() {
+    if (!meta) return;
+    meta.innerHTML = `
+      <div><b>Client:</b> ${order.client?.name || "-"}</div>
+      <div><b>Data:</b> ${order.createdAt ? new Date(order.createdAt).toLocaleString("ro-RO") : "-"}</div>
+      <div><b>Status:</b> În procesare</div>
+    `;
+  }
+
+  function renderItems() {
+    list.innerHTML = "";
+
+    if (!editItems.length) {
+      list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
+      if (countEl) countEl.textContent = "0";
+      return;
+    }
+
+    editItems.forEach((it, idx) => {
+      const row = document.createElement("div");
+      row.className = "row";
+
+      const left = document.createElement("div");
+      left.className = "rowLeft";
+      left.innerHTML = `
+        <div class="rowTitle">${it.name || "Produs"}</div>
+        <div class="muted small">GTIN: ${it.gtin || "-"}</div>
+      `;
+
+      const right = document.createElement("div");
+      right.className = "rowRight";
+
+      const btnMinus = document.createElement("button");
+      btnMinus.className = "iconBtn";
+      btnMinus.textContent = "−";
+      btnMinus.onclick = () => {
+        it.qty = Math.max(1, Number(it.qty || 1) - 1);
+        renderItems();
+      };
+
+      const qty = document.createElement("input");
+      qty.type = "number";
+      qty.min = "1";
+      qty.value = String(it.qty || 1);
+      qty.className = "qtyInput";
+      qty.onchange = () => {
+        const v = parseInt(qty.value, 10);
+        if (!Number.isFinite(v) || v <= 0) return;
+        it.qty = v;
+        renderItems();
+      };
+
+      const btnPlus = document.createElement("button");
+      btnPlus.className = "iconBtn";
+      btnPlus.textContent = "+";
+      btnPlus.onclick = () => {
+        it.qty = Number(it.qty || 1) + 1;
+        renderItems();
+      };
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "iconBtn danger";
+      btnDel.textContent = "🗑";
+      btnDel.onclick = () => {
+        editItems.splice(idx, 1);
+        renderItems();
+      };
+
+      right.append(btnMinus, qty, btnPlus, btnDel);
+      row.append(left, right);
+      list.appendChild(row);
+    });
+
+    if (countEl) countEl.textContent = String(editItems.length);
+    if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
+  }
+
+  function addProduct(p) {
+    // GTIN principal = primul din gtins sau fallback
+    const primaryGTIN =
+      (Array.isArray(p.gtins) && p.gtins.length) ? p.gtins[0] : (p.gtin || "");
+
+    const g = normalizeGTIN(primaryGTIN);
+
+    // dacă produsul e deja în listă (după GTIN), creștem qty
+    const found = editItems.find(x => normalizeGTIN(x.gtin) === g);
+    if (found) {
+      found.qty = Number(found.qty || 1) + 1;
+    } else {
+      editItems.push({
+        id: p.id,
+        name: p.name,
+        gtin: primaryGTIN,
+        qty: 1,
+        price: p.price
+      });
+    }
+
+    renderItems();
+  }
+
+  function renderProductResults(q) {
+    results.innerHTML = "";
+    const query = String(q || "").toLowerCase().trim();
+    if (!query) {
+      results.innerHTML = `<div class="empty">Scrie ceva ca să cauți produse…</div>`;
+      return;
+    }
+
+    const matches = products
+      .filter(p =>
+        String(p.name || "").toLowerCase().includes(query) ||
+        String(p.path || "").toLowerCase().includes(query)
+      )
+      .slice(0, 30);
+
+    if (!matches.length) {
+      results.innerHTML = `<div class="empty">Niciun produs găsit.</div>`;
+      return;
+    }
+
+    matches.forEach(p => {
+      const b = document.createElement("button");
+      b.className = "resultBtn";
+      b.innerHTML = `
+        <div class="resultTitle">${p.name}</div>
+        <div class="muted small">${p.path || ""}</div>
+      `;
+      b.onclick = () => addProduct(p);
+      results.appendChild(b);
+    });
+  }
+
+  search.addEventListener("input", () => renderProductResults(search.value));
+
+  btnSave.onclick = async () => {
+    if (!editItems.length) {
+      alert("Comanda nu poate fi goală.");
+      return;
+    }
+
+    // trimitem doar ce are nevoie serverul să refacă allocations
+    const payloadItems = editItems.map(it => ({
+      id: it.id,
+      name: it.name,
+      gtin: it.gtin,
+      qty: Number(it.qty || 1),
+      price: it.price
+    }));
+
+    const res = await apiFetch(`/api/orders/${order.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: payloadItems })
+    });
+
+    const out = await res.json().catch(() => ({}));
+
+    if (!res.ok || out.error) {
+      alert(out.error || "Eroare la salvare.");
+      return;
+    }
+
+    alert("Comanda a fost modificată ✅");
+    localStorage.removeItem("editOrder");
+    location.href = "orders.html";
+  };
+
+  // init
+  renderMeta();
+  renderItems();
+  renderProductResults("");
+}
 
 
 
@@ -2289,6 +2532,8 @@ if (document.getElementById("clientsList")) {
   await loadClientsAdmin();
   await initAddClientForm();
 }
+if (document.getElementById("editItemsList")) await initEditOrderPage();
+
 
 
   initViewCurrentOrderButton();

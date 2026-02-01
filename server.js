@@ -340,6 +340,167 @@ function allocateFromSpecificLot(stock, gtin, lot, neededQty) {
 
   return allocated;
 }
+// helper: ridicăm stocul înapoi din allocations
+async function restoreAllocationsToStock_DB(allocations) {
+  for (const a of allocations || []) {
+    if (!a?.stockId || !a?.qty) continue;
+    await db.q(`UPDATE stock SET qty = qty + $1 WHERE id = $2`, [Number(a.qty), String(a.stockId)]);
+  }
+}
+
+function restoreAllocationsToStock_JSON(stock, allocations) {
+  for (const a of allocations || []) {
+    const sid = String(a.stockId || "");
+    const qty = Number(a.qty || 0);
+    if (!sid || qty <= 0) continue;
+
+    const row = stock.find(s => String(s.id) === sid);
+    if (row) row.qty = Number(row.qty || 0) + qty;
+  }
+}
+
+// helper: alocare DOAR pe locație în DB (gtin + qty -> allocations + scade stoc)
+async function allocateByLocation_DB(gtin, neededQty) {
+  const locCase = sqlLocOrderCase("location");
+
+  const rStock = await db.q(
+    `SELECT id, lot, expires_at, qty, location
+     FROM stock
+     WHERE gtin=$1 AND qty > 0
+     ORDER BY ${locCase} ASC
+     FOR UPDATE`,
+    [gtin]
+  );
+
+  let remaining = Number(neededQty);
+  const allocations = [];
+
+  for (const s of rStock.rows) {
+    if (remaining <= 0) break;
+
+    const avail = Number(s.qty || 0);
+    if (avail <= 0) continue;
+
+    const take = Math.min(avail, remaining);
+
+    await db.q(`UPDATE stock SET qty = qty - $1 WHERE id = $2`, [take, s.id]);
+
+    allocations.push({
+      stockId: s.id,
+      lot: s.lot,
+      expiresAt: s.expires_at ? String(s.expires_at).slice(0, 10) : "",
+      location: s.location || "A",
+      qty: take
+    });
+
+    remaining -= take;
+  }
+
+  if (remaining > 0) throw new Error("Stoc insuficient");
+
+  return allocations;
+}
+
+// UPDATE ORDER (doar in_procesare)
+app.put("/api/orders/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "");
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: "Items lipsă" });
+    }
+
+    // ===== DB MODE =====
+    if (db.hasDb()) {
+      await db.q("BEGIN");
+      try {
+        const r = await db.q(`SELECT * FROM orders WHERE id=$1 FOR UPDATE`, [id]);
+        const order = r.rows?.[0];
+        if (!order) {
+          await db.q("ROLLBACK");
+          return res.status(404).json({ error: "Comandă inexistentă" });
+        }
+
+        const status = order.status || "in_procesare";
+        if (status !== "in_procesare") {
+          await db.q("ROLLBACK");
+          return res.status(400).json({ error: "Poți modifica doar comenzi în procesare" });
+        }
+
+        const oldItems = order.items || [];
+
+        // 1) RESTORE stoc din allocations vechi
+        for (const it of oldItems) {
+          await restoreAllocationsToStock_DB(it.allocations || []);
+        }
+
+        // 2) ALOCĂ din nou după locație (și scade stoc)
+        const newItems = [];
+        for (const it of items) {
+          const gtin = normalizeGTIN(it.gtin);
+          const qty = Number(it.qty || 0);
+          if (!gtin) throw new Error("GTIN lipsă");
+          if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
+
+          const allocations = await allocateByLocation_DB(gtin, qty);
+          newItems.push({ ...it, allocations });
+        }
+
+        // 3) update order
+        await db.q(
+          `UPDATE orders SET items=$2::jsonb WHERE id=$1`,
+          [id, JSON.stringify(newItems)]
+        );
+
+        await db.q("COMMIT");
+        return res.json({ ok: true });
+      } catch (e) {
+        await db.q("ROLLBACK");
+        return res.status(400).json({ error: e.message || "Eroare update comandă" });
+      }
+    }
+
+    // ===== JSON MODE (fallback) =====
+    const orders = readJson(ORDERS_FILE, []);
+    const stock = readJson(STOCK_FILE, []);
+
+    const idx = orders.findIndex(o => String(o.id) === id);
+    if (idx === -1) return res.status(404).json({ error: "Comandă inexistentă" });
+
+    const order = orders[idx];
+    const status = order.status || "in_procesare";
+    if (status !== "in_procesare") {
+      return res.status(400).json({ error: "Poți modifica doar comenzi în procesare" });
+    }
+
+    // 1) RESTORE allocations vechi
+    (order.items || []).forEach(it => restoreAllocationsToStock_JSON(stock, it.allocations || []));
+
+    // 2) ALOCĂ din nou după locație (funcția ta existentă)
+    const newItems = items.map(it => {
+      const gtin = normalizeGTIN(it.gtin);
+      const qty = Number(it.qty || 0);
+      if (!gtin) throw new Error("GTIN lipsă");
+      if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
+
+      const allocations = allocateStockByLocation(stock, gtin, qty); // deja doar pe location la tine
+      return { ...it, allocations };
+    });
+
+    // 3) salvează
+    order.items = newItems;
+    orders[idx] = order;
+    writeJson(STOCK_FILE, stock);
+    writeJson(ORDERS_FILE, orders);
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("PUT /api/orders/:id error:", e);
+    res.status(400).json({ error: e.message || "Eroare" });
+  }
+});
+
 
 
 
