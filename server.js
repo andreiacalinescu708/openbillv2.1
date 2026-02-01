@@ -9,7 +9,6 @@ const path = require("path");
 const app = express();
 app.set("trust proxy", 1);
 
-const db = require("./db");
 
 
 // middleware
@@ -356,10 +355,35 @@ app.get("/api/clients-tree", (req, res) => {
   res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
 });
 
-app.get("/api/clients-flat", (req, res) => {
-  const flat = readJson(CLIENTS_FILE, []);
-  res.json(buildClientsFlatFromFlat(Array.isArray(flat) ? flat : []));
+app.get("/api/clients-flat", async (req, res) => {
+  try {
+    if (db.hasDb()) {
+      const r = await db.q(
+        `SELECT id, name, group_name, category, prices
+         FROM clients
+         ORDER BY name ASC`
+      );
+
+      const out = r.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        group: row.group_name || "",
+        category: row.category || "",
+        prices: row.prices || {}
+      }));
+
+      return res.json(out);
+    }
+
+    // fallback local
+    const clients = readJson(CLIENTS_FILE, []);
+    return res.json(clients);
+  } catch (e) {
+    console.error("clients-flat error:", e);
+    res.status(500).json({ error: "Eroare la clienți" });
+  }
 });
+
 
 // ===== CLIENTS ADAPTERS (for new flat clients.json) =====
 function buildClientsTreeFromFlat(flat) {
@@ -1244,37 +1268,35 @@ app.post("/api/clients", async (req, res) => {
     const name = String(req.body.name || "").trim();
     const group = String(req.body.group || "").trim();
     const category = String(req.body.category || "").trim();
+    const prices = (req.body.prices && typeof req.body.prices === "object") ? req.body.prices : {};
 
-    if (!name || !group || !category) {
-      return res.status(400).json({ error: "Lipsește name/group/category" });
+    if (!name) return res.status(400).json({ error: "Lipsește numele clientului" });
+
+    // DB
+    if (db.hasDb()) {
+      const id = Date.now().toString(); // suficient pt acum; mai târziu punem uuid
+      await db.q(
+        `INSERT INTO clients (id, name, group_name, category, prices)
+         VALUES ($1,$2,$3,$4,$5::jsonb)`,
+        [id, name, group, category, JSON.stringify(prices)]
+      );
+
+      return res.json({ ok: true, id });
     }
 
-    // momentan: salvăm în JSON (următorul pas îl mutăm în DB)
-    const flat = readJson(CLIENTS_FILE, []);
-    const exists = flat.some(c => String(c.name).toLowerCase() === name.toLowerCase());
-    if (exists) return res.status(400).json({ error: "Client existent" });
+    // fallback local file
+    const clients = readJson(CLIENTS_FILE, []);
+    const id = Date.now().toString();
+    clients.push({ id, name, group, category, prices });
+    writeJson(CLIENTS_FILE, clients);
+    return res.json({ ok: true, id });
 
-    const nextId = Math.max(0, ...flat.map(x => Number(x.id || 0))) + 1;
-
-    const newClient = {
-      id: nextId,
-      name,
-      group,
-      category,
-      prices: {}
-    };
-
-    flat.push(newClient);
-    writeJson(CLIENTS_FILE, flat);
-
-    logAudit(req, "CLIENT_ADD", "client", String(newClient.id), { name, group, category });
-
-    res.json({ ok: true, client: newClient });
   } catch (e) {
     console.error("POST /api/clients error:", e);
-    res.status(500).json({ error: "Eroare server la add client" });
+    res.status(500).json({ error: "Eroare la salvarea clientului" });
   }
 });
+
 
 
 
