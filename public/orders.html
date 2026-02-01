@@ -2,125 +2,58 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Comenzi</title>
   <link rel="stylesheet" href="ordershtml-mobile.css" />
-
 </head>
-<div id="userBar"></div>
 
 <body>
-  <div id="userBar"></div>
+  <div class="mApp">
 
-<header class="orders-header">
-  <button class="btn-back" onclick="location.href='index.html'">
-    ← Înapoi
-  </button>
+    <div class="mTopbar">
+      <button class="mBack" onclick="location.href='index.html'">← Înapoi</button>
+      <div id="userBar" class="mUserBar"></div>
+    </div>
 
- 
-</header>
-<div class="mApp">
-  <div class="mTopbar">
-    <button class="mBack" onclick="location.href='index.html'">← Înapoi</button>
-    <div id="userBar" class="mUserBar"></div>
-  </div>
+    <div class="mCard mHeader">
+      <h1 class="mTitle">Comenzi existente</h1>
 
-  <div class="mCard mHeader">
-    <h1 class="mTitle">Comenzi existente</h1>
+      <div class="mFilters">
+        <div class="mFilterRow">
+          <select id="filterGroup">
+            <option value="">Toate</option>
+          </select>
 
-    <div class="mFilters">
-      <div class="mFilterRow">
-        <!-- păstrezi SELECT-urile/INPUT-urile tale cu aceleași ID-uri -->
-        <select id="filterGroup"></select>
-        <select id="filterCategory"></select>
-        <select id="filterStatus"></select>
+          <select id="filterCategory">
+            <option value="">Toate</option>
+          </select>
+
+          <!-- IMPORTANT: păstrăm select-ul ca “state” intern, dar îl ascundem din CSS -->
+          <select id="filterStatus">
+            <option value="">Toate</option>
+            <option value="gata_de_livrare">Gata de livrare</option>
+            <option value="in_procesare">În procesare</option>
+            <option value="facturata">Facturată</option>
+            <option value="livrata">Livrată</option>
+          </select>
+        </div>
+
+        <!-- ✅ AICI apar TAB-urile -->
+        <div id="statusTabs" class="mTabs"></div>
+
+        <div class="mSearchRow">
+          <input id="orderSearch" placeholder="Caută client..." />
+        </div>
+
+        <button id="btnResetFilters" class="mResetBtn">☰ Reset</button>
+
+        <div id="orderSearchResults" class="mSuggest"></div>
       </div>
-
-      <div class="mSearchRow">
-        <input id="orderSearch" placeholder="Caută client..." />
-      </div>
-
-      <button id="btnResetFilters" class="mResetBtn">☰ Reset</button>
-
-      <!-- opțional: zona de sugestii, dacă o ai -->
-      <div id="orderSearchResults" class="mSuggest"></div>
     </div>
 
-    <!-- Tabs (le facem din CSS pe select status + contor) -->
-    <!-- Dacă vrei tabs reale, ți le fac după ce-mi trimiți HTML-ul actual -->
+    <div id="ordersList" class="mOrders"></div>
   </div>
 
-  <div id="ordersList" class="mOrders"></div>
-</div>
-
-
-
-<main class="container">
-  <section class="panel">
-    <h1>Comenzi existente</h1>
-    <div class="row">
-    
-
-  
-  
-<main class="container orders-page">
-
-
-  <div class="filters-bar">
-    <div class="filter-item">
-      <label>🚚 Traseu</label>
-      <select id="filterGroup">
-        <option value="">Toate</option>
-      </select>
-    </div>
-
-    <div class="filter-item">
-      <label>📂 Categorie</label>
-      <select id="filterCategory">
-        <option value="">Toate</option>
-      </select>
-    </div>
-    <div class="filter-item">
-  <label>📦 Status</label>
-  <select id="filterStatus">
-    <option value="">Toate</option>
-    <option value="in_procesare">În procesare</option>
-    <option value="gata_de_livrare">Gata de livrare</option>
-
-    <option value="livrata">Livrate</option>
-    <option value="facturata">Facturată</option>
-    
-
-  </select>
-</div>
-
-
-    <div class="filter-item search-item">
-      <label>🔍 Caută client</label>
-      <input
-        type="text"
-        id="orderSearch"
-        placeholder="Tastează numele clientului…"
-      />
-      <div id="orderSearchResults" class="search-results"></div>
-    </div>
-
-    <button id="btnResetFilters" class="btn-reset">
-      🔄 Reset
-    </button>
-  </div>
-
-  <div id="ordersList" class="orders-grid"></div>
-
-</main>
-
-
-
-
-    <div id="ordersList"></div>
-  </section>
-</main>
-
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
