@@ -641,15 +641,15 @@ if (searchInput && resultsBox) {
 
 
 async function loadClientsAdmin() {
-  // 1) luăm clienții
   const res = await apiFetch("/api/clients-flat");
   const clients = await res.json();
 
-  // 2) luăm produsele (ca să afișăm numele în loc de ID)
   const prodRes = await apiFetch("/api/products-flat");
   const products = await prodRes.json();
 
-  // map: "id" -> "name"
+  const tree = await apiFetch("/api/clients-tree").then(r => r.json());
+
+  // map id -> nume produs
   const productNameById = new Map();
   products.forEach(p => productNameById.set(String(p.id), String(p.name || "")));
 
@@ -657,91 +657,37 @@ async function loadClientsAdmin() {
   const details = document.getElementById("clientDetails");
   if (!box || !details) return;
 
-  // --- SEARCH (Administrare clienți) ---
-// încearcă să găsească inputul și containerul de rezultate (în caz că ID-urile diferă)
-const searchInput =
-  document.getElementById("searchClientAdmin") ||
-  document.getElementById("searchClient") ||
-  document.getElementById("clientSearch");
+  // === găsim inputul de search din ADMIN (foarte robust) ===
+  // 1) încearcă ID-uri comune
+  let searchInput =
+    document.getElementById("searchClientAdmin") ||
+    document.getElementById("searchClient") ||
+    document.getElementById("clientSearch") ||
+    document.getElementById("orderSearch"); // uneori copiat
 
-const resultsBox =
-  document.getElementById("clientSearchResultsAdmin") ||
-  document.getElementById("clientSearchResults") ||
-  document.getElementById("clientResults");
-
-function renderAdminTree() {
-  box.innerHTML = "";
-  box.appendChild(
-    renderTree(
-      tree, // tree trebuie să fie încărcat mai jos sau înainte
-      (name) => {
-        const client = clients.find(c => c.name === name);
-        if (client) renderClientDetails(client);
-      },
-      { accordion: true }
-    )
-  );
-}
-
-function renderAdminSearch(list) {
-  box.innerHTML = "";
-
-  // dacă ai resultsBox dedicat, pune acolo, altfel în box
-  const target = resultsBox || box;
-  target.innerHTML = "";
-
-  if (!list.length) {
-    target.innerHTML = "<p class='hint'>Niciun client găsit.</p>";
-    return;
+  // 2) dacă tot nu, ia primul input din zona paginii de admin
+  if (!searchInput) {
+    // caută un input care are placeholder cu “client”
+    searchInput = [...document.querySelectorAll("input")]
+      .find(i => String(i.placeholder || "").toLowerCase().includes("client"));
   }
 
-  list.slice(0, 30).forEach(c => {
-    const b = document.createElement("button");
-    b.className = "itembtn";
-    b.textContent = c.name;
-    b.onclick = () => renderClientDetails(c);
-    target.appendChild(b);
-  });
-}
+  // 3) container rezultate (opțional)
+  let resultsBox =
+    document.getElementById("clientSearchResultsAdmin") ||
+    document.getElementById("clientSearchResults");
 
-if (searchInput) {
-  searchInput.addEventListener("input", () => {
-    const q = searchInput.value.toLowerCase().trim();
+  // dacă nu există, creăm noi unul fix sub input
+  if (!resultsBox && searchInput) {
+    resultsBox = document.createElement("div");
+    resultsBox.id = "clientSearchResultsAdminAuto";
+    resultsBox.style.marginTop = "10px";
+    searchInput.parentElement?.appendChild(resultsBox);
+  }
 
-    // curăță zona de rezultate dacă există
-    if (resultsBox) resultsBox.innerHTML = "";
-
-    if (!q) {
-      renderAdminTree(); // revine la tree când ștergi search
-      return;
-    }
-
-    const filtered = clients.filter(c =>
-      String(c.name || "").toLowerCase().includes(q)
-    );
-
-    renderAdminSearch(filtered);
-  });
-}
-
-
-  box.innerHTML = "";
-
-// luăm arborele (Grup -> Categorie -> [clienți])
-const tree = await apiFetch("/api/clients-tree").then(r => r.json());
-
-// randăm ca în Adaugă Comandă
-box.appendChild(
-  renderTree(
-    tree,
-    (name) => {
-      const client = clients.find(c => c.name === name);
-      if (client) renderClientDetails(client);
-    },
-    { accordion: true } // ✅ true = collapse/expand pe categorii
-  )
-);
-
+  // debug: să vezi dacă a găsit inputul
+  console.log("[ADMIN] searchInput found:", !!searchInput, searchInput);
+  console.log("[ADMIN] resultsBox found:", !!resultsBox, resultsBox);
 
   function escapeHtml(s) {
     return String(s)
@@ -756,7 +702,6 @@ box.appendChild(
     const prices = c.prices || {};
     const lines = Object.entries(prices);
 
-    // sortăm după nume produs (ca să fie frumos)
     lines.sort(([a], [b]) => {
       const na = (productNameById.get(String(a)) || `Produs ID ${a}`).toLowerCase();
       const nb = (productNameById.get(String(b)) || `Produs ID ${b}`).toLowerCase();
@@ -786,7 +731,71 @@ box.appendChild(
       ${listHtml}
     `;
   }
+
+  function renderTreeAdmin() {
+    box.innerHTML = "";
+    box.appendChild(
+      renderTree(
+        tree,
+        (name) => {
+          const client = clients.find(c => c.name === name);
+          if (client) renderClientDetails(client);
+        },
+        { accordion: true } // ✅ collapse/expand
+      )
+    );
+  }
+
+  function renderSearchResults(list) {
+    // rezultatele le punem în resultsBox (dacă există), altfel în box
+    const target = resultsBox || box;
+    target.innerHTML = "";
+
+    if (!list.length) {
+      target.innerHTML = "<p class='hint'>Niciun client găsit.</p>";
+      return;
+    }
+
+    list.slice(0, 50).forEach(c => {
+      const b = document.createElement("button");
+      b.className = "itembtn";
+      b.textContent = c.name;
+      b.onclick = () => renderClientDetails(c);
+      target.appendChild(b);
+    });
+  }
+
+  // render default (tree)
+  renderTreeAdmin();
+
+  // === legăm SEARCH ===
+  if (!searchInput) {
+    console.warn("[ADMIN] Nu am găsit inputul de search. Pune-i un id (ex: searchClientAdmin).");
+    return;
+  }
+
+  // IMPORTANT: nu lăsa pagina să aibă două handlers suprapuse vechi
+  searchInput.oninput = null;
+
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase().trim();
+
+    // curățăm zona de rezultate
+    if (resultsBox) resultsBox.innerHTML = "";
+
+    if (!q) {
+      renderTreeAdmin();
+      return;
+    }
+
+    const filtered = clients.filter(c =>
+      String(c.name || "").toLowerCase().includes(q)
+    );
+
+    renderSearchResults(filtered);
+  });
 }
+
 
 async function initAddClientForm() {
   const form = document.getElementById("addClientForm");
