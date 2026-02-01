@@ -1438,87 +1438,84 @@ function renderTotal() {
     `;
   }
 
-  function renderItems() {
-    list.innerHTML = "";
+ function renderItems() {
+  list.innerHTML = "";
 
-   if (!editItems.length) {
-  list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
-  if (countEl) countEl.textContent = "0";
-  renderTotal();   // ✅ mereu, după fiecare rerender// ✅
-  return;
-}
-const price = Number(it.price || 0);
-const qtyNum = Number(it.qty || 0);
-const line = price * qtyNum;
-
-    editItems.forEach((it, idx) => {
-      const row = document.createElement("div");
-      row.className = "row";
-
-      const left = document.createElement("div");
-      left.className = "rowLeft";
-      left.innerHTML = `
-  <div class="rowTitle">${it.name || "Produs"}</div>
-  <div class="muted small">GTIN: ${it.gtin || "-"}</div>
-  <div class="muted small">Preț: ${Number(it.price || 0).toFixed(2)} RON</div>
-    <div class="muted small">Subtotal: <b>${line.toFixed(2)} RON</b></div>
-
-`;
-if (countEl) countEl.textContent = String(editItems.length);
-if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
-
-renderTotal(); // ✅ asta lipsea
-
-
-
-      const right = document.createElement("div");
-      right.className = "rowRight";
-
-      const btnMinus = document.createElement("button");
-      btnMinus.className = "iconBtn";
-      btnMinus.textContent = "−";
-      btnMinus.onclick = () => {
-        it.qty = Math.max(1, Number(it.qty || 1) - 1);
-        renderItems();
-      };
-
-      const qty = document.createElement("input");
-      qty.type = "number";
-      qty.min = "1";
-      qty.value = String(it.qty || 1);
-      qty.className = "qtyInput";
-      qty.onchange = () => {
-        const v = parseInt(qty.value, 10);
-        if (!Number.isFinite(v) || v <= 0) return;
-        it.qty = v;
-        renderItems();
-
-      };
-
-      const btnPlus = document.createElement("button");
-      btnPlus.className = "iconBtn";
-      btnPlus.textContent = "+";
-      btnPlus.onclick = () => {
-        it.qty = Number(it.qty || 1) + 1;
-        renderItems();
-      };
-
-      const btnDel = document.createElement("button");
-      btnDel.className = "iconBtn danger";
-      btnDel.textContent = "🗑";
-      btnDel.onclick = () => {
-        editItems.splice(idx, 1);
-        renderItems();
-      };
-
-      right.append(btnMinus, qty, btnPlus, btnDel);
-      row.append(left, right);
-      list.appendChild(row);
-    });
-
-    if (countEl) countEl.textContent = String(editItems.length);
+  if (!editItems.length) {
+    list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
+    if (countEl) countEl.textContent = "0";
     if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
+    renderTotal();
+    return;
   }
+
+  editItems.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const left = document.createElement("div");
+    left.className = "rowLeft";
+
+    const price = Number(it.price || 0);
+    const qtyNum = Number(it.qty || 0);
+    const line = price * qtyNum;
+
+    left.innerHTML = `
+      <div class="rowTitle">${it.name || "Produs"}</div>
+      <div class="muted small">GTIN: ${it.gtin || "-"}</div>
+      <div class="muted small">Preț: ${price.toFixed(2)} RON</div>
+      <div class="muted small">Subtotal: <b>${line.toFixed(2)} RON</b></div>
+    `;
+
+    const right = document.createElement("div");
+    right.className = "rowRight";
+
+    const btnMinus = document.createElement("button");
+    btnMinus.className = "iconBtn";
+    btnMinus.textContent = "−";
+    btnMinus.onclick = () => {
+      it.qty = Math.max(1, Number(it.qty || 1) - 1);
+      renderItems();
+    };
+
+    const qty = document.createElement("input");
+    qty.type = "number";
+    qty.min = "1";
+    qty.value = String(it.qty || 1);
+    qty.className = "qtyInput";
+    qty.onchange = () => {
+      const v = parseInt(qty.value, 10);
+      if (!Number.isFinite(v) || v <= 0) return;
+      it.qty = v;
+      renderItems();
+    };
+
+    const btnPlus = document.createElement("button");
+    btnPlus.className = "iconBtn";
+    btnPlus.textContent = "+";
+    btnPlus.onclick = () => {
+      it.qty = Number(it.qty || 1) + 1;
+      renderItems();
+    };
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "iconBtn danger";
+    btnDel.textContent = "🗑";
+    btnDel.onclick = () => {
+      editItems.splice(idx, 1);
+      renderItems();
+    };
+
+    right.append(btnMinus, qty, btnPlus, btnDel);
+    row.append(left, right);
+    list.appendChild(row);
+  });
+
+  if (countEl) countEl.textContent = String(editItems.length);
+  if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
+  renderTotal(); // ✅ o singură dată, la final
+}
+
 
   function addProduct(p) {
     // GTIN principal = primul din gtins sau fallback
