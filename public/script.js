@@ -641,8 +641,17 @@ if (searchInput && resultsBox) {
 
 
 async function loadClientsAdmin() {
+  // 1) luăm clienții
   const res = await apiFetch("/api/clients-flat");
   const clients = await res.json();
+
+  // 2) luăm produsele (ca să afișăm numele în loc de ID)
+  const prodRes = await apiFetch("/api/products-flat");
+  const products = await prodRes.json();
+
+  // map: "id" -> "name"
+  const productNameById = new Map();
+  products.forEach(p => productNameById.set(String(p.id), String(p.name || "")));
 
   const box = document.getElementById("clientsList");
   const details = document.getElementById("clientDetails");
@@ -658,24 +667,51 @@ async function loadClientsAdmin() {
     box.appendChild(btn);
   });
 
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   function renderClientDetails(c) {
     const prices = c.prices || {};
     const lines = Object.entries(prices);
 
+    // sortăm după nume produs (ca să fie frumos)
+    lines.sort(([a], [b]) => {
+      const na = (productNameById.get(String(a)) || `Produs ID ${a}`).toLowerCase();
+      const nb = (productNameById.get(String(b)) || `Produs ID ${b}`).toLowerCase();
+      return na.localeCompare(nb, "ro");
+    });
+
+    const listHtml = lines.length
+      ? `
+        <details class="pricesBox">
+          <summary><b>Prețuri speciale</b> (${lines.length})</summary>
+          <ul>
+            ${lines.map(([pid, pr]) => {
+              const name = productNameById.get(String(pid)) || `Produs ID ${pid}`;
+              const price = Number(pr);
+              return `<li><b>${escapeHtml(name)}</b>: <b>${price.toFixed(2)}</b></li>`;
+            }).join("")}
+          </ul>
+        </details>
+      `
+      : `<div><i>(Nu are prețuri speciale)</i></div>`;
+
     details.innerHTML = `
-      <h3>${c.name}</h3>
-      <div><b>Grup:</b> ${c.group || "-"}</div>
-      <div><b>Categorie:</b> ${c.category || "-"}</div>
+      <h3>${escapeHtml(c.name)}</h3>
+      <div><b>Grup:</b> ${escapeHtml(c.group || "-")}</div>
+      <div><b>Categorie:</b> ${escapeHtml(c.category || "-")}</div>
       <hr/>
-      <h4>Prețuri speciale</h4>
-      ${lines.length ? `
-        <ul>
-          ${lines.map(([pid, pr]) => `<li>Produs ID ${pid}: <b>${pr}</b></li>`).join("")}
-        </ul>
-      ` : `<div>(Nu are prețuri speciale)</div>`}
+      ${listHtml}
     `;
   }
 }
+
 async function initAddClientForm() {
   const form = document.getElementById("addClientForm");
   if (!form) return;

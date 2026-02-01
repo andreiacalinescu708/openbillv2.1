@@ -917,3 +917,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 .listItem { padding:10px; border:1px solid #eee; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
 .btnPrimary { padding:10px 12px; border-radius:10px; border:0; background:#111; color:#fff; }
 .formRow { margin-bottom: 6px; }
+
+
+.pricesBox summary { cursor: pointer; padding: 8px 0; }
+.pricesBox ul { margin: 8px 0 0 18px; }
