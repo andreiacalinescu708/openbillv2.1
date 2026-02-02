@@ -32,37 +32,46 @@
   </div>
 
    <label>Scanare cod</label>
-<div style="display:flex; gap:10px; align-items:center;">
-  <input id="qrInput" placeholder="Scanează / lipește codul aici" style="flex:1;" />
+<div class="scanRow">
+  <input id="qrInput" placeholder="Scanează / lipește codul aici" />
   <button type="button" id="btnScanQR" class="btn">📷 Scanează</button>
 </div>
 
 
 
-    <label>Produs</label>
-    <select id="stockProduct"></select>
-
+<label>Produs</label>
+<div class="productRow">
+  <select id="stockProduct"></select>
+  <div id="stockAutoOk" class="autoOk">✔</div>
+<div class="formGrid2">
+  <div>
     <label>LOT</label>
     <input id="stockLot" placeholder="LOT-XXXX" />
-
+  </div>
+  <div>
     <label>Data expirare</label>
     <input id="stockExpire" type="date" />
-
-    <label>Cantitate</label>
-    <label>Locație</label>
-<select id="stockLocation">
-  <option value="A">A</option>
-  <option value="B">B</option>
-  <option value="C">C</option>
-  <option value="R1">R1</option>
-  <option value="R2">R2</option>
-  <option value="R3">R3</option>
-</select>
-
-    <input id="stockQty" type="number" min="1" />
-
-    <button id="btnAddStock">➕ Adaugă în stoc</button>
   </div>
+</div>
+
+<div class="formGrid2">
+  <div>
+    <label>Locație</label>
+    <select id="stockLocation">
+      <option value="A">A</option>
+      <option value="B">B</option>
+      <option value="C">C</option>
+      <option value="R1">R1</option>
+      <option value="R2">R2</option>
+      <option value="R3">R3</option>
+    </select>
+  </div>
+  <div>
+    <label>Cantitate</label>
+    <input id="stockQty" type="number" min="1" />
+  </div>
+</div>
+
 
   <div class="card">
     <h3>Stoc existent</h3>

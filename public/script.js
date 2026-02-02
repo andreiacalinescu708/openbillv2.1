@@ -1427,6 +1427,9 @@ function selectProductByGTIN(gtin) {
   const scanned = normalizeGTIN(gtin);
   let found = false;
 
+  const okEl = document.getElementById("stockAutoOk");
+  if (okEl) okEl.style.display = "none";
+
   [...sel.options].forEach(o => {
     let arr = [];
     try {
@@ -1435,11 +1438,12 @@ function selectProductByGTIN(gtin) {
       arr = [];
     }
 
-    const ok = arr.map(normalizeGTIN).includes(scanned);
+    const match = arr.map(normalizeGTIN).includes(scanned);
 
-    if (ok) {
+    if (match && !found) {
       sel.value = o.value;
       found = true;
+      if (okEl) okEl.style.display = "flex";
     }
   });
 
@@ -1447,6 +1451,7 @@ function selectProductByGTIN(gtin) {
     sel.dispatchEvent(new Event("change", { bubbles: true }));
   }
 }
+
 
 
 
