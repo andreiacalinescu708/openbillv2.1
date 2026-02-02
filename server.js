@@ -400,46 +400,46 @@ function restoreAllocationsToStock_JSON(stock, allocations) {
 }
 
 // helper: alocare DOAR pe locație în DB (gtin + qty -> allocations + scade stoc)
-async function allocateByLocation_DB(gtin, neededQty) {
-  const locCase = sqlLocOrderCase("location");
+async function allocateByLocation_DB(gtin, need) {
+  const allocations = [];
+  let remaining = Number(need || 0);
 
-  const rStock = await db.q(
-    `SELECT id, lot, expires_at, qty, location
+  // blocăm rândurile de stoc pentru GTIN ca să nu aloce 2 comenzi simultan același stoc
+  const r = await db.q(
+    `SELECT id, gtin, location, lot, expires_at, qty
      FROM stock
-     WHERE gtin=$1 AND qty > 0
-     ORDER BY ${locCase} ASC
+     WHERE gtin = $1 AND qty > 0
+     ORDER BY location ASC, id ASC
      FOR UPDATE`,
     [gtin]
   );
 
-  let remaining = Number(neededQty);
-  const allocations = [];
-
-  for (const s of rStock.rows) {
+  for (const row of r.rows) {
     if (remaining <= 0) break;
 
-    const avail = Number(s.qty || 0);
-    if (avail <= 0) continue;
+    const take = Math.min(Number(row.qty), remaining);
+    if (take <= 0) continue;
 
-    const take = Math.min(avail, remaining);
-
-    await db.q(`UPDATE stock SET qty = qty - $1 WHERE id = $2`, [take, s.id]);
+    // scădem din stock
+    await db.q(`UPDATE stock SET qty = qty - $1 WHERE id = $2`, [take, row.id]);
 
     allocations.push({
-      stockId: s.id,
-      lot: s.lot,
-      expiresAt: s.expires_at ? String(s.expires_at).slice(0, 10) : "",
-      location: s.location || "A",
+      location: row.location,
+      lot: row.lot || "",
+      expiresAt: row.expires_at ? String(row.expires_at).slice(0, 10) : "",
       qty: take
     });
 
     remaining -= take;
   }
 
-  if (remaining > 0) throw new Error("Stoc insuficient");
+  if (remaining > 0) {
+    throw new Error(`Stoc insuficient pentru GTIN ${gtin} (lipsesc ${remaining})`);
+  }
 
   return allocations;
 }
+
 
 // UPDATE ORDER (doar in_procesare)
 app.put("/api/orders/:id", async (req, res) => {
@@ -880,63 +880,66 @@ app.post("/api/orders", async (req, res) => {
     }
 
     // ======================
-    // DB MODE (Postgres)
-    // ======================
-    if (db.hasDb()) {
-      await db.q("BEGIN");
-      try {
-      const clientPrices = await getClientPricesFromDB(client);
+// DB MODE (Postgres)
+// ======================
+if (db.hasDb()) {
+  await db.q("BEGIN");
+  try {
+    const clientPrices = await getClientPricesFromDB(client);
 
-const itemsWithAlloc = [];
-for (const it of items) {
-  const need = Number(it.qty || 0);
-  const gtin = normalizeGTIN(it.gtin);
+    const itemsWithAlloc = [];
 
-  if (!gtin) throw new Error(`Produs fără GTIN: ${it.name || it.id || "?"}`);
-  if (!Number.isFinite(need) || need <= 0) throw new Error("Cantitate invalidă");
+    for (const it of items) {
+      const need = Number(it.qty || 0);
+      const gtin = normalizeGTIN(it.gtin);
 
-  // ... alocările tale (rStock, allocations etc) ...
+      if (!gtin) throw new Error(`Produs fără GTIN: ${it.name || it.id || "?"}`);
+      if (!Number.isFinite(need) || need <= 0) throw new Error("Cantitate invalidă");
 
-  const unitPrice = resolveClientPrice(clientPrices, it);
-  const lineTotal = Number(unitPrice) * Number(need);
+      // ✅ ALOCARE DUPĂ LOCAȚIE (A->B->C...), NU FEFO
+      // Trebuie să ai funcția allocateByLocation_DB(gtin, need)
+      const allocations = await allocateByLocation_DB(gtin, need);
 
-  itemsWithAlloc.push({
-    ...it,
-    gtin,              // salvează normalizat
-    unitPrice,
-    lineTotal,
-    allocations
-  });
+      const unitPrice = Number(resolveClientPrice(clientPrices, it) || 0);
+      const lineTotal = Number(unitPrice) * Number(need);
+
+      itemsWithAlloc.push({
+        ...it,
+        gtin,          // normalizat
+        unitPrice,
+        lineTotal,
+        allocations    // ✅ acum există, nu mai crapă
+      });
+    }
+
+    const newOrder = {
+      id: Date.now().toString(),
+      client,
+      items: itemsWithAlloc,
+      status: "in_procesare",
+      createdAt: new Date().toISOString()
+    };
+
+    await db.q(
+      `INSERT INTO orders (id, client, items, status, created_at)
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz)`,
+      [
+        newOrder.id,
+        JSON.stringify(client),
+        JSON.stringify(itemsWithAlloc),
+        newOrder.status,
+        newOrder.createdAt
+      ]
+    );
+
+    await db.q("COMMIT");
+    return res.json({ ok: true, order: newOrder });
+  } catch (e) {
+    await db.q("ROLLBACK");
+    return res.status(400).json({ error: e.message || "Eroare la alocare" });
+  }
 }
 
-
-        const newOrder = {
-          id: Date.now().toString(),
-          client,
-          items: itemsWithAlloc,
-          status: "in_procesare",
-          createdAt: new Date().toISOString()
-        };
-
-        await db.q(
-          `INSERT INTO orders (id, client, items, status, created_at)
-           VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz)`,
-          [
-            newOrder.id,
-            JSON.stringify(client),
-            JSON.stringify(itemsWithAlloc),
-            newOrder.status,
-            newOrder.createdAt
-          ]
-        );
-
-        await db.q("COMMIT");
-        return res.json({ ok: true, order: newOrder });
-      } catch (e) {
-        await db.q("ROLLBACK");
-        return res.status(400).json({ error: e.message || "Eroare la alocare" });
-      }
-    }
 
     // ======================
     // JSON MODE (fallback)
