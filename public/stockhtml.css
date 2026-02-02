@@ -1,285 +1,294 @@
-/* stockhtml.css — layout “desktop-first” dar arată bine și pe mobil */
-
-/* ---------- Base / Page ---------- */
 :root{
-  --bg: #f5f6fb;
-  --card: #ffffff;
-  --text: #111827;
-  --muted: #6b7280;
-  --line: rgba(17,24,39,.08);
-  --primary: #2563eb;
-  --success: #16a34a;
-  --warn: #f59e0b;
-  --danger: #ef4444;
-  --cta: #f6b43b;
-  --shadow: 0 10px 30px rgba(17,24,39,.08);
-  --radius: 16px;
+  --bg:#f3f5fb;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#6b7280;
+  --line:rgba(15,23,42,.10);
+
+  --blue:#2563eb;
+  --blue-soft:rgba(37,99,235,.10);
+
+  --cta:#f4b233;
+  --cta-shadow:rgba(244,178,51,.35);
+
+  --ok:#16a34a;
+  --warn:#f59e0b;
+
+  --r:18px;
 }
 
 *{ box-sizing:border-box; }
 body{
   margin:0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color:var(--text);
+  background:var(--bg);
 }
 
-/* ---------- Topbar ---------- */
-.topbar{
-  position: sticky;
+/* ===== Appbar (ca în poză) ===== */
+.appbar{
+  position:sticky;
   top:0;
-  z-index: 50;
-  background: rgba(255,255,255,.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
-  padding: 12px 18px;
+  z-index:20;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+  padding:10px 14px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap: 10px;
+  gap:12px;
 }
 
-.brand{
-  font-weight: 700;
-  letter-spacing: .2px;
+.appbar-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.app-logo{
+  width:34px;height:34px;
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--blue-soft);
+  color:var(--blue);
+  font-weight:800;
+}
+.app-title{ min-width:0; }
+.app-name{
+  font-weight:800;
+  font-size:15px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.app-sub{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:1px;
 }
 
-.icon-btn{
-  border:1px solid var(--line);
-  background:#fff;
-  border-radius: 12px;
-  padding: 8px 10px;
-  cursor:pointer;
+.userbar button{
+  border:none;
+  background:#ff5a68;
+  color:#fff;
+  font-weight:800;
+  padding:8px 12px;
+  border-radius:12px;
 }
 
-/* ---------- Container / Cards ---------- */
-.container{
-  max-width: 1100px;
-  margin: 18px auto;
-  padding: 0 16px 28px;
-  display:grid;
-  grid-template-columns: 1.1fr .9fr; /* Form + Stoc existent (desktop) */
-  gap: 16px;
+/* ===== Screen + Cards (mobile look, dar ok pe desktop) ===== */
+.screen{
+  max-width:420px;            /* exact “phone look” pe desktop */
+  margin:14px auto 28px;
+  padding:0 12px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
 
 .card{
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  padding:14px;
+  box-shadow:0 12px 28px rgba(15,23,42,.08);
 }
 
-.card h3{
-  margin: 0 0 14px;
-}
-
-/* ---------- Form ---------- */
-label{
-  display:block;
-  font-size: 13px;
-  color: var(--muted);
-  margin: 10px 0 6px;
-}
-
-input, select{
-  width: 100%;
-  padding: 12px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  outline: none;
-  background: #fff;
-  font-size: 14px;
-}
-
-input:focus, select:focus{
-  border-color: rgba(37,99,235,.55);
-  box-shadow: 0 0 0 4px rgba(37,99,235,.12);
-}
-
-.btn{
-  border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-}
-
-/* Scan row (input + button) */
-.scanRow{
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
-
-#btnScanQR{
-  white-space: nowrap;
-  border: 1px solid rgba(37,99,235,.25);
-  background: rgba(37,99,235,.06);
-}
-
-.pageTitleRow{
+.card-head{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.pageTitleRow h3{
-  margin:0;
-  font-size: 22px;
-}
-
-/* Product row: select + check */
-.productRow{
-  display:flex;
   gap:10px;
-  align-items:center;
+  margin-bottom:10px;
+}
+.card-head.simple{
+  justify-content:flex-start;
+}
+.card-title{
+  font-size:22px;
+  font-weight:900;
 }
 
-.autoOk{
+/* ===== Scan button (dreapta sus) ===== */
+.btn-scan{
+  border:1px solid rgba(37,99,235,.20);
+  background:#fff;
+  color:var(--blue);
+  border-radius:14px;
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:900;
+  cursor:pointer;
+}
+.btn-scan-ic{
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ===== Fields ===== */
+.field{ margin-top:10px; }
+.label{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+  font-weight:700;
+}
+
+.input, .select{
+  width:100%;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  outline:none;
+  background:#fff;
+  font-size:14px;
+}
+.input:focus, .select:focus{
+  border-color: rgba(37,99,235,.45);
+  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+
+/* Product select + green check */
+.select-wrap{
+  position:relative;
+}
+.auto-ok{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  width:28px;height:28px;
+  border-radius:10px;
+  background:rgba(22,163,74,.12);
+  color:var(--ok);
   display:none;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  border: 1px solid rgba(22,163,74,.25);
-  background: rgba(22,163,74,.08);
-  color: var(--success);
   align-items:center;
   justify-content:center;
-  font-weight: 800;
+  font-weight:1000;
+  border:1px solid rgba(22,163,74,.22);
 }
 
-/* Two columns inside form (LOT + Location on same row, etc.) */
-.formGrid2{
+/* Grids */
+.grid2{
   display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
 }
 
-.formGrid3{
-  display:grid;
-  grid-template-columns: 1.2fr .8fr 1fr;
-  gap: 12px;
-}
-
-/* CTA button big */
-#btnAddStock{
+/* CTA */
+.btn-cta{
+  margin-top:14px;
   width:100%;
-  margin-top: 14px;
-  border: none;
-  background: var(--cta);
-  color: #111827;
-  font-weight: 800;
-  border-radius: 14px;
-  padding: 14px 16px;
+  border:none;
+  background:var(--cta);
+  color:#111827;
+  font-weight:1000;
+  font-size:16px;
+  padding:14px 14px;
+  border-radius:16px;
   cursor:pointer;
-  box-shadow: 0 10px 20px rgba(245,158,11,.25);
+  box-shadow:0 14px 26px var(--cta-shadow);
 }
-#btnAddStock:active{ transform: translateY(1px); }
+.btn-cta:active{ transform:translateY(1px); }
 
-/* ---------- Stock list (right column) ---------- */
-#stockList{
+/* ===== Stock list cards ===== */
+.stock-list{
   display:flex;
   flex-direction:column;
-  gap: 10px;
+  gap:10px;
+  margin-top:6px;
 }
 
-.stockCard{
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px 12px;
-  background: #fff;
+.stock-item{
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:12px;
+  background:#fff;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
-  gap: 12px;
+  gap:10px;
 }
 
-.stockLeft{
-  min-width: 0;
+.stock-name{
+  font-weight:900;
+  line-height:1.2;
+  margin-bottom:4px;
 }
 
-.stockTitle{
-  font-weight: 800;
-  line-height: 1.25;
-  margin-bottom: 4px;
-}
-
-.stockMeta{
-  font-size: 12px;
-  color: var(--muted);
+.stock-meta{
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.35;
 }
 
 .badge{
-  font-size: 12px;
-  font-weight: 800;
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  white-space: nowrap;
+  border-radius:999px;
+  padding:8px 10px;
+  font-size:12px;
+  font-weight:1000;
+  white-space:nowrap;
+  border:1px solid var(--line);
 }
-
 .badge.ok{
-  border-color: rgba(22,163,74,.25);
-  background: rgba(22,163,74,.08);
-  color: var(--success);
+  background:rgba(22,163,74,.10);
+  color:var(--ok);
+  border-color:rgba(22,163,74,.22);
 }
-
 .badge.warn{
-  border-color: rgba(245,158,11,.28);
-  background: rgba(245,158,11,.12);
-  color: #92400e;
+  background:rgba(245,158,11,.12);
+  color:#92400e;
+  border-color:rgba(245,158,11,.25);
 }
 
-/* ---------- Modal Scanner ---------- */
+/* ===== Modal scanner ===== */
 .modal{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  backdrop-filter: blur(3px);
-  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:flex;
   align-items:center;
   justify-content:center;
-  padding: 16px;
+  padding:14px;
+  z-index:50;
 }
-
 .modal-card{
-  width: min(520px, 100%);
+  width:min(420px, 100%);
   background:#fff;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  padding: 14px;
+  border-radius:18px;
+  padding:12px;
+  border:1px solid var(--line);
+  box-shadow:0 18px 40px rgba(0,0,0,.25);
+}
+.modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.modal-title{ font-weight:900; }
+.btn-x{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:12px;
+  padding:8px 10px;
+  cursor:pointer;
+}
+.modal-video{
+  width:100%;
+  margin-top:10px;
+  border-radius:16px;
+  background:#000;
+}
+.modal-hint{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:12px;
 }
 
-/* ---------- Responsive (mobile/tablet) ---------- */
-@media (max-width: 960px){
-  .container{
-    grid-template-columns: 1fr; /* stacked */
-  }
-  .formGrid3{
-    grid-template-columns: 1fr; /* stack on small */
-  }
-  .formGrid2{
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ---------- Optional: dark mode hook (if your app toggles .dark on body) ---------- */
-body.dark{
-  --bg: #0b1220;
-  --card: #0f172a;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --line: rgba(255,255,255,.10);
-  --shadow: 0 12px 36px rgba(0,0,0,.45);
-}
-body.dark input, body.dark select{
-  background: rgba(255,255,255,.03);
-  color: var(--text);
-}
-body.dark .topbar{
-  background: rgba(15,23,42,.85);
+/* Pe ecrane foarte mici, stack */
+@media (max-width:360px){
+  .grid2{ grid-template-columns:1fr; }
 }

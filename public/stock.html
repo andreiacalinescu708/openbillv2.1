@@ -2,108 +2,122 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <title>Recepționare Marfă</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recepție marfă</title>
+
+  <!-- Dacă vrei să păstrezi și stilurile globale, lasă și style.css -->
+  <!-- <link rel="stylesheet" href="style.css" /> -->
+  <link rel="stylesheet" href="stockhtml.css" />
 </head>
 <body>
 
-<header class="topbar">
-  <div class="topbar-left">
-    <span class="brand">⚕️ Fast Medical Distribution</span>
-  </div>
-
-  <div class="topbar-center">
-    <!-- opțional: breadcrumb / titlu pagină -->
-  </div>
-
-  <div class="topbar-right">
-    <button id="btnToggleTheme" class="icon-btn">🌙</button>
-    <div id="userBar"></div>
-  </div>
-</header>
-
-
-<main class="container">
-
- <div class="card">
-  <div style="display:flex; align-items:center; gap:10px;">
-    <button class="btn" onclick="location.href='index.html'">⬅️ Înapoi</button>
-    <h3 style="margin:0;">Adaugă stoc</h3>
-  </div>
-
-   <label>Scanare cod</label>
-<div class="scanRow">
-  <input id="qrInput" placeholder="Scanează / lipește codul aici" />
-  <button type="button" id="btnScanQR" class="btn">📷 Scanează</button>
-</div>
-
-
-
-<label>Produs</label>
-<div class="productRow">
-  <select id="stockProduct"></select>
-  <div id="stockAutoOk" class="autoOk">✔</div>
-<div class="formGrid2">
-  <div>
-    <label>LOT</label>
-    <input id="stockLot" placeholder="LOT-XXXX" />
-  </div>
-  <div>
-    <label>Data expirare</label>
-    <input id="stockExpire" type="date" />
-  </div>
-</div>
-
-<div class="formGrid2">
-  <div>
-    <label>Locație</label>
-    <select id="stockLocation">
-      <option value="A">A</option>
-      <option value="B">B</option>
-      <option value="C">C</option>
-      <option value="R1">R1</option>
-      <option value="R2">R2</option>
-      <option value="R3">R3</option>
-    </select>
-  </div>
-  <div>
-    <label>Cantitate</label>
-    <input id="stockQty" type="number" min="1" />
-  </div>
-</div>
-
-
-  <div class="card">
-    <h3>Stoc existent</h3>
-    <div id="stockList"></div>
-  </div>
-
-</main>
-<!-- SCANNER MODAL (nou) -->
-<div id="scannerModal" class="modal" style="display:none;">
-  <div class="modal-card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-      <strong>Scanner</strong>
-      <button type="button" id="btnCloseScan" class="btn">✖</button>
+  <!-- TOP APP BAR (ca în poză) -->
+  <header class="appbar">
+    <div class="appbar-left">
+      <div class="app-logo">⚕️</div>
+      <div class="app-title">
+        <div class="app-name">Fast Medical Distribution</div>
+        <div class="app-sub">Recepție marfă</div>
+      </div>
     </div>
 
-   <video
-  id="scanVideo"
-  autoplay
-  playsinline
-  muted
-  style="width:100%; border-radius:12px; background:#000; margin-top:10px;">
-</video>
+    <div class="appbar-right">
+      <div id="userBar" class="userbar"></div>
+      <!-- buton logout e deja în userBar-ul tău -->
+    </div>
+  </header>
 
+  <main class="screen">
 
-    <p style="margin-top:10px; color:#666;">
-      Țintește codul (DataMatrix/QR). După citire se închide automat.
-    </p>
+    <!-- CARD: ADAUGĂ STOC -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Adaugă stoc</div>
+        </div>
+
+        <button type="button" class="btn-scan" id="btnScanQR">
+          <span class="btn-scan-ic">📷</span>
+          <span>Scanează</span>
+        </button>
+      </div>
+
+      <div class="field">
+        <div class="label">Scanare cod</div>
+        <div class="input-wrap">
+          <input id="qrInput" class="input" placeholder="Scanează / lipește codul aici" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">Produs</div>
+        <div class="select-wrap">
+          <select id="stockProduct" class="select"></select>
+          <div id="stockAutoOk" class="auto-ok">✓</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <div class="label">LOT</div>
+          <input id="stockLot" class="input" placeholder="LOT-XXXX" />
+        </div>
+
+        <div class="field">
+          <div class="label">Expiră</div>
+          <input id="stockExpire" class="input" type="date" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <div class="label">Locație</div>
+          <select id="stockLocation" class="select">
+            <option value="A">Locație A</option>
+            <option value="B">Locație B</option>
+            <option value="C">Locație C</option>
+            <option value="R1">Raft R1</option>
+            <option value="R2">Raft R2</option>
+            <option value="R3">Raft R3</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="label">Cantitate</div>
+          <input id="stockQty" class="input" type="number" min="1" placeholder="0" />
+        </div>
+      </div>
+
+      <button id="btnAddStock" class="btn-cta">Adaugă în stoc</button>
+    </section>
+
+    <!-- CARD: STOC EXISTENT -->
+    <section class="card">
+      <div class="card-head simple">
+        <div class="card-title">Stoc existent</div>
+      </div>
+
+      <div id="stockList" class="stock-list"></div>
+    </section>
+
+  </main>
+
+  <!-- SCANNER MODAL -->
+  <div id="scannerModal" class="modal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Scanner</div>
+        <button type="button" id="btnCloseScan" class="btn-x">✖</button>
+      </div>
+
+      <video id="scanVideo" autoplay playsinline muted class="modal-video"></video>
+
+      <div class="modal-hint">
+        Țintește codul (DataMatrix/QR). După citire se închide automat.
+      </div>
+    </div>
   </div>
-</div>
 
-
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

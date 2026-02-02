@@ -2225,17 +2225,49 @@ await apiFetch(`/api/stock/${id}`, {
 
 function renderStock(stock) {
   const list = document.getElementById("stockList");
+  if (!list) return;
+
   list.innerHTML = "";
 
-  stock.forEach(s => {
-    const row = document.createElement("div");
-    row.className = "stockRow";
-    row.textContent =
-  `${s.productName} | LOC: ${s.location || "-"} | LOT: ${s.lot} | Exp: ${s.expiresAt} | Qty: ${s.qty}`;
+  if (!Array.isArray(stock) || !stock.length) {
+    list.innerHTML = `<div class="stock-meta">Nu există stoc.</div>`;
+    return;
+  }
 
-    list.appendChild(row);
+  stock.forEach(s => {
+    const item = document.createElement("div");
+    item.className = "stock-item";
+
+    const left = document.createElement("div");
+    left.style.minWidth = "0";
+
+    const name = document.createElement("div");
+    name.className = "stock-name";
+    name.textContent = s.productName || "Produs";
+
+    const meta = document.createElement("div");
+    meta.className = "stock-meta";
+    meta.innerHTML = `
+      LOT: <b>${s.lot || "-"}</b><br>
+      Expiră: <b>${(s.expiresAt || "-").slice(0,10)}</b><br>
+      Locație: <b>${s.location || "-"}</b>
+    `;
+
+    left.appendChild(name);
+    left.appendChild(meta);
+
+    const qty = Number(s.qty || 0);
+    const badge = document.createElement("div");
+    badge.className = "badge " + (qty >= 50 ? "ok" : "warn");
+    badge.textContent = `${qty} buc`;
+
+    item.appendChild(left);
+    item.appendChild(badge);
+
+    list.appendChild(item);
   });
 }
+
 
 function getProductPrice(product, client) {
   const base = Number(product.price || 0);
