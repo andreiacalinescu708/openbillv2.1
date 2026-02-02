@@ -1206,7 +1206,32 @@ async function initOrdersPage() {
           const row = document.createElement("div");
           row.className = `orderItem ${getProductClass(i.name)}`;
 
-          let html = `<strong>${i.name}</strong> × ${i.qty}`;
+       const gtin = i.gtin || "-";
+
+// vrem prețul salvat în comandă (snapshot)
+const unitPrice = (i.unitPrice != null) ? Number(i.unitPrice) : null;
+
+// dacă nu există (comenzi vechi), afișăm 0 și marcăm ca lipsă
+const p = Number.isFinite(unitPrice) ? unitPrice : 0;
+
+const qty = Number(i.qty || 0);
+const subtotal = (i.lineTotal != null && Number.isFinite(Number(i.lineTotal)))
+  ? Number(i.lineTotal)
+  : (p * qty);
+
+
+let html = `
+  <strong>${i.name}</strong> × ${i.qty}
+  <div class="muted small">GTIN: ${gtin}</div>
+<div class="muted small">
+  Preț client: <b>${p.toFixed(2)} RON</b>
+  ${unitPrice == null ? "<span class='muted'>(nesalvat)</span>" : ""}
+</div>
+  <div class="muted small">Subtotal: <b>${subtotal.toFixed(2)} RON</b></div>
+`;
+
+
+
 
           if (Array.isArray(i.allocations) && i.allocations.length > 0) {
             html += `<div class="lots">`;
@@ -1227,9 +1252,11 @@ async function initOrdersPage() {
           body.appendChild(row);
         });
 
-        head.onclick = () => {
-          body.style.display = (body.style.display === "none") ? "block" : "none";
-        };
+        head.addEventListener("click", (e) => {
+  if (e.target.closest("button")) return;
+  body.style.display = (body.style.display === "none") ? "block" : "none";
+});
+
 
         card.appendChild(head);
         card.appendChild(body);

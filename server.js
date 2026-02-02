@@ -261,6 +261,46 @@ function normalizeGTIN(gtin) {
   return g;
 }
 
+async function getClientPricesFromDB(client) {
+  // client poate avea id sau doar name
+  const cid = client?.id ? String(client.id) : null;
+  const cname = client?.name ? String(client.name) : null;
+
+  if (!db.hasDb()) return {};
+
+  try {
+    let r;
+    if (cid) {
+      r = await db.q(`SELECT prices FROM clients WHERE id=$1 LIMIT 1`, [cid]);
+    } else if (cname) {
+      r = await db.q(`SELECT prices FROM clients WHERE name=$1 LIMIT 1`, [cname]);
+    } else {
+      return {};
+    }
+    return r.rows?.[0]?.prices || {};
+  } catch {
+    return {};
+  }
+}
+
+// suportă chei pe productId SAU pe GTIN
+function resolveClientPrice(prices, it) {
+  const pid = it?.id != null ? String(it.id) : "";
+  const gtin = normalizeGTIN(it?.gtin);
+
+  // 1) productId
+  if (pid && prices && prices[pid] != null) return Number(prices[pid]);
+
+  // 2) gtin
+  if (gtin && prices && prices[gtin] != null) return Number(prices[gtin]);
+
+  // 3) fallback pe ce vine din frontend / produs
+  if (it?.price != null) return Number(it.price);
+
+  return 0;
+}
+
+
 
 function allocateStockByLocation(stock, gtin, neededQty) {
   const g = normalizeGTIN(gtin);
@@ -437,16 +477,34 @@ for (const it of beforeItems) {
 }
 
 // 2) ALOCĂ din nou după locație (și scade stoc)
+// 2) ALOCĂ din nou după locație (și scade stoc)
+
+// ✅ luăm prețurile clientului (snapshot)
+const clientPrices = await getClientPricesFromDB(order.client);
+
 const newItems = [];
 for (const it of items) {
   const gtin = normalizeGTIN(it.gtin);
   const qty = Number(it.qty || 0);
+
   if (!gtin) throw new Error("GTIN lipsă");
   if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
 
   const allocations = await allocateByLocation_DB(gtin, qty);
-  newItems.push({ ...it, allocations });
+
+  // ✅ preț client + subtotal (snapshot salvat în comandă)
+  const unitPrice = resolveClientPrice(clientPrices, it);
+  const lineTotal = Number(unitPrice) * Number(qty);
+
+  newItems.push({
+    ...it,
+    gtin,        // gtin normalizat
+    unitPrice,   // preț client
+    lineTotal,   // subtotal
+    allocations
+  });
 }
+
 
 // 3) update order
 await db.q(
@@ -723,24 +781,80 @@ app.get("/api/orders", async (req, res) => {
     const dbOn = db.hasDb();
 
     if (!dbOn) {
-      // fallback JSON (local)
       const orders = readJson(ORDERS_FILE, []);
       return res.json(orders);
     }
 
+    // 1) ia clienții cu prețurile lor
+    const rc = await db.q(`SELECT id, name, prices FROM clients`);
+    const clientPricesByName = new Map();
+    rc.rows.forEach(c => {
+      clientPricesByName.set(String(c.name), (c.prices && typeof c.prices === "object") ? c.prices : {});
+    });
+
+    // 2) ia produsele ca să mapăm gtin -> productId (+ fallback price)
+    const rp = await db.q(`SELECT id, gtin, gtins, price FROM products`);
+    const productIdByGtin = new Map();
+    const productPriceById = new Map();
+
+    rp.rows.forEach(p => {
+      const pid = String(p.id);
+      productPriceById.set(pid, (p.price != null ? Number(p.price) : null));
+
+      // gtin principal
+      const g1 = normalizeGTIN(p.gtin);
+      if (g1) productIdByGtin.set(g1, pid);
+
+      // gtins jsonb (dacă există)
+      const arr = Array.isArray(p.gtins) ? p.gtins : [];
+      arr.forEach(g => {
+        const gg = normalizeGTIN(g);
+        if (gg) productIdByGtin.set(gg, pid);
+      });
+    });
+
+    // 3) ia comenzile
     const r = await db.q(
       `SELECT id, client, items, status, created_at
        FROM orders
        ORDER BY created_at DESC`
     );
 
-    const orders = r.rows.map(x => ({
-      id: x.id,
-      client: x.client,
-      items: x.items,
-      status: x.status,
-      createdAt: x.created_at
-    }));
+    const orders = r.rows.map(o => {
+      const clientName = o.client?.name ? String(o.client.name) : "";
+      const clientPrices = clientPricesByName.get(clientName) || {};
+
+      const items = Array.isArray(o.items) ? o.items : [];
+
+      const itemsWithClientPrice = items.map(it => {
+        const gtinNorm = normalizeGTIN(it.gtin);
+        const pid = gtinNorm ? (productIdByGtin.get(gtinNorm) || null) : null;
+
+        // ✅ preț client (în clients.prices cheile sunt de obicei id-uri ca string)
+        let clientPrice = null;
+        if (pid != null) {
+          const v = clientPrices[pid];
+          if (v != null && Number.isFinite(Number(v))) clientPrice = Number(v);
+        }
+
+        // fallback: dacă nu există preț client, poți păstra null sau fallback la produs
+        const fallback = (pid != null) ? productPriceById.get(String(pid)) : null;
+
+        return {
+          ...it,
+          productId: pid,                    // util pentru debug
+          price: clientPrice != null ? clientPrice : (fallback != null ? fallback : null)
+        };
+      });
+
+      return {
+        id: o.id,
+        client: o.client,
+        items: itemsWithClientPrice,
+        status: o.status,
+        createdAt: o.created_at
+      };
+    });
 
     res.json(orders);
   } catch (e) {
@@ -748,6 +862,8 @@ app.get("/api/orders", async (req, res) => {
     res.status(500).json({ error: "Eroare DB la încărcare comenzi" });
   }
 });
+
+
 
 
 
@@ -769,58 +885,30 @@ app.post("/api/orders", async (req, res) => {
     if (db.hasDb()) {
       await db.q("BEGIN");
       try {
-        const itemsWithAlloc = [];
+      const clientPrices = await getClientPricesFromDB(client);
 
-        for (const it of items) {
-          const need = Number(it.qty || 0);
-          const gtin = normalizeGTIN(it.gtin);
+const itemsWithAlloc = [];
+for (const it of items) {
+  const need = Number(it.qty || 0);
+  const gtin = normalizeGTIN(it.gtin);
 
-          if (!gtin) throw new Error(`Produs fără GTIN: ${it.name || it.id || "?"}`);
-          if (!Number.isFinite(need) || need <= 0) throw new Error("Cantitate invalidă");
+  if (!gtin) throw new Error(`Produs fără GTIN: ${it.name || it.id || "?"}`);
+  if (!Number.isFinite(need) || need <= 0) throw new Error("Cantitate invalidă");
 
-          // DOAR după locație (A,B,C,R1,R2,R3)
-          const locCase = sqlLocOrderCase("location");
+  // ... alocările tale (rStock, allocations etc) ...
 
-          const rStock = await db.q(
-            `SELECT id, lot, expires_at, qty, location
-             FROM stock
-             WHERE gtin=$1 AND qty > 0
-             ORDER BY ${locCase} ASC
-             FOR UPDATE`,
-            [gtin]
-          );
+  const unitPrice = resolveClientPrice(clientPrices, it);
+  const lineTotal = Number(unitPrice) * Number(need);
 
-          let remaining = need;
-          const allocations = [];
+  itemsWithAlloc.push({
+    ...it,
+    gtin,              // salvează normalizat
+    unitPrice,
+    lineTotal,
+    allocations
+  });
+}
 
-          for (const s of rStock.rows) {
-            if (remaining <= 0) break;
-
-            const avail = Number(s.qty || 0);
-            if (avail <= 0) continue;
-
-            const take = Math.min(avail, remaining);
-
-            await db.q(`UPDATE stock SET qty = qty - $1 WHERE id = $2`, [take, s.id]);
-
-            allocations.push({
-              stockId: s.id,
-              lot: s.lot,
-              // nu folosim FEFO, dar păstrăm info
-              expiresAt: s.expires_at ? String(s.expires_at).slice(0, 10) : "",
-              location: s.location || "A",
-              qty: take
-            });
-
-            remaining -= take;
-          }
-
-          if (remaining > 0) {
-            throw new Error(`Stoc insuficient pentru: ${it.name || it.id || "produs"}`);
-          }
-
-          itemsWithAlloc.push({ ...it, allocations });
-        }
 
         const newOrder = {
           id: Date.now().toString(),
