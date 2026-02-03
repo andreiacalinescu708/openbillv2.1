@@ -1972,6 +1972,111 @@ async function startScanWithCallback(onScan) {
   }, 250);
 }
 
+async function initCheckStockPage() {
+  const list = document.getElementById("stockList");
+  const search = document.getElementById("stockSearch");
+  const totalEl = document.getElementById("stockTotal");
+  const btnRefresh = document.getElementById("btnRefresh");
+
+  // dacă nu suntem pe checkstock.html, ieșim (safe)
+  if (!list || !search || !totalEl) return;
+
+  let grouped = []; // [{ name, gtin, total }]
+
+  function groupStockRows(stockRows) {
+    const map = new Map();
+
+    for (const s of (stockRows || [])) {
+      const qty = Number(s.qty || 0);
+      if (qty <= 0) continue;
+
+      const name = String(s.productName || s.name || "").trim() || "(Fără nume)";
+      const gtin = normalizeGTIN(s.gtin || "");
+
+      // cheie: prefer gtin, altfel nume
+      const key = gtin ? `g:${gtin}` : `n:${name.toLowerCase()}`;
+
+      const cur = map.get(key) || { name, gtin, total: 0 };
+      cur.total += qty;
+      if (!cur.name && name) cur.name = name;
+      if (!cur.gtin && gtin) cur.gtin = gtin;
+
+      map.set(key, cur);
+    }
+
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "ro"));
+  }
+
+  function render() {
+    const q = String(search.value || "").toLowerCase().trim();
+    list.innerHTML = "";
+
+    const shown = q
+      ? grouped.filter(x => x.name.toLowerCase().includes(q) || (x.gtin || "").includes(q))
+      : grouped;
+
+    const grandTotal = shown.reduce((s, x) => s + Number(x.total || 0), 0);
+    totalEl.textContent = `Total: ${grandTotal} buc`;
+
+    if (!shown.length) {
+      list.innerHTML = `<div class="hint">Nu există stoc (sau filtrul nu găsește nimic).</div>`;
+      return;
+    }
+
+    for (const p of shown) {
+      const card = document.createElement("div");
+      card.className = "stock-card";
+
+      // badge color simplu (poți schimba în CSS)
+      const badgeClass =
+        p.total >= 500 ? "badge good" :
+        p.total >= 100 ? "badge warn" :
+        "badge low";
+
+      card.innerHTML = `
+        <div class="stock-row">
+          <div class="stock-left">
+            <div class="stock-title">📝 <strong>${p.name}</strong></div>
+            <div class="stock-sub">GTIN: ${p.gtin || "-"}</div>
+          </div>
+          <div class="${badgeClass}">${p.total} buc</div>
+        </div>
+      `;
+
+      list.appendChild(card);
+    }
+  }
+
+  async function load() {
+    try {
+      const res = await apiFetch("/api/stock");
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("GET /api/stock error:", txt);
+        list.innerHTML = `<div class="hint">Eroare la încărcare stoc.</div>`;
+        totalEl.textContent = "Total: 0 buc";
+        return;
+      }
+
+      const stock = await res.json();
+      grouped = groupStockRows(stock);
+      render();
+    } catch (e) {
+      console.error("initCheckStockPage load error:", e);
+      list.innerHTML = `<div class="hint">Eroare la încărcare stoc.</div>`;
+      totalEl.textContent = "Total: 0 buc";
+    }
+  }
+
+  // events
+  search.addEventListener("input", render);
+  if (btnRefresh) btnRefresh.onclick = load;
+
+  // init
+  await load();
+}
+
+
 
 
 
@@ -2812,6 +2917,13 @@ if (document.getElementById("clientsList")) {
   await initAddClientForm();
 }
 if (document.getElementById("editItemsList")) await initEditOrderPage();
+document.addEventListener("DOMContentLoaded", () => {
+  initStockPage();        // pagina recepție marfă (are stockProduct)
+  initCheckStockPage();   // pagina inventar stoc (checkstock.html)
+  initOrdersPage();       // dacă există la tine
+});
+
+
 
 
 
