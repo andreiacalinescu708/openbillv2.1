@@ -7,48 +7,32 @@
   <link rel="stylesheet" href="checkstockhtml.css" />
 </head>
 <body>
-
-<!-- TOP BAR -->
-<header class="inv-topbar">
-  <div class="inv-top-left">
-    <span class="inv-logo">📦</span>
-    <span class="inv-brand">Fast Medical Distribution</span>
+<header class="app-header">
+  <div class="app-left">
+    📦 <strong>Fast Medical Distribution</strong>
   </div>
-
-  <button class="inv-back" onclick="location.href='index.html'">
-    ⬅ Înapoi
-  </button>
+  <button class="btn-back" onclick="history.back()">↩ Înapoi</button>
 </header>
 
-<main class="inv-screen">
+<main class="stock-page">
+  <h1>Inventar Stoc</h1>
 
-  <h1 class="inv-title">Inventar Stoc</h1>
-
-  <!-- SEARCH + REFRESH -->
-  <div class="inv-search-row">
-    <div class="inv-search">
-      🔍
-      <input
-        id="inventorySearch"
-        placeholder="Caută produs..."
-        autocomplete="off"
-      />
-    </div>
-
-    <button id="btnRefreshStock" class="inv-refresh">
-      🔄 Refresh
-    </button>
+  <div class="stock-toolbar">
+    <input
+      id="stockSearch"
+      placeholder="Caută produs..."
+      type="search"
+    />
+    <button id="btnRefresh">🔄 Refresh</button>
   </div>
 
-  <!-- LISTA -->
-  <div id="inventoryList" class="inv-list"></div>
+  <div id="stockList" class="stock-list"></div>
 
-  <!-- TOTAL GENERAL -->
-  <div id="inventoryTotal" class="inv-total">
+  <div id="stockTotal" class="stock-total">
     Total: 0 buc
   </div>
-
 </main>
+
 
 <script src="script.js"></script>
 </body>

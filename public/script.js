@@ -1979,98 +1979,56 @@ async function startScanWithCallback(onScan) {
 
 
 async function initStockPage() {
-  const prodSel = document.getElementById("stockProduct");
   const list = document.getElementById("stockList");
-  const qrInput = document.getElementById("qrInput");
-  const btnScan = document.getElementById("btnScanQR");
-const btnClose = document.getElementById("btnCloseScan");
+  const totalBox = document.getElementById("stockTotal");
+  const search = document.getElementById("stockSearch");
 
-if (btnClose) btnClose.onclick = closeScanner;
+  if (!list) return;
 
-if (btnScan && qrInput) {
-  btnScan.onclick = async () => {
-    try {
-      await startScanIntoInput(qrInput);
-    } catch (e) {
-      closeScanner();
-      alert("Nu pot porni camera. Verifică permisiunile.");
-    }
-  };
+  const res = await fetch("/api/stock");
+  const stock = await res.json();
+
+  function render() {
+    const q = (search.value || "").toLowerCase();
+    list.innerHTML = "";
+    let total = 0;
+
+    stock
+      .filter(p => p.name.toLowerCase().includes(q))
+      .forEach(p => {
+        total += p.totalQty;
+
+        const badgeClass =
+          p.totalQty > 500 ? "green" :
+          p.totalQty > 100 ? "orange" : "red";
+
+        const card = document.createElement("div");
+        card.className = "stock-card";
+        card.innerHTML = `
+          <div class="stock-info">
+            <div class="stock-icon">📦</div>
+            <div>
+              <div class="stock-name">${p.name}</div>
+              <div class="stock-sub">${p.totalQty} buc</div>
+            </div>
+          </div>
+
+          <div class="stock-badge ${badgeClass}">
+            ${p.totalQty} buc
+          </div>
+        `;
+        list.appendChild(card);
+      });
+
+    totalBox.textContent = `Total: ${total} buc`;
+  }
+
+  search.oninput = render;
+  document.getElementById("btnRefresh").onclick = () => location.reload();
+
+  render();
 }
 
- 
-
-
-  if (!prodSel || !list) return;
-
-  const products = await fetch("/api/products-flat").then(r => r.json());
-  const stock = await fetch("/api/stock").then(r => r.json());
-
-  // populate produse
-  products.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.name;
-    opt.dataset.name = p.name;
-    opt.dataset.gtins = JSON.stringify(p.gtins || []);
-
-    prodSel.appendChild(opt);
-  });
-
-  renderStock(stock);
-
-
-
-// ✅ manual: când user apasă Enter sau iese din câmp
-if (qrInput) {
-qrInput.addEventListener("input", () => {
-  const clean = sanitizeGS1(qrInput.value);
-  if (!clean) return;
-  applyParsedGS1(clean);
-});
-
-}
-
-
-
-
-  document.getElementById("btnAddStock").onclick = async () => {
-    const productId = prodSel.value;
-    const productName = prodSel.selectedOptions[0].dataset.name;
-    const lot = document.getElementById("stockLot").value.trim();
-    const expiresAt = document.getElementById("stockExpire").value;
-    const qty = document.getElementById("stockQty").value;
-const stockLocation = document.getElementById("stockLocation").value;
-
-
-    if (!productId || !lot || !expiresAt || !qty) {
-      alert("Completează toate câmpurile");
-      return;
-    }
-const gtins = JSON.parse(prodSel.selectedOptions[0].dataset.gtins || "[]");
-const gtin = gtins[0] || "";
-
-    await fetch("/api/stock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
- 
-
-body: JSON.stringify({
-  gtin,
-  productName,
-  lot,
-  expiresAt,
-  qty,
-  location: stockLocation
-})
-
-
-
-    });
-
-window.location.reload();
-  };
-}
 const grouped = {};
 async function initInventoryPage() {
   const list = document.getElementById("inventoryList");
