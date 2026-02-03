@@ -2124,7 +2124,37 @@ if (lowProducts.length) {
     ⚠️ <strong>Atenție!</strong>
     ${lowProducts.length} produse au stoc sub ${LOW_STOCK_LIMIT} buc.
   `;
-  list.appendChild(alert);
+ let grandTotal = 0;
+
+Object.values(grouped).forEach(prod => {
+  grandTotal += prod.totalQty;
+
+  const card = document.createElement("div");
+  card.className = "inv-card";
+
+  const badgeColor =
+    prod.totalQty < LOW_STOCK_LIMIT ? "yellow" : "green";
+
+  card.innerHTML = `
+    <div class="inv-icon">📦</div>
+    <div class="inv-info">
+      <div class="inv-name">${prod.productName}</div>
+      <div class="inv-sub">${prod.totalQty} buc</div>
+    </div>
+    <div class="inv-badge ${badgeColor}">
+      ${prod.totalQty} buc
+    </div>
+  `;
+
+  list.appendChild(card);
+});
+
+// TOTAL GENERAL
+const totalBox = document.getElementById("inventoryTotal");
+if (totalBox) {
+  totalBox.textContent = `Total: ${grandTotal} buc`;
+}
+
 }
 
 
