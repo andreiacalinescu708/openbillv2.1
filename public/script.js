@@ -2033,179 +2033,142 @@ const grouped = {};
 async function initInventoryPage() {
   const list = document.getElementById("inventoryList");
   const btnRefresh = document.getElementById("btnRefreshStock");
+  const searchInput = document.getElementById("inventorySearch");
+  const totalBox = document.getElementById("inventoryTotal");
 
   if (!list) return;
 
-  async function loadStock() {
-    list.innerHTML = "<p class='hint'>Se încarcă stocul...</p>";
+  // fallback dacă nu există în script
+  const LOW_LIMIT = (typeof LOW_STOCK_LIMIT !== "undefined") ? LOW_STOCK_LIMIT : 50;
 
-    const stock = await apiFetch("/api/stock").then(r => r.json());
+  let allGrouped = []; // ținem cache ca să putem filtra la search
 
-    if (!stock.length) {
-      list.innerHTML = "<p class='hint'>Nu există stoc.</p>";
+  function renderCards(rows) {
+    list.innerHTML = "";
+
+    if (!rows.length) {
+      list.innerHTML = "<p class='hint'>Nu există rezultate.</p>";
+      if (totalBox) totalBox.textContent = "Total: 0 buc";
       return;
     }
 
-    // 🔥 GRUPARE CORECTĂ PE PRODUS
-    
+    // total general
+    const grandTotal = rows.reduce((s, p) => s + (Number(p.totalQty) || 0), 0);
+    if (totalBox) totalBox.textContent = `Total: ${grandTotal} buc`;
 
-   // 🔥 GRUPARE CORECTĂ PE GTIN
-const grouped = {};
+    // alertă stoc mic (doar dacă există)
+    const lowCount = rows.filter(p => (Number(p.totalQty) || 0) < LOW_LIMIT).length;
+    if (lowCount) {
+      const alert = document.createElement("div");
+      alert.className = "alert-low-stock";
+      alert.innerHTML = `⚠️ <strong>Atenție!</strong> ${lowCount} produse au stoc sub ${LOW_LIMIT} buc.`;
+      list.appendChild(alert);
+    }
 
-stock.forEach(s => {
-  const key = normalizeGTIN(s.gtin);
-  if (!key) return;
+    // carduri
+    rows.forEach(prod => {
+      const qty = Number(prod.totalQty) || 0;
+      const isLow = qty < LOW_LIMIT;
 
-  if (!grouped[key]) {
-    grouped[key] = {
-      gtin: key,
-      productName: s.productName,
-      totalQty: 0,
-      lots: []
+      const card = document.createElement("div");
+      card.className = "inv-card";
+
+      const badgeColor = isLow ? "yellow" : "green";
+
+      card.innerHTML = `
+        <div class="inv-icon">📦</div>
+        <div class="inv-info">
+          <div class="inv-name">${prod.productName || "-"}</div>
+          <div class="inv-sub">GTIN: ${prod.gtin}</div>
+        </div>
+        <div class="inv-badge ${badgeColor}">
+          ${qty} buc
+        </div>
+      `;
+
+      // opțional: click pe card -> arată loturile
+      card.onclick = () => {
+        const existing = card.querySelector(".inv-lots");
+        if (existing) {
+          existing.remove();
+          return;
+        }
+
+        const lots = document.createElement("div");
+        lots.className = "inv-lots";
+        lots.innerHTML = (prod.lots || [])
+          .map(s => `
+            <div class="inv-lot">
+              <span><b>LOC:</b> ${s.location || "-"}</span>
+              <span><b>LOT:</b> ${s.lot || "-"}</span>
+              <span><b>EXP:</b> ${String(s.expiresAt || "-").slice(0, 10)}</span>
+              <span><b>QTY:</b> ${Number(s.qty) || 0}</span>
+            </div>
+          `)
+          .join("");
+
+        card.appendChild(lots);
+      };
+
+      list.appendChild(card);
+    });
+  }
+
+  async function loadStock() {
+    list.innerHTML = "<p class='hint'>Se încarcă stocul.</p>";
+    if (totalBox) totalBox.textContent = "Total: ...";
+
+    const res = await apiFetch("/api/stock");
+    const stock = await res.json();
+
+    if (!Array.isArray(stock) || stock.length === 0) {
+      list.innerHTML = "<p class='hint'>Nu există stoc.</p>";
+      if (totalBox) totalBox.textContent = "Total: 0 buc";
+      allGrouped = [];
+      return;
+    }
+
+    // grupare pe GTIN (normalizat)
+    const grouped = {};
+    stock.forEach(s => {
+      const key = normalizeGTIN(s.gtin);
+      if (!key) return;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          gtin: key,
+          productName: s.productName,
+          totalQty: 0,
+          lots: []
+        };
+      }
+
+      grouped[key].totalQty += Number(s.qty) || 0;
+      grouped[key].lots.push(s);
+    });
+
+    allGrouped = Object.values(grouped)
+      .sort((a, b) => String(a.productName || "").localeCompare(String(b.productName || ""), "ro"));
+
+    // render inițial (fără filtru)
+    renderCards(allGrouped);
+  }
+
+  // events
+  if (btnRefresh) btnRefresh.onclick = loadStock;
+
+  if (searchInput) {
+    searchInput.oninput = () => {
+      const q = searchInput.value.toLowerCase().trim();
+      if (!q) return renderCards(allGrouped);
+      renderCards(allGrouped.filter(p => String(p.productName || "").toLowerCase().includes(q)));
     };
   }
 
-  grouped[key].totalQty += Number(s.qty) || 0;
-  grouped[key].lots.push(s);
-});
-
-
-    list.innerHTML = "";
-    // 🔔 ALERTĂ STOC MIC (GLOBAL)
-const lowProducts = Object.values(grouped)
-  .filter(p => p.totalQty < LOW_STOCK_LIMIT);
-
-if (lowProducts.length) {
-  const alert = document.createElement("div");
-  alert.className = "alert-low-stock";
-  alert.innerHTML = `
-    ⚠️ <strong>Atenție!</strong>
-    ${lowProducts.length} produse au stoc sub ${LOW_STOCK_LIMIT} buc.
-  `;
- let grandTotal = 0;
-
-Object.values(grouped).forEach(prod => {
-  grandTotal += prod.totalQty;
-
-  const card = document.createElement("div");
-  card.className = "inv-card";
-
-  const badgeColor =
-    prod.totalQty < LOW_STOCK_LIMIT ? "yellow" : "green";
-
-  card.innerHTML = `
-    <div class="inv-icon">📦</div>
-    <div class="inv-info">
-      <div class="inv-name">${prod.productName}</div>
-      <div class="inv-sub">${prod.totalQty} buc</div>
-    </div>
-    <div class="inv-badge ${badgeColor}">
-      ${prod.totalQty} buc
-    </div>
-  `;
-
-  list.appendChild(card);
-});
-
-// TOTAL GENERAL
-const totalBox = document.getElementById("inventoryTotal");
-if (totalBox) {
-  totalBox.textContent = `Total: ${grandTotal} buc`;
+  // init
+  await loadStock();
 }
 
-}
-
-
-    Object.values(grouped).forEach(prod => {
-      const header = document.createElement("div");
-      header.className = "inventory-row";
-
-    const isLow = prod.totalQty < LOW_STOCK_LIMIT;
-
-header.innerHTML = `
-  <strong>${prod.productName}</strong>
-  <span class="${isLow ? "low-stock" : ""}">
-    TOTAL: ${prod.totalQty} buc
-    ${isLow ? "⚠️ STOC MIC" : ""}
-  </span>
-  <button class="btnToggle">✏️</button>
-`;
-
-
-      list.appendChild(header);
-
-      const details = document.createElement("div");
-      details.style.display = "none";
-      details.style.marginLeft = "20px";
-
-      prod.lots.forEach(lot => {
-        const row = document.createElement("div");
-        row.className = "inventory-lot";
-
-       row.innerHTML = `
-  LOT: ${lot.lot} | EXP: ${lot.expiresAt}
-  <br/>
-  Locație:
-  <select id="loc-${lot.id}">
-    ${["A","B","C","R1","R2","R3"].map(x =>
-      `<option value="${x}" ${String(lot.location||"A")===x ? "selected":""}>${x}</option>`
-    ).join("")}
-  </select>
-  Qty:
-  <input type="number" value="${lot.qty}" id="qty-${lot.id}">
-  <button class="btnSave" data-id="${lot.id}">💾</button>
-  <button class="btnDelete" data-id="${lot.id}">🗑</button>
-`;
-
-
-        details.appendChild(row);
-      });
-
-      list.appendChild(details);
-
-      header.querySelector(".btnToggle").onclick = () => {
-        details.style.display =
-          details.style.display === "none" ? "block" : "none";
-      };
-    });
-
-    // 💾 SAVE
-    document.querySelectorAll(".btnSave").forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id;
-        const qty = document.getElementById(`qty-${id}`).value;
-const location = document.getElementById(`loc-${id}`).value;
-
-await apiFetch(`/api/stock/${id}`, {
-  method: "PUT",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ qty, location })
-});
-
-
-        loadStock();
-      };
-    });
-
-    // 🗑 DELETE
-    document.querySelectorAll(".btnDelete").forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id;
-
-        if (!confirm("Ștergi acest lot?")) return;
-
-        await apiFetch(`/api/stock/${id}`, {
-          method: "DELETE"
-        });
-
-        loadStock();
-      };
-    });
-  }
-
-  if (btnRefresh) btnRefresh.onclick = loadStock;
-  loadStock();
-}
 
 
 
