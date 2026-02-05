@@ -212,6 +212,7 @@ function setQty(id, value) {
 }
 
 
+
 function removeItemByGTIN(gtin) {
   const g = normalizeGTIN(gtin);
   saveCart(getCart().filter(x => normalizeGTIN(x.gtin) !== g));
@@ -1973,108 +1974,139 @@ async function startScanWithCallback(onScan) {
 }
 
 async function initCheckStockPage() {
-  const list = document.getElementById("stockList");
-  const search = document.getElementById("stockSearch");
-  const totalEl = document.getElementById("stockTotal");
-  const btnRefresh = document.getElementById("btnRefresh");
+  const list = document.getElementById("inventoryList");
+  if (!list) return; // nu suntem pe pagina checkstock
 
-  // dacă nu suntem pe checkstock.html, ieșim (safe)
-  if (!list || !search || !totalEl) return;
+  const search = document.getElementById("inventorySearch");
+  const btnRefresh = document.getElementById("btnRefreshStock");
+  const totalBox = document.getElementById("inventoryTotal");
 
-  let grouped = []; // [{ name, gtin, total }]
+  // map GTIN -> nume produs (din products)
+  async function loadProductsMap() {
+    const r = await apiFetch("/api/products-flat");
+    const arr = await r.json();
+    const map = {};
 
-  function groupStockRows(stockRows) {
-    const map = new Map();
+    (Array.isArray(arr) ? arr : []).forEach(p => {
+      const name = p.name || "";
+      const gtins = [];
 
-    for (const s of (stockRows || [])) {
-      const qty = Number(s.qty || 0);
-      if (qty <= 0) continue;
+      if (p.gtin) gtins.push(p.gtin);
+      if (Array.isArray(p.gtins)) gtins.push(...p.gtins);
 
-      const name = String(s.productName || s.name || "").trim() || "(Fără nume)";
-      const gtin = normalizeGTIN(s.gtin || "");
+      gtins
+        .map(normalizeGTIN)
+        .filter(Boolean)
+        .forEach(g => (map[g] = name));
+    });
 
-      // cheie: prefer gtin, altfel nume
-      const key = gtin ? `g:${gtin}` : `n:${name.toLowerCase()}`;
-
-      const cur = map.get(key) || { name, gtin, total: 0 };
-      cur.total += qty;
-      if (!cur.name && name) cur.name = name;
-      if (!cur.gtin && gtin) cur.gtin = gtin;
-
-      map.set(key, cur);
-    }
-
-    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "ro"));
+    return map;
   }
 
+  let stockRows = [];
+  let productsMap = {};
+
   function render() {
-    const q = String(search.value || "").toLowerCase().trim();
+    const q = (search?.value || "").toLowerCase().trim();
+
+    // grupăm pe GTIN
+    const grouped = new Map(); // gtin -> { gtin, name, totalQty }
+    for (const r of stockRows) {
+      const gtin = normalizeGTIN(r.gtin);
+      if (!gtin) continue;
+
+      const qty = Number(r.qty || 0);
+      if (!Number.isFinite(qty) || qty <= 0) continue;
+
+      if (!grouped.has(gtin)) {
+        grouped.set(gtin, {
+          gtin,
+          name: productsMap[gtin] || r.productName || r.name || gtin,
+          totalQty: 0
+        });
+      }
+      grouped.get(gtin).totalQty += qty;
+    }
+
+    let items = Array.from(grouped.values());
+
+    // search
+    if (q) {
+      items = items.filter(it =>
+        String(it.name || "").toLowerCase().includes(q) ||
+        String(it.gtin || "").toLowerCase().includes(q)
+      );
+    }
+
+    // sort
+    items.sort((a, b) => (b.totalQty - a.totalQty) || a.name.localeCompare(b.name, "ro"));
+
+    // total general (din ce afișăm)
+    const total = items.reduce((s, it) => s + Number(it.totalQty || 0), 0);
+    if (totalBox) totalBox.textContent = `Total: ${total} buc`;
+
+    // render listă
     list.innerHTML = "";
 
-    const shown = q
-      ? grouped.filter(x => x.name.toLowerCase().includes(q) || (x.gtin || "").includes(q))
-      : grouped;
-
-    const grandTotal = shown.reduce((s, x) => s + Number(x.total || 0), 0);
-    totalEl.textContent = `Total: ${grandTotal} buc`;
-
-    if (!shown.length) {
-      list.innerHTML = `<div class="hint">Nu există stoc (sau filtrul nu găsește nimic).</div>`;
+    if (!items.length) {
+      list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
       return;
     }
 
-    for (const p of shown) {
-      const card = document.createElement("div");
-      card.className = "stock-card";
+    for (const it of items) {
+      const row = document.createElement("div");
+      row.className = "inventoryItem";
 
-      // badge color simplu (poți schimba în CSS)
-      const badgeClass =
-        p.total >= 500 ? "badge good" :
-        p.total >= 100 ? "badge warn" :
-        "badge low";
-
-      card.innerHTML = `
-        <div class="stock-row">
-          <div class="stock-left">
-            <div class="stock-title">📝 <strong>${p.name}</strong></div>
-            <div class="stock-sub">GTIN: ${p.gtin || "-"}</div>
-          </div>
-          <div class="${badgeClass}">${p.total} buc</div>
+      row.innerHTML = `
+        <div class="invLeft">
+          <div class="invTitle">${escapeHtml(it.name)}</div>
+          <div class="invSub">GTIN: ${escapeHtml(it.gtin)}</div>
+        </div>
+        <div class="invRight">
+          <span class="qtyBadge">${it.totalQty} buc</span>
         </div>
       `;
 
-      list.appendChild(card);
+      list.appendChild(row);
     }
   }
 
   async function load() {
-    try {
-      const res = await apiFetch("/api/stock");
-      if (!res.ok) {
-        const txt = await res.text();
-        console.error("GET /api/stock error:", txt);
-        list.innerHTML = `<div class="hint">Eroare la încărcare stoc.</div>`;
-        totalEl.textContent = "Total: 0 buc";
-        return;
-      }
+    list.innerHTML = `<p class="hint">Se încarcă stocul...</p>`;
+    if (totalBox) totalBox.textContent = `Total: 0 buc`;
 
-      const stock = await res.json();
-      grouped = groupStockRows(stock);
+    try {
+      // încărcăm produse și stock în paralel
+      const [map, stockRes] = await Promise.all([
+        loadProductsMap(),
+        apiFetch("/api/stock").then(r => r.json())
+      ]);
+
+      productsMap = map;
+      stockRows = Array.isArray(stockRes) ? stockRes : [];
       render();
     } catch (e) {
       console.error("initCheckStockPage load error:", e);
-      list.innerHTML = `<div class="hint">Eroare la încărcare stoc.</div>`;
-      totalEl.textContent = "Total: 0 buc";
+      list.innerHTML = `<p class="hint">Eroare la încărcare stoc.</p>`;
     }
   }
 
-  // events
-  search.addEventListener("input", render);
+  if (search) search.addEventListener("input", render);
   if (btnRefresh) btnRefresh.onclick = load;
 
-  // init
   await load();
 }
+
+// helper mic pt XSS-safe text
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 
 
 
@@ -2177,7 +2209,7 @@ window.location.reload();
   };
 }
 const grouped = {};
-async function initInventoryPage() {
+/*async function initInventoryPage() {
   const list = document.getElementById("inventoryList");
   const btnRefresh = document.getElementById("btnRefreshStock");
 
@@ -2354,7 +2386,7 @@ await apiFetch(`/api/stock/${id}`, {
   loadStock();
 }
 
-
+*/
 
 
 
@@ -2894,41 +2926,32 @@ await initPickingOrderPage();
 
 // ================= BOOT =================
 document.addEventListener("DOMContentLoaded", async () => {
+  const isLoginPage = location.pathname.endsWith("login.html");
+  const isRegisterPage = location.pathname.endsWith("register.html");
 
- const isLoginPage = location.pathname.endsWith("login.html");
-const isRegisterPage = location.pathname.endsWith("register.html");
-
-if (isLoginPage) { initLoginPage(); return; }
-if (isRegisterPage) { initRegister(); return; }
-
+  if (isLoginPage) { initLoginPage(); return; }
+  if (isRegisterPage) { initRegister(); return; }
 
   await protectPage();
   await renderUserBar();
 
-  if (document.getElementById("inventoryList")) initInventoryPage();
   if (document.getElementById("stockProduct")) initStockPage();
   if (document.getElementById("clientsTree")) initAddClientPage();
   if (document.getElementById("productsTree")) initOrderPage();
   if (document.getElementById("ordersList")) initOrdersPage();
   if (document.getElementById("productsList")) initCheckPricePage();
   if (document.getElementById("pickingList")) await initPickingOrderPage();
-if (document.getElementById("clientsList")) {
-  await loadClientsAdmin();
-  await initAddClientForm();
-}
-if (document.getElementById("editItemsList")) await initEditOrderPage();
-document.addEventListener("DOMContentLoaded", () => {
-  initStockPage();        // pagina recepție marfă (are stockProduct)
-  initCheckStockPage();   // pagina inventar stoc (checkstock.html)
-  initOrdersPage();       // dacă există la tine
-});
 
+  if (document.getElementById("clientsList")) {
+    await loadClientsAdmin();
+    await initAddClientForm();
+  }
 
-
-
+  if (document.getElementById("inventoryList")) initCheckStockPage(); // ✅ checkstock.html
 
   initViewCurrentOrderButton();
 });
+
 
 
 
