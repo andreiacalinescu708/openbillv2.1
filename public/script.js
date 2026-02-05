@@ -1974,14 +1974,15 @@ async function startScanWithCallback(onScan) {
 }
 
 async function initCheckStockPage() {
-  const list = document.getElementById("inventoryList");
-  if (!list) return; // nu suntem pe pagina checkstock
+  // acceptă ambele variante de id (nou/vechi)
+  const list = document.getElementById("stockList") || document.getElementById("inventoryList");
+  if (!list) return;
 
-  const search = document.getElementById("inventorySearch");
-  const btnRefresh = document.getElementById("btnRefreshStock");
-  const totalBox = document.getElementById("inventoryTotal");
+  const search = document.getElementById("stockSearch") || document.getElementById("inventorySearch");
+  const btnRefresh = document.getElementById("btnRefresh") || document.getElementById("btnRefreshStock");
+  const totalBox = document.getElementById("stockTotal") || document.getElementById("inventoryTotal");
 
-  // map GTIN -> nume produs (din products)
+  // map GTIN normalizat -> nume produs
   async function loadProductsMap() {
     const r = await apiFetch("/api/products-flat");
     const arr = await r.json();
@@ -1989,15 +1990,12 @@ async function initCheckStockPage() {
 
     (Array.isArray(arr) ? arr : []).forEach(p => {
       const name = p.name || "";
-      const gtins = [];
+      const gtins = []
+        .concat(p.gtin ? [p.gtin] : [])
+        .concat(Array.isArray(p.gtins) ? p.gtins : [])
+        .filter(Boolean);
 
-      if (p.gtin) gtins.push(p.gtin);
-      if (Array.isArray(p.gtins)) gtins.push(...p.gtins);
-
-      gtins
-        .map(normalizeGTIN)
-        .filter(Boolean)
-        .forEach(g => (map[g] = name));
+      gtins.map(normalizeGTIN).filter(Boolean).forEach(g => (map[g] = name));
     });
 
     return map;
@@ -2009,7 +2007,7 @@ async function initCheckStockPage() {
   function render() {
     const q = (search?.value || "").toLowerCase().trim();
 
-    // grupăm pe GTIN
+    // grupare pe GTIN
     const grouped = new Map(); // gtin -> { gtin, name, totalQty }
     for (const r of stockRows) {
       const gtin = normalizeGTIN(r.gtin);
@@ -2038,14 +2036,13 @@ async function initCheckStockPage() {
       );
     }
 
-    // sort
+    // sort desc după qty
     items.sort((a, b) => (b.totalQty - a.totalQty) || a.name.localeCompare(b.name, "ro"));
 
-    // total general (din ce afișăm)
+    // total general
     const total = items.reduce((s, it) => s + Number(it.totalQty || 0), 0);
     if (totalBox) totalBox.textContent = `Total: ${total} buc`;
 
-    // render listă
     list.innerHTML = "";
 
     if (!items.length) {
@@ -2053,17 +2050,21 @@ async function initCheckStockPage() {
       return;
     }
 
+    // cards
     for (const it of items) {
       const row = document.createElement("div");
-      row.className = "inventoryItem";
+      row.className = "stockCard"; // (poți stiliza în CSS)
+
+      const low = (typeof LOW_STOCK_LIMIT === "number") && it.totalQty < LOW_STOCK_LIMIT;
 
       row.innerHTML = `
-        <div class="invLeft">
-          <div class="invTitle">${escapeHtml(it.name)}</div>
-          <div class="invSub">GTIN: ${escapeHtml(it.gtin)}</div>
+        <div class="stockLeft">
+          <div class="stockTitle">${escapeHtml(it.name)}</div>
+          <div class="stockSub">${it.totalQty} buc</div>
         </div>
-        <div class="invRight">
-          <span class="qtyBadge">${it.totalQty} buc</span>
+
+        <div class="stockRight">
+          <span class="stockBadge ${low ? "low" : "ok"}">${it.totalQty} buc</span>
         </div>
       `;
 
@@ -2076,14 +2077,13 @@ async function initCheckStockPage() {
     if (totalBox) totalBox.textContent = `Total: 0 buc`;
 
     try {
-      // încărcăm produse și stock în paralel
-      const [map, stockRes] = await Promise.all([
+      const [map, stockArr] = await Promise.all([
         loadProductsMap(),
         apiFetch("/api/stock").then(r => r.json())
       ]);
 
       productsMap = map;
-      stockRows = Array.isArray(stockRes) ? stockRes : [];
+      stockRows = Array.isArray(stockArr) ? stockArr : [];
       render();
     } catch (e) {
       console.error("initCheckStockPage load error:", e);
@@ -2096,6 +2096,7 @@ async function initCheckStockPage() {
 
   await load();
 }
+
 
 // helper mic pt XSS-safe text
 function escapeHtml(s) {
