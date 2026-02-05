@@ -1028,179 +1028,159 @@ async function initOrdersPage() {
   }
 
   // 6) RENDER LIST
-  function render() {
-    const { gFilter, cFilter, sFilter, q } = getFilterState();
-    list.innerHTML = "";
+ function render() {
+  const q = (search?.value || "").toLowerCase().trim();
+  list.innerHTML = "";
 
-    const filtered = orders.filter(o => {
-      const g = getOrderGroup(o);
-      if (gFilter && g !== gFilter) return false;
+  let rows = Array.isArray(stockRows) ? [...stockRows] : [];
 
-      const cat = getOrderCategory(o);
-      if (cFilter && cat !== cFilter) return false;
+  // sort: produs -> exp -> lot
+  rows.sort((a,b) => {
+    const n = String(a.productName||"").localeCompare(String(b.productName||""), "ro");
+    if (n) return n;
+    const e = String(a.expiresAt||"").localeCompare(String(b.expiresAt||""));
+    if (e) return e;
+    return String(a.lot||"").localeCompare(String(b.lot||""));
+  });
 
-      const st = getSafeStatus(o);
-      if (sFilter && st !== sFilter) return false;
+  if (q) {
+    rows = rows.filter(s =>
+      String(s.productName||"").toLowerCase().includes(q) ||
+      String(s.gtin||"").toLowerCase().includes(q) ||
+      String(s.lot||"").toLowerCase().includes(q) ||
+      String(s.expiresAt||"").toLowerCase().includes(q) ||
+      String(s.location||"").toLowerCase().includes(q)
+    );
+  }
 
-      const clientName = String(o?.client?.name || "").toLowerCase();
-      if (q && !clientName.includes(q)) return false;
+  if (!rows.length) {
+    list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
+    return;
+  }
 
-      return true;
-    });
+  rows.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "stockCard";
 
-    if (!filtered.length) {
-      list.innerHTML = "<p class='hint'>Nu există comenzi.</p>";
-      return;
+    const exp = (s.expiresAt || "").slice(0,10);
+
+    card.innerHTML = `
+      <div class="stockTitle">${escapeHtml(s.productName || "-")}</div>
+
+      <div class="stockGrid">
+        <div class="field">
+          <div class="lbl">LOT</div>
+          <input class="inp lot" value="${escapeAttr(s.lot || "")}" disabled>
+        </div>
+
+        <div class="field">
+          <div class="lbl">EXP</div>
+          <input class="inp exp" type="date" value="${escapeAttr(exp)}" disabled>
+        </div>
+
+        <div class="field">
+          <div class="lbl">Cantitate</div>
+          <div class="qtyRow">
+            <input class="inp qty" type="number" min="0" value="${Number(s.qty||0)}" disabled>
+            <span class="unit">buc</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="lbl">Locație</div>
+          <input class="inp loc" value="${escapeAttr(s.location || "A")}" disabled>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btnEdit">Editează</button>
+        <button class="btnSave" style="display:none;">Salvează</button>
+        <button class="btnCancel" style="display:none;">Renunță</button>
+        <div class="status"></div>
+      </div>
+    `;
+
+    const lotEl = card.querySelector(".lot");
+    const expEl = card.querySelector(".exp");
+    const qtyEl = card.querySelector(".qty");
+    const locEl = card.querySelector(".loc");
+
+    const btnEdit = card.querySelector(".btnEdit");
+    const btnSave = card.querySelector(".btnSave");
+    const btnCancel = card.querySelector(".btnCancel");
+    const statusEl = card.querySelector(".status");
+
+    // păstrăm originalele pt Renunță
+    const orig = {
+      lot: lotEl.value,
+      exp: expEl.value,
+      qty: qtyEl.value,
+      loc: locEl.value
+    };
+
+    function setEditMode(on) {
+      lotEl.disabled = !on;
+      expEl.disabled = !on;
+      qtyEl.disabled = !on;
+      locEl.disabled = !on;
+
+      btnEdit.style.display = on ? "none" : "";
+      btnSave.style.display = on ? "" : "none";
+      btnCancel.style.display = on ? "" : "none";
+
+      if (on) setTimeout(() => qtyEl.focus(), 50);
     }
 
-    filtered
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .forEach(o => {
-        if (!o || !Array.isArray(o.items)) {
-          console.warn("Comandă invalidă ignorată:", o);
-          return;
-        }
+    btnEdit.onclick = () => setEditMode(true);
 
-        const card = document.createElement("div");
-        card.className = "orderCard";
+    btnCancel.onclick = () => {
+      lotEl.value = orig.lot;
+      expEl.value = orig.exp;
+      qtyEl.value = orig.qty;
+      locEl.value = orig.loc;
+      statusEl.textContent = "";
+      setEditMode(false);
+    };
 
-        const head = document.createElement("div");
-        head.className = "orderHeader";
-
-        head.innerHTML = `
-          <span>
-            ${o.client.name} (${getOrderGroup(o)}) –
-            ${new Date(o.createdAt).toLocaleDateString("ro-RO")}
-          </span>
-        `;
-
-        const status = getSafeStatus(o);
-
-        const nextStatusMap = {
-          in_procesare: "facturata",
-          facturata: "gata_de_livrare",
-          gata_de_livrare: "livrata",
-          livrata: "in_procesare"
+    btnSave.onclick = async () => {
+      statusEl.textContent = "Salvez...";
+      try {
+        const payload = {
+          lot: String(lotEl.value || "").trim(),
+          expiresAt: String(expEl.value || "").slice(0, 10),
+          qty: Number(qtyEl.value),
+          location: String(locEl.value || "").trim()
         };
 
-        const statusBtn = document.createElement("button");
-        statusBtn.className = `order-status ${status}`;
-        statusBtn.textContent = statusLabels[status] || status;
-
-        statusBtn.onclick = async (e) => {
-          e.stopPropagation();
-
-          const newStatus = nextStatusMap[status] || "in_procesare";
-
-          const r = await fetch(`/api/orders/${o.id}/status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: newStatus })
-          });
-
-          if (!r.ok) {
-            alert("Eroare la schimbare status");
-            return;
-          }
-
-          o.status = newStatus;
-
-          // IMPORTANT: nu schimbăm tab-ul (rămâne filtrul curent)
-          renderTabs();
-          render();
-        };
-
-        head.appendChild(statusBtn);
-
-        // buton modifică doar în procesare
-        if (status === "in_procesare") {
-          const editBtn = document.createElement("button");
-          editBtn.textContent = "✏️ Modifică";
-          editBtn.className = "btnEdit";
-          editBtn.onclick = (e) => {
-            e.stopPropagation();
-            localStorage.setItem("editOrder", JSON.stringify(o));
-            location.href = "editorder.html";
-          };
-          head.appendChild(editBtn);
-        }
-
-        const pickBtn = document.createElement("button");
-        pickBtn.textContent = "📦 Pregătește comanda";
-        pickBtn.className = "btnPick";
-        pickBtn.onclick = (e) => {
-          e.stopPropagation();
-          localStorage.setItem("pickingOrder", JSON.stringify(o));
-          localStorage.removeItem("pickState");
-          location.href = "pickingorder.html";
-        };
-        head.appendChild(pickBtn);
-
-        const body = document.createElement("div");
-        body.className = "orderBody";
-        body.style.display = "none";
-
-        o.items.forEach(i => {
-          const row = document.createElement("div");
-          row.className = `orderItem ${getProductClass(i.name)}`;
-
-       const gtin = i.gtin || "-";
-
-// vrem prețul salvat în comandă (snapshot)
-const unitPrice = (i.unitPrice != null) ? Number(i.unitPrice) : null;
-
-// dacă nu există (comenzi vechi), afișăm 0 și marcăm ca lipsă
-const p = Number.isFinite(unitPrice) ? unitPrice : 0;
-
-const qty = Number(i.qty || 0);
-const subtotal = (i.lineTotal != null && Number.isFinite(Number(i.lineTotal)))
-  ? Number(i.lineTotal)
-  : (p * qty);
-
-
-let html = `
-  <strong>${i.name}</strong> × ${i.qty}
-  <div class="muted small">GTIN: ${gtin}</div>
-<div class="muted small">
-  Preț client: <b>${p.toFixed(2)} RON</b>
-  ${unitPrice == null ? "<span class='muted'>(nesalvat)</span>" : ""}
-</div>
-  <div class="muted small">Subtotal: <b>${subtotal.toFixed(2)} RON</b></div>
-`;
-
-
-
-
-          if (Array.isArray(i.allocations) && i.allocations.length > 0) {
-            html += `<div class="lots">`;
-            i.allocations.forEach(a => {
-              html += `
-                <div class="lot">
-                  LOC: <strong>${a.location || "-"}</strong>
-                  | LOT: ${a.lot}
-                  | EXP: ${a.expiresAt}
-                  | Qty: ${a.qty}
-                </div>
-              `;
-            });
-            html += `</div>`;
-          }
-
-          row.innerHTML = html;
-          body.appendChild(row);
+        const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
 
-        head.addEventListener("click", (e) => {
-  if (e.target.closest("button")) return;
-  body.style.display = (body.style.display === "none") ? "block" : "none";
-});
+        const out = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(out.error || "Eroare la salvare");
 
+        statusEl.textContent = "Salvat ✅";
+        setEditMode(false);
 
-        card.appendChild(head);
-        card.appendChild(body);
-        list.appendChild(card);
-      });
-  }
+        // update local state (ca să nu “sară” la refresh)
+        s.lot = payload.lot;
+        s.expiresAt = payload.expiresAt;
+        s.qty = payload.qty;
+        s.location = payload.location;
+
+        setTimeout(() => (statusEl.textContent = ""), 900);
+      } catch (e) {
+        statusEl.textContent = "Eroare ❌";
+        alert(e.message || "Eroare");
+      }
+    };
+
+    list.appendChild(card);
+  });
+}
+
 
   // 7) SEARCH LIVE
   if (searchInput && searchResults) {

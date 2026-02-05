@@ -1387,61 +1387,80 @@ if (!Number.isFinite(entry.qty) || entry.qty <= 0) {
 });
 
 // UPDATE stock lot
+// UPDATE stock lot
 app.put("/api/stock/:id", async (req, res) => {
   try {
     const id = String(req.params.id);
 
+    const newQty = (req.body.qty != null) ? Number(req.body.qty) : null;
+    const newLoc = (req.body.location != null) ? String(req.body.location).trim() : null;
+    const newLot = (req.body.lot != null) ? String(req.body.lot).trim() : null;
+    const newExp = (req.body.expiresAt != null) ? String(req.body.expiresAt).slice(0, 10) : null;
+
+    // validări simple
+    if (newQty != null && (!Number.isFinite(newQty) || newQty < 0)) {
+      return res.status(400).json({ error: "Cantitate invalidă" });
+    }
+    if (newExp != null && newExp && newExp.length !== 10) {
+      return res.status(400).json({ error: "Data expirării invalidă" });
+    }
+
+    // ===== JSON mode =====
     if (!db.hasDb()) {
       const stock = readJson(STOCK_FILE, []);
       const item = stock.find(s => String(s.id) === id);
       if (!item) return res.status(404).json({ error: "Intrare stoc inexistentă" });
 
-      const beforeQty = item.qty;
-      const beforeLoc = item.location || "A";
+      const before = { qty: item.qty, location: item.location, lot: item.lot, expiresAt: item.expiresAt };
 
-      if (req.body.qty != null) item.qty = Number(req.body.qty);
-      if (req.body.location != null) item.location = String(req.body.location);
+      if (newQty != null) item.qty = newQty;
+      if (newLoc != null) item.location = newLoc;
+      if (newLot != null) item.lot = newLot;
+      if (newExp != null) item.expiresAt = newExp;
 
       writeJson(STOCK_FILE, stock);
 
-await logAudit(req, "STOCK_EDIT", "stock", item.id, {
-        gtin: item.gtin,
-        productName: item.productName,
-        lot: item.lot,
-        beforeQty,
-        afterQty: item.qty,
-        beforeLoc,
-        afterLoc: item.location
-      });
+      await logAudit(req, "STOCK_EDIT", "stock", id, { before, after: item });
 
       return res.json({ ok: true, item });
     }
 
+    // ===== DB mode =====
     const r0 = await db.q(`SELECT * FROM stock WHERE id=$1`, [id]);
     if (!r0.rows.length) return res.status(404).json({ error: "Intrare stoc inexistentă" });
 
     const before = r0.rows[0];
-    const newQty = req.body.qty != null ? Number(req.body.qty) : Number(before.qty);
-    const newLoc = req.body.location != null ? String(req.body.location) : String(before.location || "A");
 
-    await db.q(`UPDATE stock SET qty=$1, location=$2 WHERE id=$3`, [newQty, newLoc, id]);
+    const qtyFinal = (newQty != null) ? newQty : Number(before.qty || 0);
+    const locFinal = (newLoc != null) ? newLoc : String(before.location || "A");
+    const lotFinal = (newLot != null) ? newLot : String(before.lot || "");
+    const expFinal = (newExp != null) ? newExp : (before.expires_at ? String(before.expires_at).slice(0, 10) : "");
 
-   await logAudit(req, "STOCK_EDIT", "stock", id, {
-      gtin: before.gtin,
-      productName: before.product_name,
-      lot: before.lot,
-      beforeQty: Number(before.qty),
-      afterQty: newQty,
-      beforeLoc: before.location,
-      afterLoc: newLoc
+    await db.q(
+      `UPDATE stock
+       SET qty=$1, location=$2, lot=$3, expires_at=$4::date
+       WHERE id=$5`,
+      [qtyFinal, locFinal, lotFinal, expFinal, id]
+    );
+
+    await logAudit(req, "STOCK_EDIT", "stock", id, {
+      before: {
+        qty: Number(before.qty || 0),
+        location: before.location || "A",
+        lot: before.lot || "",
+        expiresAt: before.expires_at ? String(before.expires_at).slice(0, 10) : ""
+      },
+      after: { qty: qtyFinal, location: locFinal, lot: lotFinal, expiresAt: expFinal }
     });
 
-    res.json({ ok: true });
+    return res.json({ ok: true });
   } catch (e) {
     console.error("PUT /api/stock/:id error:", e);
     res.status(500).json({ error: "Eroare DB stock edit" });
   }
 });
+
+
 
 // DELETE stock lot
 app.delete("/api/stock/:id", async (req, res) => {

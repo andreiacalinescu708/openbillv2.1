@@ -133,3 +133,83 @@ h1{
   font-size: 14px;
   color: var(--muted);
 }
+
+.stockCard{
+  background:#fff;
+  border-radius:18px;
+  padding:16px;
+  box-shadow: 0 10px 25px rgba(2,6,23,.08);
+}
+
+.stockTitle{
+  font-size:26px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.stockGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+
+.field .lbl{
+  font-size:12px;
+  color:#64748b;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:6px;
+}
+
+.inp{
+  width:100%;
+  font-size:18px;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+}
+
+.inp:disabled{
+  background:#f8fafc;
+  color:#0f172a;
+}
+
+.qtyRow{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.unit{
+  color:#64748b;
+  font-size:18px;
+}
+
+.actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+
+.actions button{
+  border:0;
+  border-radius:14px;
+  padding:10px 14px;
+  font-size:16px;
+  cursor:pointer;
+  background:#e9effa;
+}
+
+.status{
+  margin-left:auto;
+  color:#64748b;
+  font-size:14px;
+}
+
+@media (max-width:520px){
+  .stockGrid{ grid-template-columns: 1fr; }
+  .status{ width:100%; margin-left:0; }
+}
