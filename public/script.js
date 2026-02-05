@@ -1925,35 +1925,50 @@ async function initCheckStockPage() {
       const card = document.createElement("div");
       card.className = "card";
 
-      card.innerHTML = `
-        <div class="name">${escapeHtml(s.productName || "-")}</div>
+     const exp = (s.expiresAt || "").slice(0,10);
 
-        <div class="row">
-          <div class="field">
-            <div class="label">GTIN</div>
-            <input class="input inp-gtin" value="${escapeAttr(s.gtin || "")}" />
-          </div>
+card.innerHTML = `
+  <div class="stockTitle">${escapeHtml(s.productName || "-")}</div>
 
-          <div class="field">
-            <div class="label">Cantitate</div>
-            <div class="qtyWrap">
-              <input class="input inp-qty" type="number" inputmode="numeric" value="${Number(s.qty||0)}" />
-              <span class="buc">buc</span>
-            </div>
-          </div>
+  <div class="stockGrid">
+    <div class="field">
+      <div class="lbl">LOT</div>
+      <input class="inp lot" value="${escapeAttr(s.lot || "")}" disabled>
+    </div>
 
-          <div class="field">
-            <div class="label">Loc</div>
-            <input class="input inp-loc" value="${escapeAttr(s.location || "A")}" />
-          </div>
+    <div class="field">
+      <div class="lbl">EXP</div>
+      <input class="inp exp" type="date" value="${escapeAttr(exp)}" disabled>
+    </div>
 
-          <div class="status status-${s.id}"></div>
-        </div>
-      `;
+    <div class="field">
+      <div class="lbl">CANTITATE</div>
+      <div class="qtyRow">
+        <input class="inp qty" type="number" min="0" value="${Number(s.qty||0)}" disabled>
+        <span class="unit">buc</span>
+      </div>
+    </div>
 
-      const gtinEl = card.querySelector(".inp-gtin");
-      const qtyEl  = card.querySelector(".inp-qty");
-      const locEl  = card.querySelector(".inp-loc");
+    <div class="field">
+      <div class="lbl">LOC</div>
+      <input class="inp loc" value="${escapeAttr(s.location || "A")}" disabled>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btnEdit">Editează</button>
+    <button class="btnSave" style="display:none;">Salvează</button>
+    <button class="btnCancel" style="display:none;">Renunță</button>
+    <div class="status"></div>
+  </div>
+`;
+
+
+      const lotEl = card.querySelector(".lot");
+const expEl = card.querySelector(".exp");
+const qtyEl = card.querySelector(".qty");
+const locEl = card.querySelector(".loc");
+
       const statusEl = card.querySelector(`.status-${CSS.escape(s.id)}`);
 
       const save = async () => {
@@ -2006,8 +2021,14 @@ function escapeHtml(s) {
     .replaceAll(">","&gt;");
 }
 function escapeAttr(s) {
-  return escapeHtml(s).replaceAll('"', "&quot;");
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
+
 
 
 
