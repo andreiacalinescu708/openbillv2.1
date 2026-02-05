@@ -416,127 +416,7 @@ box.appendChild(b);
   return box;
 }
 
-async function initCheckStockPage() {
-  // ✅ ID-urile reale din checkstock.html
-  const list = document.getElementById("stockList");
-  if (!list) return;
 
-  const search = document.getElementById("stockSearch");
-  const btnRefresh = document.getElementById("btnRefresh");
-  const totalBox = document.getElementById("stockTotal");
-
-  async function loadProductsMap() {
-    const r = await apiFetch("/api/products-flat");
-    const arr = await r.json();
-    const map = {};
-
-    (Array.isArray(arr) ? arr : []).forEach(p => {
-      const name = p.name || "";
-      const gtins = []
-        .concat(p.gtin ? [p.gtin] : [])
-        .concat(Array.isArray(p.gtins) ? p.gtins : [])
-        .filter(Boolean);
-
-      gtins.map(normalizeGTIN).filter(Boolean).forEach(g => (map[g] = name));
-    });
-
-    return map;
-  }
-
-  let stockRows = [];
-  let productsMap = {};
-
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function render() {
-    const q = (search?.value || "").toLowerCase().trim();
-
-    // grupăm pe GTIN
-    const grouped = new Map();
-    for (const r of stockRows) {
-      const gtin = normalizeGTIN(r.gtin);
-      if (!gtin) continue;
-
-      const qty = Number(r.qty || 0);
-      if (!Number.isFinite(qty) || qty <= 0) continue;
-
-      if (!grouped.has(gtin)) {
-        grouped.set(gtin, {
-          gtin,
-          name: productsMap[gtin] || r.productName || r.name || gtin,
-          totalQty: 0
-        });
-      }
-      grouped.get(gtin).totalQty += qty;
-    }
-
-    let items = Array.from(grouped.values());
-
-    if (q) {
-      items = items.filter(it =>
-        String(it.name || "").toLowerCase().includes(q) ||
-        String(it.gtin || "").toLowerCase().includes(q)
-      );
-    }
-
-    items.sort((a, b) => (b.totalQty - a.totalQty) || a.name.localeCompare(b.name, "ro"));
-
-    const total = items.reduce((s, it) => s + Number(it.totalQty || 0), 0);
-    if (totalBox) totalBox.textContent = `Total: ${total} buc`;
-
-    list.innerHTML = "";
-    if (!items.length) {
-      list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
-      return;
-    }
-
-    for (const it of items) {
-      const row = document.createElement("div");
-      row.className = "inventoryItem";
-      row.innerHTML = `
-        <div class="invLeft">
-          <div class="invTitle">${escapeHtml(it.name)}</div>
-          <div class="invSub">GTIN: ${escapeHtml(it.gtin)}</div>
-        </div>
-        <div class="invRight">
-          <span class="qtyBadge">${it.totalQty} buc</span>
-        </div>
-      `;
-      list.appendChild(row);
-    }
-  }
-
-  async function load() {
-    list.innerHTML = `<p class="hint">Se încarcă stocul...</p>`;
-    if (totalBox) totalBox.textContent = `Total: 0 buc`;
-
-    try {
-      const [map, stockRes] = await Promise.all([
-        loadProductsMap(),
-        apiFetch("/api/stock").then(r => r.json())
-      ]);
-
-      productsMap = map;
-      stockRows = Array.isArray(stockRes) ? stockRes : [];
-      render();
-    } catch (e) {
-      console.error("initCheckStockPage load error:", e);
-      list.innerHTML = `<p class="hint">Eroare la încărcare stoc.</p>`;
-    }
-  }
-
-  if (search) search.addEventListener("input", render);
-  if (btnRefresh) btnRefresh.onclick = load;
-
-  await load();
-}
 
 
 
@@ -3005,7 +2885,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await initAddClientForm();
   }
 
-  if (document.getElementById("inventoryList")) initCheckStockPage(); // ✅ checkstock.html
+  if (document.getElementById("inventoryList")) await initCheckStockPage(); // ✅ checkstock.html
 
   initViewCurrentOrderButton();
 });
