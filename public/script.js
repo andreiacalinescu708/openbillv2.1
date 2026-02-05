@@ -1911,128 +1911,124 @@ async function startScanWithCallback(onScan) {
 }
 
 async function initCheckStockPage() {
-  // acceptă ambele variante de id (nou/vechi)
-  const list = document.getElementById("stockList") || document.getElementById("inventoryList");
+  if (!location.pathname.endsWith("checkstock.html")) return;
+
+  const list = document.getElementById("stockList");
+  const inp = document.getElementById("stockSearch");
+  const btn = document.getElementById("btnRefresh");
   if (!list) return;
 
-  const search = document.getElementById("stockSearch") || document.getElementById("inventorySearch");
-  const btnRefresh = document.getElementById("btnRefresh") || document.getElementById("btnRefreshStock");
-  const totalBox = document.getElementById("stockTotal") || document.getElementById("inventoryTotal");
+  let stock = [];
 
-  // map GTIN normalizat -> nume produs
-  async function loadProductsMap() {
-    const r = await apiFetch("/api/products-flat");
-    const arr = await r.json();
-    const map = {};
+  const load = async () => {
+    const r = await apiFetch("/api/stock");
+    stock = await r.json();
 
-    (Array.isArray(arr) ? arr : []).forEach(p => {
-      const name = p.name || "";
-      const gtins = []
-        .concat(p.gtin ? [p.gtin] : [])
-        .concat(Array.isArray(p.gtins) ? p.gtins : [])
-        .filter(Boolean);
+    // sort ca în poză: după productName
+    stock.sort((a,b) => String(a.productName||"").localeCompare(String(b.productName||"")));
+    render(stock);
+  };
 
-      gtins.map(normalizeGTIN).filter(Boolean).forEach(g => (map[g] = name));
-    });
+  const render = (arr) => {
+    const q = (inp?.value || "").trim().toLowerCase();
 
-    return map;
-  }
-
-  let stockRows = [];
-  let productsMap = {};
-
-  function render() {
-    const q = (search?.value || "").toLowerCase().trim();
-
-    // grupare pe GTIN
-    const grouped = new Map(); // gtin -> { gtin, name, totalQty }
-    for (const r of stockRows) {
-      const gtin = normalizeGTIN(r.gtin);
-      if (!gtin) continue;
-
-      const qty = Number(r.qty || 0);
-      if (!Number.isFinite(qty) || qty <= 0) continue;
-
-      if (!grouped.has(gtin)) {
-        grouped.set(gtin, {
-          gtin,
-          name: productsMap[gtin] || r.productName || r.name || gtin,
-          totalQty: 0
-        });
-      }
-      grouped.get(gtin).totalQty += qty;
-    }
-
-    let items = Array.from(grouped.values());
-
-    // search
-    if (q) {
-      items = items.filter(it =>
-        String(it.name || "").toLowerCase().includes(q) ||
-        String(it.gtin || "").toLowerCase().includes(q)
-      );
-    }
-
-    // sort desc după qty
-    items.sort((a, b) => (b.totalQty - a.totalQty) || a.name.localeCompare(b.name, "ro"));
-
-    // total general
-    const total = items.reduce((s, it) => s + Number(it.totalQty || 0), 0);
-    if (totalBox) totalBox.textContent = `Total: ${total} buc`;
+    const filtered = !q
+      ? arr
+      : arr.filter(x =>
+          String(x.productName || "").toLowerCase().includes(q) ||
+          String(x.gtin || "").toLowerCase().includes(q) ||
+          String(x.lot || "").toLowerCase().includes(q)
+        );
 
     list.innerHTML = "";
+    for (const s of filtered) {
+      const card = document.createElement("div");
+      card.className = "card";
 
-    if (!items.length) {
-      list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
-      return;
-    }
+      card.innerHTML = `
+        <div class="name">${escapeHtml(s.productName || "-")}</div>
 
-    // cards
-    for (const it of items) {
-      const row = document.createElement("div");
-      row.className = "stockCard"; // (poți stiliza în CSS)
+        <div class="row">
+          <div class="field">
+            <div class="label">GTIN</div>
+            <input class="input inp-gtin" value="${escapeAttr(s.gtin || "")}" />
+          </div>
 
-      const low = (typeof LOW_STOCK_LIMIT === "number") && it.totalQty < LOW_STOCK_LIMIT;
+          <div class="field">
+            <div class="label">Cantitate</div>
+            <div class="qtyWrap">
+              <input class="input inp-qty" type="number" inputmode="numeric" value="${Number(s.qty||0)}" />
+              <span class="buc">buc</span>
+            </div>
+          </div>
 
-      row.innerHTML = `
-        <div class="stockLeft">
-          <div class="stockTitle">${escapeHtml(it.name)}</div>
-          <div class="stockSub">${it.totalQty} buc</div>
-        </div>
+          <div class="field">
+            <div class="label">Loc</div>
+            <input class="input inp-loc" value="${escapeAttr(s.location || "A")}" />
+          </div>
 
-        <div class="stockRight">
-          <span class="stockBadge ${low ? "low" : "ok"}">${it.totalQty} buc</span>
+          <div class="status status-${s.id}"></div>
         </div>
       `;
 
-      list.appendChild(row);
+      const gtinEl = card.querySelector(".inp-gtin");
+      const qtyEl  = card.querySelector(".inp-qty");
+      const locEl  = card.querySelector(".inp-loc");
+      const statusEl = card.querySelector(`.status-${CSS.escape(s.id)}`);
+
+      const save = async () => {
+        const payload = {
+          gtin: String(gtinEl.value || "").trim(),
+          qty: Number(qtyEl.value),
+          location: String(locEl.value || "").trim(),
+          productName: String(s.productName || "").trim()
+        };
+
+        statusEl.textContent = "Salvez...";
+        try {
+          const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) throw new Error(data.error || "Eroare salvare");
+
+          statusEl.textContent = "Salvat ✅";
+          setTimeout(() => (statusEl.textContent = ""), 800);
+        } catch (e) {
+          statusEl.textContent = "Eroare ❌";
+          alert(e.message || "Eroare");
+        }
+      };
+
+      // autosave când ieși din input
+      gtinEl.addEventListener("blur", save);
+      qtyEl.addEventListener("blur", save);
+      locEl.addEventListener("blur", save);
+
+      list.appendChild(card);
     }
-  }
+  };
 
-  async function load() {
-    list.innerHTML = `<p class="hint">Se încarcă stocul...</p>`;
-    if (totalBox) totalBox.textContent = `Total: 0 buc`;
-
-    try {
-      const [map, stockArr] = await Promise.all([
-        loadProductsMap(),
-        apiFetch("/api/stock").then(r => r.json())
-      ]);
-
-      productsMap = map;
-      stockRows = Array.isArray(stockArr) ? stockArr : [];
-      render();
-    } catch (e) {
-      console.error("initCheckStockPage load error:", e);
-      list.innerHTML = `<p class="hint">Eroare la încărcare stoc.</p>`;
-    }
-  }
-
-  if (search) search.addEventListener("input", render);
-  if (btnRefresh) btnRefresh.onclick = load;
+  if (inp) inp.addEventListener("input", () => render(stock));
+  if (btn) btn.onclick = load;
 
   await load();
 }
+
+// mici utilitare
+function escapeHtml(s) {
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replaceAll('"', "&quot;");
+}
+
 
 
 // helper mic pt XSS-safe text

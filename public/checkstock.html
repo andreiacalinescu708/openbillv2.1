@@ -1,39 +1,27 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Inventar Stoc</title>
   <link rel="stylesheet" href="checkstockhtml.css" />
 </head>
 <body>
-<header class="app-header">
-  <div class="app-left">
-    📦 <strong>Fast Medical Distribution</strong>
-  </div>
-  <button class="btn-back" onclick="history.back()">↩ Înapoi</button>
-</header>
+  <div class="page">
+    <div class="topbar">
+      <button class="back" onclick="location.href='stock.html'">↩ Înapoi</button>
+    </div>
 
-<main class="stock-page">
-  <h1>Inventar Stoc</h1>
+    <h1>Inventar Stoc</h1>
 
-  <div class="stock-toolbar">
-    <input
-      id="stockSearch"
-      placeholder="Caută produs..."
-      type="search"
-    />
-    <button id="btnRefresh">🔄 Refresh</button>
+    <div class="controls">
+      <input id="stockSearch" class="search" type="search" placeholder="Caută produs..." />
+      <button id="btnRefresh" class="refresh">🔄 Refresh</button>
+    </div>
+
+    <div id="stockList" class="list"></div>
   </div>
 
-  <div id="stockList" class="stock-list"></div>
-
-  <div id="stockTotal" class="stock-total">
-    Total: 0 buc
-  </div>
-</main>
-
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
