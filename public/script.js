@@ -416,71 +416,128 @@ box.appendChild(b);
   return box;
 }
 
-async function initCheckPricePage() {
-  const box = document.getElementById("productsList");
-  const search = document.getElementById("productsSearch");
-  if (!box) return;
+async function initCheckStockPage() {
+  // ✅ ID-urile reale din checkstock.html
+  const list = document.getElementById("stockList");
+  if (!list) return;
 
-  const res = await apiFetch("/api/products-flat");
-  const products = await res.json();
+  const search = document.getElementById("stockSearch");
+  const btnRefresh = document.getElementById("btnRefresh");
+  const totalBox = document.getElementById("stockTotal");
 
-  function render(list) {
-    const sorted = [...list].sort((a, b) =>
-      String(a.name).localeCompare(String(b.name), "ro")
-    );
+  async function loadProductsMap() {
+    const r = await apiFetch("/api/products-flat");
+    const arr = await r.json();
+    const map = {};
 
-    box.innerHTML = "";
+    (Array.isArray(arr) ? arr : []).forEach(p => {
+      const name = p.name || "";
+      const gtins = []
+        .concat(p.gtin ? [p.gtin] : [])
+        .concat(Array.isArray(p.gtins) ? p.gtins : [])
+        .filter(Boolean);
 
-    if (!sorted.length) {
-      box.innerHTML = "<p class='hint'>Nu există produse.</p>";
+      gtins.map(normalizeGTIN).filter(Boolean).forEach(g => (map[g] = name));
+    });
+
+    return map;
+  }
+
+  let stockRows = [];
+  let productsMap = {};
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function render() {
+    const q = (search?.value || "").toLowerCase().trim();
+
+    // grupăm pe GTIN
+    const grouped = new Map();
+    for (const r of stockRows) {
+      const gtin = normalizeGTIN(r.gtin);
+      if (!gtin) continue;
+
+      const qty = Number(r.qty || 0);
+      if (!Number.isFinite(qty) || qty <= 0) continue;
+
+      if (!grouped.has(gtin)) {
+        grouped.set(gtin, {
+          gtin,
+          name: productsMap[gtin] || r.productName || r.name || gtin,
+          totalQty: 0
+        });
+      }
+      grouped.get(gtin).totalQty += qty;
+    }
+
+    let items = Array.from(grouped.values());
+
+    if (q) {
+      items = items.filter(it =>
+        String(it.name || "").toLowerCase().includes(q) ||
+        String(it.gtin || "").toLowerCase().includes(q)
+      );
+    }
+
+    items.sort((a, b) => (b.totalQty - a.totalQty) || a.name.localeCompare(b.name, "ro"));
+
+    const total = items.reduce((s, it) => s + Number(it.totalQty || 0), 0);
+    if (totalBox) totalBox.textContent = `Total: ${total} buc`;
+
+    list.innerHTML = "";
+    if (!items.length) {
+      list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
       return;
     }
 
-    const table = document.createElement("table");
-    table.style.width = "100%";
-    table.style.borderCollapse = "collapse";
-
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Produs</th>
-          <th style="text-align:right; padding:10px; border-bottom:1px solid #eee;">Preț listă (RON)</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
-
-    const tbody = table.querySelector("tbody");
-
-    sorted.forEach(p => {
-      const price = Number(p.price || 0);
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td style="padding:10px; border-bottom:1px solid #f3f3f3;">${p.name}</td>
-        <td style="padding:10px; border-bottom:1px solid #f3f3f3; text-align:right;">
-          <strong>${price.toFixed(2)}</strong>
-        </td>
+    for (const it of items) {
+      const row = document.createElement("div");
+      row.className = "inventoryItem";
+      row.innerHTML = `
+        <div class="invLeft">
+          <div class="invTitle">${escapeHtml(it.name)}</div>
+          <div class="invSub">GTIN: ${escapeHtml(it.gtin)}</div>
+        </div>
+        <div class="invRight">
+          <span class="qtyBadge">${it.totalQty} buc</span>
+        </div>
       `;
-      tbody.appendChild(tr);
-    });
-
-    box.appendChild(table);
+      list.appendChild(row);
+    }
   }
 
-  render(products);
+  async function load() {
+    list.innerHTML = `<p class="hint">Se încarcă stocul...</p>`;
+    if (totalBox) totalBox.textContent = `Total: 0 buc`;
 
-  if (search) {
-    search.addEventListener("input", () => {
-      const q = search.value.toLowerCase().trim();
-      if (!q) return render(products);
+    try {
+      const [map, stockRes] = await Promise.all([
+        loadProductsMap(),
+        apiFetch("/api/stock").then(r => r.json())
+      ]);
 
-      render(products.filter(p =>
-        String(p.name || "").toLowerCase().includes(q)
-      ));
-    });
+      productsMap = map;
+      stockRows = Array.isArray(stockRes) ? stockRes : [];
+      render();
+    } catch (e) {
+      console.error("initCheckStockPage load error:", e);
+      list.innerHTML = `<p class="hint">Eroare la încărcare stoc.</p>`;
+    }
   }
+
+  if (search) search.addEventListener("input", render);
+  if (btnRefresh) btnRefresh.onclick = load;
+
+  await load();
 }
+
 
 
 
