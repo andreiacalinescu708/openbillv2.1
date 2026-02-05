@@ -2885,7 +2885,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await initAddClientForm();
   }
 
-  if (document.getElementById("inventoryList")) await initCheckStockPage(); // ✅ checkstock.html
+if (document.getElementById("stockList")) await initCheckStockPage(); // ✅ checkstock.html
 
   initViewCurrentOrderButton();
 });

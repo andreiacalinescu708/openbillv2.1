@@ -733,43 +733,43 @@ res.json(sorted);
 
 
 
-app.get("/api/products-flat", (req, res) => {
-  const data = readJson(PRODUCTS_FILE, []);
-
-  // dacă e listă, returneaz-o direct (cu path fallback)
-  if (Array.isArray(data)) {
-    return res.json(
-      data.map(p => ({
-        ...p,
-        id: String(p.id),
-        path: p.path && String(p.path).trim()
-          ? p.path
-          : `Produse / ${p.category || "Altele"}`
-      }))
-    );
-  }
-
-  // altfel, e vechiul tree
-  const flat = flattenProductsTree(data);
-  res.json(flat);
-});
-// ----- API PRODUCTS (flat) -----
 app.get("/api/products-flat", async (req, res) => {
   try {
     // DB mode
     if (db.hasDb()) {
-      const r = await db.q(`SELECT id, name FROM products ORDER BY name ASC`);
-      return res.json(r.rows.map(x => ({ id: String(x.id), name: x.name })));
+      const r = await db.q(`
+        SELECT id, name, gtin, gtins, category, price
+        FROM products
+        ORDER BY name ASC
+      `);
+
+      return res.json(r.rows.map(p => ({
+        id: String(p.id),
+        name: p.name,
+        gtin: p.gtin || "",
+        gtins: Array.isArray(p.gtins) ? p.gtins : [],
+        category: p.category || "Altele",
+        price: (p.price != null ? Number(p.price) : null),
+        path: `Produse / ${p.category || "Altele"}`
+      })));
     }
 
-    // fallback JSON
-    const list = readProductsAsList(); // deja există în server.js
-    return res.json(list.map(p => ({ id: String(p.id), name: p.name })));
+    // JSON fallback
+    const list = readProductsAsList();
+    return res.json(list.map(p => ({
+      ...p,
+      id: String(p.id),
+      gtins: Array.isArray(p.gtins) ? p.gtins : (p.gtin ? [p.gtin] : []),
+      path: p.path && String(p.path).trim()
+        ? p.path
+        : `Produse / ${p.category || "Altele"}`
+    })));
   } catch (e) {
     console.error("products-flat error:", e);
     res.status(500).json({ error: "Eroare la produse" });
   }
 });
+
 
 
 
