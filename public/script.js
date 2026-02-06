@@ -129,7 +129,8 @@ async function renderUserBar() {
 
 
 
-let stockMap = {};
+var stockMap = stockMap || {};
+
 const LOW_STOCK_LIMIT = 30;
 
 
