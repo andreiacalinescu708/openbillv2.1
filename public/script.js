@@ -1471,11 +1471,79 @@ function resolvePrice(it) {
   return total;
 }
 
-function renderTotal() {
-  if (!totalEl) return;
-  const t = calcTotal();
-  totalEl.textContent = `${t.toFixed(2)} RON`;
-}
+function render() {
+  const { gFilter, cFilter, sFilter, q } = getFilterState();
+  list.innerHTML = "";
+
+  // filtrăm comenzi
+  let filtered = Array.isArray(orders) ? [...orders] : [];
+
+  if (gFilter) filtered = filtered.filter(o => getOrderGroup(o) === gFilter);
+  if (cFilter) filtered = filtered.filter(o => getOrderCategory(o) === cFilter);
+  if (sFilter) filtered = filtered.filter(o => getSafeStatus(o) === sFilter);
+
+  if (q) {
+    filtered = filtered.filter(o => {
+      const clientName = String(o?.client?.name || "").toLowerCase();
+      return clientName.includes(q);
+    });
+  }
+
+  if (!filtered.length) {
+    list.innerHTML = `<p class="hint">Nu există comenzi.</p>`;
+    return;
+  }
+
+  filtered.forEach(o => {
+    const card = document.createElement("div");
+    card.className = "orderCard";
+
+    const clientName = o?.client?.name || "-";
+    const status = getSafeStatus(o);
+    const dt = o.createdAt ? new Date(o.createdAt).toLocaleString("ro-RO") : "-";
+
+    const items = Array.isArray(o.items) ? o.items : [];
+    const total = items.reduce((s, it) => {
+      const price = Number(it.unitPrice ?? it.price ?? 0);
+      const qty = Number(it.qty || 0);
+      return s + price * qty;
+    }, 0);
+
+    card.innerHTML = `
+      <div class="orderTop">
+        <div class="orderClient">${escapeHtml(clientName)}</div>
+        <div class="orderStatus">${escapeHtml(statusLabels[status] || status)}</div>
+      </div>
+
+      <div class="orderMeta">
+        <div>📅 ${escapeHtml(dt)}</div>
+        <div>🧾 ${items.length} produse</div>
+        <div><b>${total.toFixed(2)} RON</b></div>
+      </div>
+
+      <div class="orderActions">
+        <button class="btnOpen">Deschide</button>
+        <button class="btnPick">Picking</button>
+      </div>
+    `;
+
+    // Deschide (ex: edit)
+    card.querySelector(".btnOpen").onclick = () => {
+      localStorage.setItem("editOrder", JSON.stringify(o));
+      location.href = "editorder.html"; // dacă așa ai pagina
+    };
+
+    // Picking
+    card.querySelector(".btnPick").onclick = () => {
+      localStorage.setItem("pickingOrder", JSON.stringify(o));
+      location.href = "pickingorder.html"; // dacă așa ai pagina
+    };
+
+    list.appendChild(card);
+  });
+
+  // update badges (opțion
+
 
 
   function renderMeta() {
@@ -2520,6 +2588,57 @@ function savePickState() {
   localStorage.setItem("pickState", JSON.stringify(pickState || {}));
 }
 
+
+async function initCheckPricePage() {
+  if (!location.pathname.endsWith("checkprice.html")) return;
+
+  const list = document.getElementById("productsList");
+  const inp = document.getElementById("searchProduct") || document.getElementById("stockSearch");
+  if (!list) return;
+
+  const res = await apiFetch("/api/products-flat");
+  const products = await res.json().catch(() => []);
+
+  function render() {
+    const q = String(inp?.value || "").toLowerCase().trim();
+    list.innerHTML = "";
+
+    let arr = Array.isArray(products) ? [...products] : [];
+    if (q) {
+      arr = arr.filter(p =>
+        String(p.name || "").toLowerCase().includes(q) ||
+        String(p.category || "").toLowerCase().includes(q) ||
+        String(p.path || "").toLowerCase().includes(q) ||
+        String(p.gtin || "").toLowerCase().includes(q) ||
+        (Array.isArray(p.gtins) && p.gtins.join(" ").toLowerCase().includes(q))
+      );
+    }
+
+    if (!arr.length) {
+      list.innerHTML = `<p class="hint">Nu există produse.</p>`;
+      return;
+    }
+
+    arr.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "prodCard";
+
+      const price = Number(p.price || 0);
+
+      card.innerHTML = `
+        <div class="prodTitle">${escapeHtml(p.name || "-")}</div>
+        <div class="prodMeta">${escapeHtml(p.category || p.path || "")}</div>
+        <div class="prodPrice"><b>${price.toFixed(2)} RON</b></div>
+      `;
+
+      list.appendChild(card);
+    });
+  }
+
+  if (inp) inp.addEventListener("input", render);
+  render();
+}
+
 // ===== PICK MODAL STATE =====
 let pickModalState = null;
 
@@ -2964,6 +3083,4 @@ if (document.getElementById("stockList")) await initCheckStockPage(); // ✅ che
   initViewCurrentOrderButton();
 });
 
-
-
-
+}
