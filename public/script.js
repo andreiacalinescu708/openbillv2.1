@@ -1118,18 +1118,20 @@ async function initOrdersPage() {
       loc: locEl.value
     };
 
-    function setEditMode(on) {
-      lotEl.disabled = !on;
-      expEl.disabled = !on;
-      qtyEl.disabled = !on;
-      locEl.disabled = !on;
+   function setEditMode(on) {
+  lotEl.disabled = !on;
+  expEl.disabled = !on;
+  qtyEl.disabled = !on;
+  locEl.disabled = !on;
 
-      btnEdit.style.display = on ? "none" : "";
-      btnSave.style.display = on ? "" : "none";
-      btnCancel.style.display = on ? "" : "none";
+  // IMPORTANT: forțează peste CSS (chiar și dacă ai display:none !important)
+  btnEdit.style.setProperty("display", on ? "none" : "inline-flex", "important");
+  btnSave.style.setProperty("display", on ? "inline-flex" : "none", "important");
+  btnCancel.style.setProperty("display", on ? "inline-flex" : "none", "important");
 
-      if (on) setTimeout(() => qtyEl.focus(), 50);
-    }
+  if (!on) statusEl.textContent = "";
+}
+
 
     btnEdit.onclick = () => setEditMode(true);
 
