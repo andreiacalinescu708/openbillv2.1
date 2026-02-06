@@ -1909,176 +1909,178 @@ async function initCheckStockPage() {
     render(stock);
   };
 
-  const render = (arr) => {
-    const q = (inp?.value || "").trim().toLowerCase();
+ const render = (arr) => {
+  const q = (inp?.value || "").trim().toLowerCase();
 
-    const filtered = !q
-      ? arr
-      : arr.filter(x =>
-          String(x.productName || "").toLowerCase().includes(q) ||
-          String(x.gtin || "").toLowerCase().includes(q) ||
-          String(x.lot || "").toLowerCase().includes(q)
-        );
+  // filtrare
+  const filtered = !q
+    ? arr
+    : arr.filter(x =>
+        String(x.productName || "").toLowerCase().includes(q) ||
+        String(x.lot || "").toLowerCase().includes(q) ||
+        String(x.location || "").toLowerCase().includes(q)
+      );
 
-    list.innerHTML = "";
-    for (const s of filtered) {
-      const card = document.createElement("div");
-      card.className = "card";
+  list.innerHTML = "";
 
-     const exp = (s.expiresAt || "").slice(0,10);
+  if (!filtered.length) {
+    list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
+    return;
+  }
 
-card.innerHTML = `
-  <div class="stockTitle">${escapeHtml(s.productName || "-")}</div>
+  // helper: convertim orice dată la YYYY-MM-DD (pt input type=date)
+  const toISODate = (v) => {
+    const s = String(v || "").trim();
+    if (!s) return "";
 
-  <div class="stockGrid">
-    <div class="field">
-      <div class="lbl">LOT</div>
-      <input class="inp lot" value="${escapeAttr(s.lot || "")}" disabled>
-    </div>
+    // deja ISO
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-    <div class="field">
-      <div class="lbl">EXP</div>
-      <input class="inp exp" type="date" value="${escapeAttr(exp)}" disabled>
-    </div>
+    // MM/DD/YYYY sau M/D/YYYY
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+      const mm = m[1].padStart(2, "0");
+      const dd = m[2].padStart(2, "0");
+      const yy = m[3];
+      return `${yy}-${mm}-${dd}`;
+    }
 
-    <div class="field">
-      <div class="lbl">CANTITATE</div>
-      <div class="qtyRow">
-        <input class="inp qty" type="number" min="0" value="${Number(s.qty||0)}" disabled>
-        <span class="unit">buc</span>
+    // dacă e "YYYY-MM-DDTHH..." -> luăm primele 10
+    if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
+    return "";
+  };
+
+  filtered.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "stockCard";
+
+    const expISO = toISODate(s.expiresAt);
+
+    card.innerHTML = `
+      <div class="stockTitle">${escapeHtml(s.productName || "-")}</div>
+
+      <div class="stockGrid">
+        <div class="field">
+          <div class="lbl">LOT</div>
+          <input class="inp lot" value="${escapeAttr(s.lot || "")}" disabled>
+        </div>
+
+        <div class="field">
+          <div class="lbl">EXP</div>
+          <input class="inp exp" type="date" value="${escapeAttr(expISO)}" disabled>
+        </div>
+
+        <div class="field">
+          <div class="lbl">CANTITATE</div>
+          <div class="qtyRow">
+            <input class="inp qty" type="number" min="0" value="${Number(s.qty || 0)}" disabled>
+            <span class="unit">buc</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="lbl">LOC</div>
+          <input class="inp loc" value="${escapeAttr(s.location || "A")}" disabled>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <div class="lbl">LOC</div>
-      <input class="inp loc" value="${escapeAttr(s.location || "A")}" disabled>
-    </div>
-  </div>
+      <div class="actions">
+        <button class="btnEdit" type="button">Editează</button>
+        <button class="btnSave" type="button" style="display:none;">Salvează</button>
+        <button class="btnCancel" type="button" style="display:none;">Renunță</button>
+        <div class="status"></div>
+      </div>
+    `;
 
-  <div class="actions">
-    <button class="btnEdit">Editează</button>
-    <button class="btnSave" style="display:none;">Salvează</button>
-    <button class="btnCancel" style="display:none;">Renunță</button>
-    <div class="status"></div>
-  </div>
-`;
+    const lotEl = card.querySelector(".lot");
+    const expEl = card.querySelector(".exp");
+    const qtyEl = card.querySelector(".qty");
+    const locEl = card.querySelector(".loc");
 
-const lotEl = card.querySelector(".lot");
-const expEl = card.querySelector(".exp");
-const qtyEl = card.querySelector(".qty");
-const locEl = card.querySelector(".loc");
+    const btnEdit = card.querySelector(".btnEdit");
+    const btnSave = card.querySelector(".btnSave");
+    const btnCancel = card.querySelector(".btnCancel");
+    const statusEl = card.querySelector(".status");
 
-const btnEdit = card.querySelector(".btnEdit");
-const btnSave = card.querySelector(".btnSave");
-const btnCancel = card.querySelector(".btnCancel");
-const statusEl = card.querySelector(".status");
-
-// salvăm valorile originale (pt Renunță)
-const orig = {
-  lot: lotEl.value,
-  exp: expEl.value,
-  qty: qtyEl.value,
-  loc: locEl.value
-};
-
-function setEditMode(on) {
-  lotEl.disabled = !on;
-  expEl.disabled = !on;
-  qtyEl.disabled = !on;
-  locEl.disabled = !on;
-
-  btnEdit.style.display = on ? "none" : "";
-  btnSave.style.display = on ? "" : "none";
-  btnCancel.style.display = on ? "" : "none";
-
-  statusEl.textContent = "";
-}
-
-btnEdit.onclick = () => setEditMode(true);
-
-btnCancel.onclick = () => {
-  lotEl.value = orig.lot;
-  expEl.value = orig.exp;
-  qtyEl.value = orig.qty;
-  locEl.value = orig.loc;
-  setEditMode(false);
-};
-
-btnSave.onclick = async () => {
-  statusEl.textContent = "Salvez...";
-  try {
-    const payload = {
-      lot: String(lotEl.value || "").trim(),
-      expiresAt: String(expEl.value || "").slice(0, 10),
-      qty: Number(qtyEl.value),
-      location: String(locEl.value || "").trim()
+    // original pt Renunță
+    const orig = {
+      lot: lotEl.value,
+      exp: expEl.value,
+      qty: qtyEl.value,
+      loc: locEl.value
     };
 
-    const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    function setEditMode(on) {
+      lotEl.disabled = !on;
+      expEl.disabled = !on;
+      qtyEl.disabled = !on;
+      locEl.disabled = !on;
 
-    const out = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(out.error || "Eroare salvare");
+      btnEdit.style.display = on ? "none" : "";
+      btnSave.style.display = on ? "" : "none";
+      btnCancel.style.display = on ? "" : "none";
 
-    // update local (ca să nu revină la vechi până la refresh)
-    s.lot = payload.lot;
-    s.expiresAt = payload.expiresAt;
-    s.qty = payload.qty;
-    s.location = payload.location;
+      if (!on) statusEl.textContent = "";
+    }
 
-    // update orig (după salvare)
-    orig.lot = payload.lot;
-    orig.exp = payload.expiresAt;
-    orig.qty = String(payload.qty);
-    orig.loc = payload.location;
+    btnEdit.onclick = () => setEditMode(true);
 
-    statusEl.textContent = "Salvat ✅";
-    setTimeout(() => (statusEl.textContent = ""), 900);
-    setEditMode(false);
-  } catch (e) {
-    statusEl.textContent = "Eroare ❌";
-    alert(e.message || "Eroare");
-  }
-};
+    btnCancel.onclick = () => {
+      lotEl.value = orig.lot;
+      expEl.value = orig.exp;
+      qtyEl.value = orig.qty;
+      locEl.value = orig.loc;
+      setEditMode(false);
+    };
 
-// inițial: read-only
-setEditMode(false);
-
-      const save = async () => {
+    btnSave.onclick = async () => {
+      statusEl.textContent = "Salvez...";
+      try {
         const payload = {
-          gtin: String(gtinEl.value || "").trim(),
+          lot: String(lotEl.value || "").trim(),
+          expiresAt: String(expEl.value || "").slice(0, 10),
           qty: Number(qtyEl.value),
-          location: String(locEl.value || "").trim(),
-          productName: String(s.productName || "").trim()
+          location: String(locEl.value || "").trim()
         };
 
-        statusEl.textContent = "Salvez...";
-        try {
-          const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
+        const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-          const data = await resp.json().catch(() => ({}));
-          if (!resp.ok) throw new Error(data.error || "Eroare salvare");
+        const out = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(out.error || "Eroare la salvare");
 
-          statusEl.textContent = "Salvat ✅";
-          setTimeout(() => (statusEl.textContent = ""), 800);
-        } catch (e) {
-          statusEl.textContent = "Eroare ❌";
-          alert(e.message || "Eroare");
-        }
-      };
+        // actualizăm local + orig
+        s.lot = payload.lot;
+        s.expiresAt = payload.expiresAt;
+        s.qty = payload.qty;
+        s.location = payload.location;
 
-     
+        orig.lot = payload.lot;
+        orig.exp = payload.expiresAt;
+        orig.qty = String(payload.qty);
+        orig.loc = payload.location;
 
-      list.appendChild(card);
-    }
-  };
+        statusEl.textContent = "Salvat ✅";
+        setTimeout(() => (statusEl.textContent = ""), 900);
+
+        setEditMode(false);
+      } catch (e) {
+        statusEl.textContent = "Eroare ❌";
+        alert(e.message || "Eroare");
+      }
+    };
+
+    // start read-only
+    setEditMode(false);
+
+    list.appendChild(card);
+  });
+};
+
 
   if (inp) inp.addEventListener("input", () => render(stock));
   if (btn) btn.onclick = load;
