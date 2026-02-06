@@ -1031,6 +1031,10 @@ async function initOrdersPage() {
   }
 
   // 6) RENDER LIST
+
+  // 6) RENDER LIST
+
+
  
 
 
@@ -1321,6 +1325,11 @@ function resolvePrice(it) {
   }
   return total;
 }
+function renderTotal() {
+  if (!totalEl) return;
+  totalEl.textContent = `${calcTotal().toFixed(2)} RON`;
+}
+
 
 
 function render() {
