@@ -1732,7 +1732,7 @@ price: Number(p.price || 0)
   renderProductResults("");
 }
 
-
+}
 
 
 let scanStream = null;
@@ -3079,9 +3079,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await initAddClientForm();
   }
 
-if (document.getElementById("stockList")) await initCheckStockPage(); // ✅ checkstock.html
+  if (document.getElementById("stockList")) await initCheckStockPage();
 
   initViewCurrentOrderButton();
 });
 
-}
