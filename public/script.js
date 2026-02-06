@@ -131,7 +131,9 @@ async function renderUserBar() {
 
 var stockMap = stockMap || {};
 
-const LOW_STOCK_LIMIT = 30;
+// ✅ safe dacă script.js e încărcat accidental de 2 ori
+window.LOW_STOCK_LIMIT = window.LOW_STOCK_LIMIT || 30;
+var LOW_STOCK_LIMIT = window.LOW_STOCK_LIMIT;
 
 
 // ================= STORAGE =================
