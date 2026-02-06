@@ -1963,13 +1963,89 @@ card.innerHTML = `
   </div>
 `;
 
-
-      const lotEl = card.querySelector(".lot");
+const lotEl = card.querySelector(".lot");
 const expEl = card.querySelector(".exp");
 const qtyEl = card.querySelector(".qty");
 const locEl = card.querySelector(".loc");
 
-      const statusEl = card.querySelector(`.status-${CSS.escape(s.id)}`);
+const btnEdit = card.querySelector(".btnEdit");
+const btnSave = card.querySelector(".btnSave");
+const btnCancel = card.querySelector(".btnCancel");
+const statusEl = card.querySelector(".status");
+
+// salvăm valorile originale (pt Renunță)
+const orig = {
+  lot: lotEl.value,
+  exp: expEl.value,
+  qty: qtyEl.value,
+  loc: locEl.value
+};
+
+function setEditMode(on) {
+  lotEl.disabled = !on;
+  expEl.disabled = !on;
+  qtyEl.disabled = !on;
+  locEl.disabled = !on;
+
+  btnEdit.style.display = on ? "none" : "";
+  btnSave.style.display = on ? "" : "none";
+  btnCancel.style.display = on ? "" : "none";
+
+  statusEl.textContent = "";
+}
+
+btnEdit.onclick = () => setEditMode(true);
+
+btnCancel.onclick = () => {
+  lotEl.value = orig.lot;
+  expEl.value = orig.exp;
+  qtyEl.value = orig.qty;
+  locEl.value = orig.loc;
+  setEditMode(false);
+};
+
+btnSave.onclick = async () => {
+  statusEl.textContent = "Salvez...";
+  try {
+    const payload = {
+      lot: String(lotEl.value || "").trim(),
+      expiresAt: String(expEl.value || "").slice(0, 10),
+      qty: Number(qtyEl.value),
+      location: String(locEl.value || "").trim()
+    };
+
+    const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const out = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(out.error || "Eroare salvare");
+
+    // update local (ca să nu revină la vechi până la refresh)
+    s.lot = payload.lot;
+    s.expiresAt = payload.expiresAt;
+    s.qty = payload.qty;
+    s.location = payload.location;
+
+    // update orig (după salvare)
+    orig.lot = payload.lot;
+    orig.exp = payload.expiresAt;
+    orig.qty = String(payload.qty);
+    orig.loc = payload.location;
+
+    statusEl.textContent = "Salvat ✅";
+    setTimeout(() => (statusEl.textContent = ""), 900);
+    setEditMode(false);
+  } catch (e) {
+    statusEl.textContent = "Eroare ❌";
+    alert(e.message || "Eroare");
+  }
+};
+
+// inițial: read-only
+setEditMode(false);
 
       const save = async () => {
         const payload = {
@@ -1998,10 +2074,7 @@ const locEl = card.querySelector(".loc");
         }
       };
 
-      // autosave când ieși din input
-      gtinEl.addEventListener("blur", save);
-      qtyEl.addEventListener("blur", save);
-      locEl.addEventListener("blur", save);
+     
 
       list.appendChild(card);
     }
