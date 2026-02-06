@@ -1031,160 +1031,8 @@ async function initOrdersPage() {
   }
 
   // 6) RENDER LIST
- function render() {
-  const q = (search?.value || "").toLowerCase().trim();
-  list.innerHTML = "";
+ 
 
-  let rows = Array.isArray(stockRows) ? [...stockRows] : [];
-
-  // sort: produs -> exp -> lot
-  rows.sort((a,b) => {
-    const n = String(a.productName||"").localeCompare(String(b.productName||""), "ro");
-    if (n) return n;
-    const e = String(a.expiresAt||"").localeCompare(String(b.expiresAt||""));
-    if (e) return e;
-    return String(a.lot||"").localeCompare(String(b.lot||""));
-  });
-
-  if (q) {
-    rows = rows.filter(s =>
-      String(s.productName||"").toLowerCase().includes(q) ||
-      String(s.gtin||"").toLowerCase().includes(q) ||
-      String(s.lot||"").toLowerCase().includes(q) ||
-      String(s.expiresAt||"").toLowerCase().includes(q) ||
-      String(s.location||"").toLowerCase().includes(q)
-    );
-  }
-
-  if (!rows.length) {
-    list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
-    return;
-  }
-
-  rows.forEach(s => {
-    const card = document.createElement("div");
-    card.className = "stockCard";
-
-    const exp = (s.expiresAt || "").slice(0,10);
-
-    card.innerHTML = `
-      <div class="stockTitle">${escapeHtml(s.productName || "-")}</div>
-
-      <div class="stockGrid">
-        <div class="field">
-          <div class="lbl">LOT</div>
-          <input class="inp lot" value="${escapeAttr(s.lot || "")}" disabled>
-        </div>
-
-        <div class="field">
-          <div class="lbl">EXP</div>
-          <input class="inp exp" type="date" value="${escapeAttr(exp)}" disabled>
-        </div>
-
-        <div class="field">
-          <div class="lbl">Cantitate</div>
-          <div class="qtyRow">
-            <input class="inp qty" type="number" min="0" value="${Number(s.qty||0)}" disabled>
-            <span class="unit">buc</span>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="lbl">Locație</div>
-          <input class="inp loc" value="${escapeAttr(s.location || "A")}" disabled>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btnEdit">Editează</button>
-        <button class="btnSave" style="display:none;">Salvează</button>
-        <button class="btnCancel" style="display:none;">Renunță</button>
-        <div class="status"></div>
-      </div>
-    `;
-
-    const lotEl = card.querySelector(".lot");
-    const expEl = card.querySelector(".exp");
-    const qtyEl = card.querySelector(".qty");
-    const locEl = card.querySelector(".loc");
-
-    const btnEdit = card.querySelector(".btnEdit");
-    const btnSave = card.querySelector(".btnSave");
-    const btnCancel = card.querySelector(".btnCancel");
-    const statusEl = card.querySelector(".status");
-
-    // păstrăm originalele pt Renunță
-    const orig = {
-      lot: lotEl.value,
-      exp: expEl.value,
-      qty: qtyEl.value,
-      loc: locEl.value
-    };
-
-   function setEditMode(on) {
-  lotEl.disabled = !on;
-  expEl.disabled = !on;
-  qtyEl.disabled = !on;
-  locEl.disabled = !on;
-
-  // IMPORTANT: forțează peste CSS (chiar și dacă ai display:none !important)
-  btnEdit.style.setProperty("display", on ? "none" : "inline-flex", "important");
-  btnSave.style.setProperty("display", on ? "inline-flex" : "none", "important");
-  btnCancel.style.setProperty("display", on ? "inline-flex" : "none", "important");
-
-  if (!on) statusEl.textContent = "";
-}
-
-
-    btnEdit.onclick = () => setEditMode(true);
-
-    btnCancel.onclick = () => {
-      lotEl.value = orig.lot;
-      expEl.value = orig.exp;
-      qtyEl.value = orig.qty;
-      locEl.value = orig.loc;
-      statusEl.textContent = "";
-      setEditMode(false);
-    };
-
-    btnSave.onclick = async () => {
-      statusEl.textContent = "Salvez...";
-      try {
-        const payload = {
-          lot: String(lotEl.value || "").trim(),
-          expiresAt: String(expEl.value || "").slice(0, 10),
-          qty: Number(qtyEl.value),
-          location: String(locEl.value || "").trim()
-        };
-
-        const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        const out = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(out.error || "Eroare la salvare");
-
-        statusEl.textContent = "Salvat ✅";
-        setEditMode(false);
-
-        // update local state (ca să nu “sară” la refresh)
-        s.lot = payload.lot;
-        s.expiresAt = payload.expiresAt;
-        s.qty = payload.qty;
-        s.location = payload.location;
-
-        setTimeout(() => (statusEl.textContent = ""), 900);
-      } catch (e) {
-        statusEl.textContent = "Eroare ❌";
-        alert(e.message || "Eroare");
-      }
-    };
-
-    list.appendChild(card);
-  });
-}
 
 
   // 7) SEARCH LIVE
@@ -1474,6 +1322,7 @@ function resolvePrice(it) {
   return total;
 }
 
+
 function render() {
   const { gFilter, cFilter, sFilter, q } = getFilterState();
   list.innerHTML = "";
@@ -1544,6 +1393,7 @@ function render() {
 
     list.appendChild(card);
   });
+}
 
   // update badges (opțion
 
@@ -1734,7 +1584,7 @@ price: Number(p.price || 0)
   renderProductResults("");
 }
 
-}
+
 
 
 let scanStream = null;
