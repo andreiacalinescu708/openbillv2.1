@@ -1,27 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
   <title>Inventar Stoc</title>
-  <link rel="stylesheet" href="checkstockhtml.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page">
-    <div class="topbar">
-      <button class="back" onclick="location.href='stock.html'">↩ Înapoi</button>
-    </div>
 
-    <h1>Inventar Stoc</h1>
+<header class="topbar">
+  <button onclick="location.href='index.html'">⬅ Înapoi</button>
+  <h2 style="flex:1; text-align:center;">📦 Inventar Stoc</h2>
+  <button id="btnRefreshStock">🔄 Refresh</button>
+</header>
 
-    <div class="controls">
-      <input id="stockSearch" class="search" type="search" placeholder="Caută produs..." />
-      <button id="btnRefresh" class="refresh">🔄 Refresh</button>
-    </div>
+<main class="container">
+  <div id="inventoryList" class="inventory-list"></div>
+</main>
 
-    <div id="stockList" class="list"></div>
-  </div>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
