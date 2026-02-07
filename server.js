@@ -77,7 +77,6 @@ async function seedClientsFromFileIfEmpty() {
 
 
 
-
 function readJson(filePath, fallback) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
@@ -233,40 +232,6 @@ out.push({
   return out;
 }
 
-function buildProductsTreeFromDbRows(rows) {
-  const tree = {};
-
-  rows.forEach(p => {
-    const cat = String(p.category || "Altele").trim() || "Altele";
-    if (!tree[cat]) tree[cat] = [];
-    tree[cat].push({ name: p.name });
-  });
-
-  // sortăm produsele în fiecare categorie
-  Object.keys(tree).forEach(cat => {
-    tree[cat].sort((a, b) => String(a.name).localeCompare(String(b.name), "ro"));
-  });
-
-  return tree;
-}
-
-function toProductFlat(row) {
-  const gtins = Array.isArray(row.gtins) ? row.gtins : (row.gtins ? row.gtins : []);
-  const primary = row.gtin || (gtins[0] || "");
-
-  const category = String(row.category || "");
-  return {
-    id: row.id,
-    name: row.name,
-    gtin: primary,
-    gtins: gtins,
-    price: Number(row.price || 0),
-    category,
-    path: category || "Altele"
-  };
-}
-
-
 
 const LOCATION_ORDER = ["A", "B", "C", "R1", "R2", "R3"];
 
@@ -295,46 +260,6 @@ function normalizeGTIN(gtin) {
   if (g.length === 14 && g.startsWith("0")) g = g.slice(1);
   return g;
 }
-
-async function getClientPricesFromDB(client) {
-  // client poate avea id sau doar name
-  const cid = client?.id ? String(client.id) : null;
-  const cname = client?.name ? String(client.name) : null;
-
-  if (!db.hasDb()) return {};
-
-  try {
-    let r;
-    if (cid) {
-      r = await db.q(`SELECT prices FROM clients WHERE id=$1 LIMIT 1`, [cid]);
-    } else if (cname) {
-      r = await db.q(`SELECT prices FROM clients WHERE name=$1 LIMIT 1`, [cname]);
-    } else {
-      return {};
-    }
-    return r.rows?.[0]?.prices || {};
-  } catch {
-    return {};
-  }
-}
-
-// suportă chei pe productId SAU pe GTIN
-function resolveClientPrice(prices, it) {
-  const pid = it?.id != null ? String(it.id) : "";
-  const gtin = normalizeGTIN(it?.gtin);
-
-  // 1) productId
-  if (pid && prices && prices[pid] != null) return Number(prices[pid]);
-
-  // 2) gtin
-  if (gtin && prices && prices[gtin] != null) return Number(prices[gtin]);
-
-  // 3) fallback pe ce vine din frontend / produs
-  if (it?.price != null) return Number(it.price);
-
-  return 0;
-}
-
 
 
 function allocateStockByLocation(stock, gtin, neededQty) {
@@ -387,9 +312,11 @@ function allocateFromSpecificLot(stock, gtin, lot, neededQty) {
       String(s.lot || "").trim() === lotStr &&
       Number(s.qty) > 0
     )
-           .sort((a, b) => locRank(a.location) - locRank(b.location));
-
-
+    .sort((a, b) => {
+      const r = locRank(a.location) - locRank(b.location);
+      if (r !== 0) return r;
+      return new Date(a.expiresAt) - new Date(b.expiresAt);
+    });
 
   let remaining = Number(neededQty);
   const allocated = [];
@@ -415,207 +342,6 @@ function allocateFromSpecificLot(stock, gtin, lot, neededQty) {
 
   return allocated;
 }
-// helper: ridicăm stocul înapoi din allocations
-async function restoreAllocationsToStock_DB(allocations) {
-  for (const a of allocations || []) {
-    if (!a?.stockId || !a?.qty) continue;
-    await db.q(`UPDATE stock SET qty = qty + $1 WHERE id = $2`, [Number(a.qty), String(a.stockId)]);
-  }
-}
-
-function restoreAllocationsToStock_JSON(stock, allocations) {
-  for (const a of allocations || []) {
-    const sid = String(a.stockId || "");
-    const qty = Number(a.qty || 0);
-    if (!sid || qty <= 0) continue;
-
-    const row = stock.find(s => String(s.id) === sid);
-    if (row) row.qty = Number(row.qty || 0) + qty;
-  }
-}
-
-// helper: alocare DOAR pe locație în DB (gtin + qty -> allocations + scade stoc)
-async function allocateByLocation_DB(gtin, need) {
-  const allocations = [];
-  let remaining = Number(need || 0);
-
-  // blocăm rândurile de stoc pentru GTIN ca să nu aloce 2 comenzi simultan același stoc
-  const r = await db.q(
-    `SELECT id, gtin, location, lot, expires_at, qty
-     FROM stock
-     WHERE gtin = $1 AND qty > 0
-     ORDER BY location ASC, id ASC
-     FOR UPDATE`,
-    [gtin]
-  );
-
-  for (const row of r.rows) {
-    if (remaining <= 0) break;
-
-    const take = Math.min(Number(row.qty), remaining);
-    if (take <= 0) continue;
-
-    // scădem din stock
-    await db.q(`UPDATE stock SET qty = qty - $1 WHERE id = $2`, [take, row.id]);
-
-    allocations.push({
-      location: row.location,
-      lot: row.lot || "",
-      expiresAt: row.expires_at ? String(row.expires_at).slice(0, 10) : "",
-      qty: take
-    });
-
-    remaining -= take;
-  }
-
-  if (remaining > 0) {
-    throw new Error(`Stoc insuficient pentru GTIN ${gtin} (lipsesc ${remaining})`);
-  }
-
-  return allocations;
-}
-
-
-// UPDATE ORDER (doar in_procesare)
-app.put("/api/orders/:id", async (req, res) => {
-  try {
-    const id = String(req.params.id || "");
-    const { items } = req.body;
-
-    if (!Array.isArray(items) || !items.length) {
-      return res.status(400).json({ error: "Items lipsă" });
-    }
-
-    // ===== DB MODE =====
-    if (db.hasDb()) {
-      await db.q("BEGIN");
-      try {
-        const r = await db.q(`SELECT * FROM orders WHERE id=$1 FOR UPDATE`, [id]);
-const order = r.rows?.[0];
-if (!order) {
-  await db.q("ROLLBACK");
-  return res.status(404).json({ error: "Comandă inexistentă" });
-}
-
-const status = order.status || "in_procesare";
-if (status !== "in_procesare") {
-  await db.q("ROLLBACK");
-  return res.status(400).json({ error: "Poți modifica doar comenzi în procesare" });
-}
-
-// ✅ BEFORE (înainte de modificare)
-const beforeItems = Array.isArray(order.items) ? order.items : [];
-
-// 1) RESTORE stoc din allocations vechi
-for (const it of beforeItems) {
-  await restoreAllocationsToStock_DB(it.allocations || []);
-}
-
-// 2) ALOCĂ din nou după locație (și scade stoc)
-// 2) ALOCĂ din nou după locație (și scade stoc)
-
-// ✅ luăm prețurile clientului (snapshot)
-const clientPrices = await getClientPricesFromDB(order.client);
-
-const newItems = [];
-for (const it of items) {
-  const gtin = normalizeGTIN(it.gtin);
-  const qty = Number(it.qty || 0);
-
-  if (!gtin) throw new Error("GTIN lipsă");
-  if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
-
-  const allocations = await allocateByLocation_DB(gtin, qty);
-
-  // ✅ preț client + subtotal (snapshot salvat în comandă)
-  const unitPrice = resolveClientPrice(clientPrices, it);
-  const lineTotal = Number(unitPrice) * Number(qty);
-
-  newItems.push({
-    ...it,
-    gtin,        // gtin normalizat
-    unitPrice,   // preț client
-    lineTotal,   // subtotal
-    allocations
-  });
-}
-
-
-// 3) update order
-await db.q(
-  `UPDATE orders SET items=$2::jsonb WHERE id=$1`,
-  [id, JSON.stringify(newItems)]
-);
-
-// ✅ AUDIT (în tranzacție e ok; user e din req.session.user)
-await logAudit(req, "ORDER_EDIT", "order", id, {
-  clientName: order.client?.name || "",
-  beforeItemsCount: beforeItems.length,
-  afterItemsCount: newItems.length,
-  beforeItems,
-  afterItems: newItems
-});
-
-await db.q("COMMIT");
-return res.json({ ok: true });
-
-      } catch (e) {
-        await db.q("ROLLBACK");
-        return res.status(400).json({ error: e.message || "Eroare update comandă" });
-      }
-    }
-
-    // ===== JSON MODE (fallback) =====
-    const orders = readJson(ORDERS_FILE, []);
-    const stock = readJson(STOCK_FILE, []);
-
-    const idx = orders.findIndex(o => String(o.id) === id);
-    if (idx === -1) return res.status(404).json({ error: "Comandă inexistentă" });
-
-    const order = orders[idx];
-    const status = order.status || "in_procesare";
-    if (status !== "in_procesare") {
-      return res.status(400).json({ error: "Poți modifica doar comenzi în procesare" });
-    }
-
-    // 1) RESTORE allocations vechi
-    (order.items || []).forEach(it => restoreAllocationsToStock_JSON(stock, it.allocations || []));
-
-    // 2) ALOCĂ din nou după locație (funcția ta existentă)
-    const newItems = items.map(it => {
-      const gtin = normalizeGTIN(it.gtin);
-      const qty = Number(it.qty || 0);
-      if (!gtin) throw new Error("GTIN lipsă");
-      if (!Number.isFinite(qty) || qty <= 0) throw new Error("Qty invalid");
-
-      const allocations = allocateStockByLocation(stock, gtin, qty); // deja doar pe location la tine
-      return { ...it, allocations };
-    });
-
-    // 3) salvează
-   const beforeItems = Array.isArray(order.items) ? order.items : [];
-
-order.items = newItems;
-orders[idx] = order;
-writeJson(STOCK_FILE, stock);
-writeJson(ORDERS_FILE, orders);
-
-await logAudit(req, "ORDER_EDIT", "order", id, {
-  clientName: order.client?.name || "",
-  beforeItemsCount: beforeItems.length,
-  afterItemsCount: newItems.length,
-  beforeItems,
-  afterItems: newItems
-});
-
-res.json({ ok: true });
-
-  } catch (e) {
-    console.error("PUT /api/orders/:id error:", e);
-    res.status(400).json({ error: e.message || "Eroare" });
-  }
-});
-
 
 
 
@@ -626,33 +352,10 @@ res.json({ ok: true });
 
 
 // ----- API CLIENTS -----
-app.get("/api/clients-tree", async (req, res) => {
-  try {
-    if (db.hasDb()) {
-      const r = await db.q(
-        `SELECT name, group_name, category
-         FROM clients
-         ORDER BY name ASC`
-      );
-
-      const flat = r.rows.map(x => ({
-        name: x.name,
-        group: x.group_name || "",
-        category: x.category || ""
-      }));
-
-      return res.json(buildClientsTreeFromFlat(flat));
-    }
-
-    // fallback local
-    const flat = readJson(CLIENTS_FILE, []);
-    return res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
-  } catch (e) {
-    console.error("clients-tree error:", e);
-    res.status(500).json({ error: "Eroare la clients-tree" });
-  }
+app.get("/api/clients-tree", (req, res) => {
+  const flat = readJson(CLIENTS_FILE, []);
+  res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
 });
-
 
 app.get("/api/clients-flat", async (req, res) => {
   try {
@@ -731,53 +434,86 @@ function readProductsAsList() {
 
 
 // ----- API PRODUCTS -----
-app.get("/api/products-tree", async (req, res) => {
-  try {
-    if (db.hasDb()) {
-      const r = await db.q(
-        `SELECT id, name, gtin, gtins, price, category
-         FROM products
-         ORDER BY name ASC`
-      );
-      return res.json(buildProductsTreeFromDbRows(r.rows));
-    }
+app.get("/api/products-tree", (req, res) => {
+  const list = readProductsAsList();
+  const CATEGORY_ORDER = [
+  "Seni Active Classic x30",
+  "Seni Classic Air x30",
+  "Seni Aleze x30",
+  "Seni Lady",
+  "Manusi",
+  "Altele"
+];
 
-    // fallback local
-    const products = readJson(PRODUCTS_FILE, []);
-    return res.json(buildProductsTree(products));
-  } catch (e) {
-    console.error("products-tree error:", e);
-    res.status(500).json({ error: "Eroare la products-tree" });
+
+  const treeByCategory = {};
+
+  list.forEach(p => {
+    const cat = (p.category || "Altele").trim();
+    if (!treeByCategory[cat]) treeByCategory[cat] = [];
+
+    // renderTree din frontend folosește item.name
+    treeByCategory[cat].push({ name: p.name });
+  });
+function sizeRank(name) {
+  const n = String(name || "").toLowerCase();
+
+  if (n.includes("small") || n.includes(" s ")) return 1;
+  if (n.includes("medium") || n.includes(" m ")) return 2;
+  if (n.includes("large") || n.includes(" l ")) return 3;
+  if (n.includes("xl") || n.includes("x-large") || n.includes("extra large")) return 4;
+
+  return 999; // fără mărime → la final
+}
+
+  // sortare produse în fiecare categorie
+  Object.keys(treeByCategory).forEach(cat => {
+    treeByCategory[cat].sort((a, b) => a.name.localeCompare(b.name, "ro"));
+  });
+
+  // sortare categorii
+ const sorted = {};
+
+CATEGORY_ORDER.forEach(cat => {
+  if (treeByCategory[cat]) {
+    sorted[cat] = treeByCategory[cat];
+  }
+});
+
+// 🔁 adăugăm orice categorie care NU e în listă
+Object.keys(treeByCategory).forEach(cat => {
+  if (!sorted[cat]) {
+    sorted[cat] = treeByCategory[cat];
   }
 });
 
 
 
-
-app.get("/api/products-flat", async (req, res) => {
-  try {
-    if (db.hasDb()) {
-      const r = await db.q(
-        `SELECT id, name, gtin, gtins, price, category
-         FROM products
-         ORDER BY name ASC`
-      );
-
-      const out = r.rows.map(toProductFlat);
-      return res.json(out);
-    }
-
-    // fallback local
-    const tree = buildProductsTree(readJson(PRODUCTS_FILE, []));
-    return res.json(flattenProductsTree(tree));
-  } catch (e) {
-    console.error("products-flat error:", e);
-    res.status(500).json({ error: "Eroare la products-flat" });
-  }
+res.json(sorted);
 });
 
 
 
+app.get("/api/products-flat", (req, res) => {
+  const data = readJson(PRODUCTS_FILE, []);
+
+  // dacă e listă, returneaz-o direct (cu path fallback)
+  if (Array.isArray(data)) {
+    return res.json(
+      data.map(p => ({
+        ...p,
+        id: String(p.id),
+        path: p.path && String(p.path).trim()
+          ? p.path
+          : `Produse / ${p.category || "Altele"}`
+      }))
+    );
+  }
+
+  // altfel, e vechiul tree
+  const flat = flattenProductsTree(data);
+  res.json(flat);
+});
 
 
 
@@ -788,80 +524,24 @@ app.get("/api/orders", async (req, res) => {
     const dbOn = db.hasDb();
 
     if (!dbOn) {
+      // fallback JSON (local)
       const orders = readJson(ORDERS_FILE, []);
       return res.json(orders);
     }
 
-    // 1) ia clienții cu prețurile lor
-    const rc = await db.q(`SELECT id, name, prices FROM clients`);
-    const clientPricesByName = new Map();
-    rc.rows.forEach(c => {
-      clientPricesByName.set(String(c.name), (c.prices && typeof c.prices === "object") ? c.prices : {});
-    });
-
-    // 2) ia produsele ca să mapăm gtin -> productId (+ fallback price)
-    const rp = await db.q(`SELECT id, gtin, gtins, price FROM products`);
-    const productIdByGtin = new Map();
-    const productPriceById = new Map();
-
-    rp.rows.forEach(p => {
-      const pid = String(p.id);
-      productPriceById.set(pid, (p.price != null ? Number(p.price) : null));
-
-      // gtin principal
-      const g1 = normalizeGTIN(p.gtin);
-      if (g1) productIdByGtin.set(g1, pid);
-
-      // gtins jsonb (dacă există)
-      const arr = Array.isArray(p.gtins) ? p.gtins : [];
-      arr.forEach(g => {
-        const gg = normalizeGTIN(g);
-        if (gg) productIdByGtin.set(gg, pid);
-      });
-    });
-
-    // 3) ia comenzile
     const r = await db.q(
       `SELECT id, client, items, status, created_at
        FROM orders
        ORDER BY created_at DESC`
     );
 
-    const orders = r.rows.map(o => {
-      const clientName = o.client?.name ? String(o.client.name) : "";
-      const clientPrices = clientPricesByName.get(clientName) || {};
-
-      const items = Array.isArray(o.items) ? o.items : [];
-
-      const itemsWithClientPrice = items.map(it => {
-        const gtinNorm = normalizeGTIN(it.gtin);
-        const pid = gtinNorm ? (productIdByGtin.get(gtinNorm) || null) : null;
-
-        // ✅ preț client (în clients.prices cheile sunt de obicei id-uri ca string)
-        let clientPrice = null;
-        if (pid != null) {
-          const v = clientPrices[pid];
-          if (v != null && Number.isFinite(Number(v))) clientPrice = Number(v);
-        }
-
-        // fallback: dacă nu există preț client, poți păstra null sau fallback la produs
-        const fallback = (pid != null) ? productPriceById.get(String(pid)) : null;
-
-        return {
-          ...it,
-          productId: pid,                    // util pentru debug
-          price: clientPrice != null ? clientPrice : (fallback != null ? fallback : null)
-        };
-      });
-
-      return {
-        id: o.id,
-        client: o.client,
-        items: itemsWithClientPrice,
-        status: o.status,
-        createdAt: o.created_at
-      };
-    });
+    const orders = r.rows.map(x => ({
+      id: x.id,
+      client: x.client,
+      items: x.items,
+      status: x.status,
+      createdAt: x.created_at
+    }));
 
     res.json(orders);
   } catch (e) {
@@ -875,118 +555,44 @@ app.get("/api/orders", async (req, res) => {
 
 
 
-
-
 app.post("/api/orders", async (req, res) => {
   try {
     const { client, items } = req.body;
-
-    if (!client) return res.status(400).json({ error: "Client lipsă" });
-    if (!Array.isArray(items) || !items.length) {
+    if (!items || !items.length) {
       return res.status(400).json({ error: "Comandă goală" });
     }
 
-    // ======================
-// DB MODE (Postgres)
-// ======================
-if (db.hasDb()) {
-  await db.q("BEGIN");
-  try {
-    const clientPrices = await getClientPricesFromDB(client);
-
-    const itemsWithAlloc = [];
-
-    for (const it of items) {
-      const need = Number(it.qty || 0);
-      const gtin = normalizeGTIN(it.gtin);
-
-      if (!gtin) throw new Error(`Produs fără GTIN: ${it.name || it.id || "?"}`);
-      if (!Number.isFinite(need) || need <= 0) throw new Error("Cantitate invalidă");
-
-      // ✅ ALOCARE DUPĂ LOCAȚIE (A->B->C...), NU FEFO
-      // Trebuie să ai funcția allocateByLocation_DB(gtin, need)
-      const allocations = await allocateByLocation_DB(gtin, need);
-
-      const unitPrice = Number(resolveClientPrice(clientPrices, it) || 0);
-      const lineTotal = Number(unitPrice) * Number(need);
-
-      itemsWithAlloc.push({
-        ...it,
-        gtin,          // normalizat
-        unitPrice,
-        lineTotal,
-        allocations    // ✅ acum există, nu mai crapă
-      });
-    }
+    // păstrăm exact structura existentă (cu allocations deja făcute în frontend sau server)
+    // momentan NU atingem stocul aici (îl mutăm în DB imediat după ce confirmi că orders persistă)
 
     const newOrder = {
       id: Date.now().toString(),
       client,
-      items: itemsWithAlloc,
+      items,
       status: "in_procesare",
       createdAt: new Date().toISOString()
     };
+
+    if (!db.hasDb()) {
+      // fallback JSON (local)
+      const orders = readJson(ORDERS_FILE, []);
+      orders.push(newOrder);
+      writeJson(ORDERS_FILE, orders);
+      return res.json({ ok: true });
+    }
 
     await db.q(
       `INSERT INTO orders (id, client, items, status, created_at)
        VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz)`,
-      [
-        newOrder.id,
-        JSON.stringify(client),
-        JSON.stringify(itemsWithAlloc),
-        newOrder.status,
-        newOrder.createdAt
-      ]
+      [newOrder.id, JSON.stringify(client), JSON.stringify(items), newOrder.status, newOrder.createdAt]
     );
 
-    await db.q("COMMIT");
-    return res.json({ ok: true, order: newOrder });
-  } catch (e) {
-    await db.q("ROLLBACK");
-    return res.status(400).json({ error: e.message || "Eroare la alocare" });
-  }
-}
-
-
-    // ======================
-    // JSON MODE (fallback)
-    // ======================
-    const stock = readJson(STOCK_FILE, []);
-    const orders = readJson(ORDERS_FILE, []);
-
-    const itemsWithAlloc = items.map(it => {
-      const gtin = normalizeGTIN(it.gtin);
-      const need = Number(it.qty || 0);
-
-      if (!gtin) throw new Error(`Produs fără GTIN: ${it.name || it.id || "?"}`);
-      if (!Number.isFinite(need) || need <= 0) throw new Error("Cantitate invalidă");
-
-      // alocă DOAR pe locație (funcția de mai sus, modificată la pasul 1)
-      const allocations = allocateStockByLocation(stock, gtin, need);
-      return { ...it, allocations };
-    });
-
-    // salvăm stocul scăzut + comanda
-    writeJson(STOCK_FILE, stock);
-
-    const newOrder = {
-      id: Date.now().toString(),
-      client,
-      items: itemsWithAlloc,
-      status: "in_procesare",
-      createdAt: new Date().toISOString()
-    };
-
-    orders.push(newOrder);
-    writeJson(ORDERS_FILE, orders);
-
-    res.json({ ok: true, order: newOrder });
+    res.json({ ok: true });
   } catch (e) {
     console.error("POST /api/orders error:", e);
-    res.status(400).json({ error: e.message || "Eroare la creare comandă" });
+    res.status(500).json({ error: "Eroare DB la salvare comandă" });
   }
 });
-
 
 
 
@@ -1628,84 +1234,6 @@ app.post("/api/clients", async (req, res) => {
   }
 });
 
-async function ensureDefaultAdmin() {
-  if (!db.hasDb()) return;
-
-  const username = process.env.DEFAULT_ADMIN_USER || "admin";
-  const password = process.env.DEFAULT_ADMIN_PASS || "admin";
-
-  const r = await db.q("SELECT COUNT(*)::int AS n FROM users");
-  const n = r.rows?.[0]?.n || 0;
-
-  if (n > 0) {
-    console.log("[BOOT] users exist -> skip default admin");
-    return;
-  }
-
-  const bcrypt = require("bcryptjs");
-  const password_hash = await bcrypt.hash(password, 10);
-
-  await db.q(
-    "INSERT INTO users (username, password_hash, role) VALUES ($1,$2,$3)",
-    [username, password_hash, "admin"]
-  );
-
-  console.log(`[BOOT] Default admin created: ${username} (schimbă parola din env!)`);
-}
-
-const fs = require("fs");
-const path = require("path");
-
-async function seedProductsFromFileIfEmpty() {
-  if (!db.hasDb()) return;
-
-  const r = await db.q("SELECT COUNT(*)::int AS n FROM products");
-  const n = r.rows?.[0]?.n || 0;
-  if (n > 0) {
-    console.log("[BOOT] products exist -> skip seed");
-    return;
-  }
-
-  const filePath = path.join(__dirname, "data", "products.json");
-  if (!fs.existsSync(filePath)) {
-    console.warn("[BOOT] products.json not found -> skip seed");
-    return;
-  }
-
-  const raw = fs.readFileSync(filePath, "utf-8");
-  const items = JSON.parse(raw || "[]");
-  if (!Array.isArray(items) || !items.length) {
-    console.warn("[BOOT] products.json empty -> skip seed");
-    return;
-  }
-
-  console.log(`[BOOT] Seeding products from file (${items.length})...`);
-
-  for (const p of items) {
-    const id = Number(p.id);
-    const name = String(p.name || "").trim();
-    const gtin = String(p.gtin || "").trim() || null;
-    const gtins = Array.isArray(p.gtins) ? p.gtins : [];
-    const price = Number(p.price || 0);
-    const category = String(p.category || "").trim();
-
-    if (!id || !name) continue;
-
-    await db.q(
-      `INSERT INTO products (id, name, gtin, gtins, price, category)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (id) DO UPDATE SET
-         name=EXCLUDED.name,
-         gtin=EXCLUDED.gtin,
-         gtins=EXCLUDED.gtins,
-         price=EXCLUDED.price,
-         category=EXCLUDED.category`,
-      [id, name, gtin, JSON.stringify(gtins), price, category]
-    );
-  }
-
-  console.log("[BOOT] Products seeded ✅");
-}
 
 
 
@@ -1717,25 +1245,47 @@ async function seedProductsFromFileIfEmpty() {
 
 const PORT = process.env.PORT || 3000;
 
-async function startServer() {
-  // dacă nu ai DB (ex: local fără DATABASE_URL), pornește fără seed DB
-  if (db.hasDb()) {
-    await db.ensureTables();
-    await seedClientsFromFileIfEmpty();
-    await seedProductsFromFileIfEmpty();   // o adăugăm mai jos
-    await ensureDefaultAdmin();            // o adăugăm mai jos
-  } else {
-    console.warn("[WARN] DATABASE_URL lipsă -> rulez fără DB (fallback pe fișiere).");
+// Creează un admin implicit (doar dacă tabela users e goală)
+async function ensureDefaultAdmin() {
+  if (!db.hasDb()) return;
+
+  const username = String(process.env.ADMIN_USER || "admin").trim();
+  const password = String(process.env.ADMIN_PASS || "admin").trim();
+
+  // Nu vrem să creăm user cu parolă goală
+  if (!username || !password) {
+    console.warn("⚠️ ADMIN_USER/ADMIN_PASS lipsesc -> sar peste crearea adminului implicit.");
+    return;
   }
 
-  app.listen(PORT, () => console.log("Server on", PORT));
+  const r = await db.q("SELECT COUNT(*)::int AS n FROM users");
+  const n = r.rows?.[0]?.n ?? 0;
+  if (n > 0) return;
+
+  const hash = await bcrypt.hash(password, 10);
+  await db.q(
+    "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)",
+    [username, hash, "admin"]
+  );
+
+  console.log(`✅ Admin implicit creat: ${username}`);
 }
 
-startServer().catch(err => {
-  console.error("BOOT ERROR:", err);
-  process.exit(1);
-});
+(async () => {
+  // IMPORTANT:
+  // - dacă DB e configurat greșit / cade temporar, NU vrem 502 (Railway).
+  // - pornim serverul oricum; doar API-urile DB pot da erori până rezolvi DB.
+  try {
+    await db.ensureTables();
+    console.log("✅ DB ready");
+    await seedClientsFromFileIfEmpty();
+    await ensureDefaultAdmin();
+  } catch (e) {
+    console.error("❌ DB init error (pornesc fără DB):", e?.message || e);
+  }
 
+  app.listen(PORT, () => console.log("Server pornit pe port", PORT));
+})();
 
 
 
