@@ -340,36 +340,141 @@ function initViewCurrentOrderButton() {
 async function initClientHomePage() {
   if (!location.pathname.endsWith("client.html")) return;
 
-  const client = getSelectedClient();
-  if (!client) {
+  const nameEl = document.getElementById("clientName");
+  const metaEl = document.getElementById("clientMeta");
+
+  const btnNewOrder = document.getElementById("btnNewOrder");
+  const btnClientOrders = document.getElementById("btnClientOrders");
+  const btnChangeClient = document.getElementById("btnChangeClient");
+
+  const searchEl = document.getElementById("clientPriceSearch");
+  const box = document.getElementById("clientPricesBox");
+  const countEl = document.getElementById("clientPricesCount");
+
+  // 1) client selectat (din localStorage)
+  const selected = getSelectedClient();
+  if (!selected) {
     alert("Nu este selectat niciun client.");
     location.href = "adauga_comanda.html";
     return;
   }
 
-  const nameEl = document.getElementById("clientName");
-  const metaEl = document.getElementById("clientMeta");
+  // 2) luăm clientul real din DB (ca să fim siguri că avem prices up-to-date)
+  const clients = await apiFetch("/api/clients-flat").then(r => r.json());
+  const client =
+    clients.find(c => String(c.id) === String(selected.id)) ||
+    clients.find(c => String(c.name) === String(selected.name)) ||
+    selected;
 
-  if (nameEl) nameEl.textContent = `Client: ${client.name}`;
+  // persistăm iar (să rămână varianta completă)
+  localStorage.setItem("clientSelectat", JSON.stringify(client));
+
+  if (nameEl) nameEl.textContent = `Client: ${client.name || "-"}`;
   if (metaEl) metaEl.textContent = `Grup: ${client.group || "-"} • Categorie: ${client.category || "-"}`;
 
-  const btnNewOrder = document.getElementById("btnNewOrder");
-  const btnPrices = document.getElementById("btnPrices");
-  const btnClientOrders = document.getElementById("btnClientOrders");
-
+  // 3) actions
   if (btnNewOrder) btnNewOrder.onclick = () => (location.href = "comanda.html");
 
-  // placeholder: deocamdată doar mesaj
-  if (btnPrices) btnPrices.onclick = () => {
-    alert("Verifică prețuri (placeholder). Facem pagina pe client imediat după ce stabilim layout-ul.");
-  };
-
-  // aici facem “Comenzi doar pentru client”
   if (btnClientOrders) btnClientOrders.onclick = () => {
     localStorage.setItem("ordersClientFilter", client.name);
     location.href = "orders.html";
   };
+
+  if (btnChangeClient) btnChangeClient.onclick = () => {
+    // nu ștergem coșul aici; userul are buton separat “vizualizează comanda”
+    // dar ca să fie safe, îl întrebăm:
+    const cart = getCart();
+    if (cart.length) {
+      alert("Ai produse în coș. Intră la 'Vizualizează comanda actuală' și golește coșul dacă vrei să schimbi clientul.");
+      return;
+    }
+    localStorage.removeItem("clientSelectat");
+    location.href = "adauga_comanda.html";
+  };
+
+  // 4) Prețuri speciale: mapăm productId -> produs
+  if (!box) return;
+
+  const products = await apiFetch("/api/products-flat").then(r => r.json());
+
+  const productById = new Map();
+  products.forEach(p => productById.set(String(p.id), p));
+
+  const special = client?.prices && typeof client.prices === "object" ? client.prices : {};
+  const rows = Object.entries(special).map(([pid, pr]) => {
+    const p = productById.get(String(pid));
+    return {
+      pid: String(pid),
+      name: p?.name || `Produs ID ${pid}`,
+      path: p?.path || "",
+      price: Number(pr || 0)
+    };
+  });
+
+  // sort by name
+  rows.sort((a, b) => String(a.name).localeCompare(String(b.name), "ro"));
+
+  function render(list) {
+    if (countEl) countEl.textContent = `${list.length} produse`;
+
+    if (!list.length) {
+      box.innerHTML = `<p class="hint">Nu există prețuri speciale pentru acest client.</p>`;
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Produs</th>
+          <th style="text-align:right; padding:10px; border-bottom:1px solid #eee;">Preț client (RON)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    list.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="padding:10px; border-bottom:1px solid #f3f3f3;">
+          <div style="font-weight:700;">${escapeHtml(r.name)}</div>
+          ${r.path ? `<div class="hint">${escapeHtml(r.path)}</div>` : ""}
+          <div class="hint">ID: ${escapeHtml(r.pid)}</div>
+        </td>
+        <td style="padding:10px; border-bottom:1px solid #f3f3f3; text-align:right;">
+          <strong>${Number(r.price || 0).toFixed(2)}</strong>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    box.innerHTML = "";
+    box.appendChild(table);
+  }
+
+  render(rows);
+
+  if (searchEl) {
+    searchEl.addEventListener("input", () => {
+      const q = String(searchEl.value || "").toLowerCase().trim();
+      if (!q) return render(rows);
+
+      const filtered = rows.filter(x =>
+        String(x.name || "").toLowerCase().includes(q) ||
+        String(x.path || "").toLowerCase().includes(q) ||
+        String(x.pid || "").toLowerCase().includes(q)
+      );
+
+      render(filtered);
+    });
+  }
 }
+
 
 
 
