@@ -84,6 +84,16 @@ async function initRegister() {
   };
 }
 
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
 
 
 async function protectPage() {
@@ -2813,7 +2823,7 @@ async function initCheckStockPage() {
       const card = document.createElement("div");
       card.className = "csCard";
 
-      const pillClass = (Number(p.totalQty) < (window.LOW_STOCK_LIMIT || 30)) ? "yellow" : "green";
+const pillClass = (Number(p.totalQty) < LOW_STOCK_LIMIT) ? "yellow" : "green";
 
       card.innerHTML = `
         <div class="csLeft">
