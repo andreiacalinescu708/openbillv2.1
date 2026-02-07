@@ -856,46 +856,29 @@ function getProductClass(name) {
 }
 
 // ================= ORDERS.HTML =================
+// ================= ORDERS.HTML =================
 async function initOrdersPage() {
   const list = document.getElementById("ordersList");
   if (!list) return;
 
-  // filtre (pot exista sau nu, în funcție de HTML)
-  const selGroup =
-    document.getElementById("filterGroup") ||
-    document.getElementById("filterRoute") ||
-    document.getElementById("ordersFilterGroup");
+  // fallback: leagă Înapoi din JS (în caz că overlay îți omoară onclick)
+  const backBtn = document.getElementById("btnBackOrders") || document.querySelector(".mBack");
+  if (backBtn) {
+    backBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      location.href = "index.html";
+    }, true);
+  }
 
-  const selCategory =
-    document.getElementById("filterCategory") ||
-    document.getElementById("ordersFilterCategory");
+  const selGroup = document.getElementById("filterGroup");
+  const selCategory = document.getElementById("filterCategory");
+  const selStatus = document.getElementById("filterStatus");
+  const tabsBox = document.getElementById("statusTabs");
 
-  // status select (poate fi ascuns / inexistent, dar îl folosim ca state)
-  const selStatus =
-    document.getElementById("filterStatus") ||
-    document.getElementById("filterStatusSelect") ||
-    document.getElementById("ordersFilterStatus");
-
-  const tabsBox =
-    document.getElementById("statusTabs") ||
-    document.getElementById("ordersTabs") ||
-    document.getElementById("tabsStatus");
-
-  const searchInput =
-    document.getElementById("orderSearch") ||
-    document.getElementById("searchOrder") ||
-    document.getElementById("searchClient") ||  // unele pagini au “Caută client…”
-    document.querySelector("input[placeholder*='Caut']");
-
-  const searchResults =
-    document.getElementById("orderSearchResults") ||
-    document.getElementById("searchResults") ||
-    document.getElementById("clientSearchResults");
-
-  const btnReset =
-    document.getElementById("btnResetFilters") ||
-    document.getElementById("btnReset") ||
-    document.querySelector("button#btnResetFilters, button#btnReset");
+  const searchInput = document.getElementById("orderSearch");
+  const searchResults = document.getElementById("orderSearchResults");
+  const btnReset = document.getElementById("btnResetFilters");
 
   const statusLabels = {
     "": "Toate",
@@ -905,10 +888,8 @@ async function initOrdersPage() {
     livrata: "Livrată"
   };
 
-  // ordinea din UI (poți schimba)
   const TAB_ORDER = ["gata_de_livrare", "in_procesare", "facturata", "livrata", ""];
 
-  // helper: escape (folosește global dacă există)
   const esc =
     (typeof window.escapeHtml === "function")
       ? window.escapeHtml
@@ -921,7 +902,68 @@ async function initOrdersPage() {
             .replaceAll("'", "&#039;");
 
   function getSafeStatus(o) {
-    return (o && o.status) ? o.status : "in_procesare";
+    return o?.status || "in_procesare";
+  }
+
+  function statusClass(st) {
+    // folosești clasele astea în CSS ca să iasă “pills” colorate
+    if (st === "gata_de_livrare") return "st-ready";
+    if (st === "in_procesare") return "st-proc";
+    if (st === "facturata") return "st-bill";
+    if (st === "livrata") return "st-done";
+    return "st-all";
+  }
+
+  function fmtDate(v) {
+    try {
+      return v ? new Date(v).toLocaleString("ro-RO") : "-";
+    } catch {
+      return "-";
+    }
+  }
+
+  function fmtISO10(v) {
+    const s = String(v || "").trim();
+    if (!s) return "-";
+    if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    return s;
+  }
+
+  // 1) LOAD ORDERS
+  const res = await apiFetch("/api/orders");
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    console.error("API /api/orders error:", txt);
+    alert("Eroare la încărcare comenzi.");
+    return;
+  }
+  const orders = await res.json().catch(() => []);
+
+  // 2) LOAD CLIENTS -> group/category corecte
+  let clients = [];
+  try {
+    clients = await apiFetch("/api/clients-flat").then(r => r.json());
+  } catch {
+    clients = [];
+  }
+
+  const clientGroupMap = {};
+  const clientCategoryMap = {};
+  (clients || []).forEach(c => {
+    const name = String(c?.name || "").trim();
+    if (!name) return;
+    clientGroupMap[name] = String(c?.group || "").trim();
+    clientCategoryMap[name] = String(c?.category || "").trim();
+  });
+
+  function getOrderGroup(o) {
+    const name = o?.client?.name;
+    return clientGroupMap[name] || o?.client?.group || "";
+  }
+
+  function getOrderCategory(o) {
+    const name = o?.client?.name;
+    return clientCategoryMap[name] || o?.client?.category || "";
   }
 
   function getFilterState() {
@@ -944,45 +986,6 @@ async function initOrdersPage() {
     }
   }
 
-  // 1) LOAD ORDERS (cu apiFetch ca să respecte auth)
-  const res = await apiFetch("/api/orders");
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    console.error("API /api/orders error:", txt);
-    alert("Eroare la încărcare comenzi (vezi consola).");
-    return;
-  }
-  const orders = await res.json().catch(() => []);
-
-  // 2) LOAD CLIENTS (pt group/category corecte)
-  let clients = [];
-  try {
-    clients = await apiFetch("/api/clients-flat").then(r => r.json());
-  } catch {
-    clients = [];
-  }
-
-  const clientGroupMap = {};
-  const clientCategoryMap = {};
-
-  (clients || []).forEach(c => {
-    const name = String(c?.name || "").trim();
-    if (!name) return;
-    clientGroupMap[name] = String(c?.group || "").trim();
-    clientCategoryMap[name] = String(c?.category || "").trim();
-  });
-
-  function getOrderGroup(o) {
-    const name = o?.client?.name;
-    return clientGroupMap[name] || o?.client?.group || "";
-  }
-
-  function getOrderCategory(o) {
-    const name = o?.client?.name;
-    return clientCategoryMap[name] || o?.client?.category || "";
-  }
-
-  // 3) BUILD GROUP OPTIONS
   function buildGroupOptions() {
     if (!selGroup) return;
 
@@ -1001,7 +1004,6 @@ async function initOrdersPage() {
     });
   }
 
-  // 4) CATEGORY OPTIONS REBUILT by group
   function rebuildCategoryOptions() {
     if (!selCategory) return;
 
@@ -1018,7 +1020,6 @@ async function initOrdersPage() {
 
     const prev = selCategory.value || "";
     selCategory.innerHTML = `<option value="">Toate</option>`;
-
     [...cats].sort((a, b) => a.localeCompare(b, "ro")).forEach(c => {
       const opt = document.createElement("option");
       opt.value = c;
@@ -1029,17 +1030,14 @@ async function initOrdersPage() {
     selCategory.value = cats.has(prev) ? prev : "";
   }
 
-  // 5) COUNTS + TABS
   function getCounts() {
     const counts = { "": 0, gata_de_livrare: 0, in_procesare: 0, facturata: 0, livrata: 0 };
-
     (orders || []).forEach(o => {
       const s = getSafeStatus(o);
       if (counts[s] == null) counts[s] = 0;
       counts[s]++;
       counts[""]++;
     });
-
     return counts;
   }
 
@@ -1062,21 +1060,74 @@ async function initOrdersPage() {
 
       btn.onclick = () => {
         setStatusFilter(st);
-        render(); // IMPORTANT: funcția render de mai jos
+        render();
       };
 
       tabsBox.appendChild(btn);
     });
 
-    // marchează tabul curent
-    const current = selStatus ? (selStatus.value || "") : "";
-    setStatusFilter(current);
+    setStatusFilter(selStatus ? (selStatus.value || "") : "");
   }
 
-  // 6) RENDER LIST
+  function makeItemsHtml(o) {
+    const items = Array.isArray(o?.items) ? o.items : [];
+    if (!items.length) return `<div class="oEmpty">Fără produse</div>`;
+
+    // arată max 4 produse ca să nu fie carduri uriașe
+    const shown = items.slice(0, 4);
+
+    const lines = shown.map(it => {
+      const name = esc(it?.name || "Produs");
+      const qty = Number(it?.qty || 0);
+
+      const allocs = Array.isArray(it?.allocations) ? it.allocations : [];
+      const allocHtml = allocs.length
+        ? allocs.map(a => {
+            const loc = esc(a?.location || "-");
+            const lot = esc(a?.lot || "-");
+            const exp = esc(fmtISO10(a?.expiresAt));
+            const aq = Number(a?.qty || 0);
+            return `<div class="oAlloc">LOC: ${loc} | LOT: ${lot} | EXP: ${exp} | Qty: ${aq}</div>`;
+          }).join("")
+        : `<div class="oAlloc oAllocNone"> (fără loturi pe comandă)</div>`;
+
+      return `
+        <div class="oItem">
+          <div class="oItemTitle">${name} × <b>${qty}</b></div>
+          ${allocHtml}
+        </div>
+      `;
+    }).join("");
+
+    const more = items.length > shown.length
+      ? `<div class="oMore">+ încă ${items.length - shown.length} produse…</div>`
+      : "";
+
+    return `<div class="oItems">${lines}${more}</div>`;
+  }
+
+  function calcTotal(o) {
+    const items = Array.isArray(o?.items) ? o.items : [];
+    return items.reduce((s, it) => {
+      const price = Number(it?.unitPrice ?? it?.price ?? 0);
+      const qty = Number(it?.qty || 0);
+      return s + price * qty;
+    }, 0);
+  }
+
+  function openOrder(o) {
+    // Deschide = edit (sau detalii)
+    localStorage.setItem("editOrder", JSON.stringify(o));
+    location.href = "editorder.html";
+  }
+
+  function startPicking(o) {
+    localStorage.setItem("pickingOrder", JSON.stringify(o));
+    location.href = "pickingorder.html";
+  }
+
   function render() {
     const { gFilter, cFilter, sFilter, q } = getFilterState();
-
     list.innerHTML = "";
 
     let filtered = Array.isArray(orders) ? [...orders] : [];
@@ -1099,66 +1150,60 @@ async function initOrdersPage() {
 
     filtered.forEach(o => {
       const card = document.createElement("div");
-      card.className = "orderCard";
+      card.className = "mOrderCard";
 
-      const clientName = o?.client?.name || "-";
+      const clientName = esc(o?.client?.name || "-");
       const status = getSafeStatus(o);
-      const dt = o.createdAt ? new Date(o.createdAt).toLocaleString("ro-RO") : "-";
-
-      const items = Array.isArray(o.items) ? o.items : [];
-      const total = items.reduce((s, it) => {
-        const price = Number(it.unitPrice ?? it.price ?? 0);
-        const qty = Number(it.qty || 0);
-        return s + price * qty;
-      }, 0);
+      const dt = esc(fmtDate(o?.createdAt));
+      const total = calcTotal(o).toFixed(2);
 
       card.innerHTML = `
-        <div class="orderTop">
-          <div class="orderClient">${esc(clientName)}</div>
-          <div class="orderStatus">${esc(statusLabels[status] || status)}</div>
+        <div class="oTop">
+          <div class="oClient">${clientName}</div>
+          <div class="oStatusPill ${statusClass(status)}">${esc(statusLabels[status] || status)}</div>
         </div>
 
-        <div class="orderMeta">
-          <div>📅 ${esc(dt)}</div>
-          <div>🧾 ${items.length} produse</div>
-          <div><b>${total.toFixed(2)} RON</b></div>
+        <div class="oMeta">
+          <div>📅 ${dt}</div>
+          <div><b>${total} RON</b></div>
         </div>
 
-        <div class="orderActions">
+        ${makeItemsHtml(o)}
+
+        <div class="oActions">
           <button class="btnOpen" type="button">Deschide</button>
-          <button class="btnPick" type="button">Picking</button>
+          <button class="btnPick" type="button">Pregătește comanda</button>
         </div>
       `;
 
-      const btnOpen = card.querySelector(".btnOpen");
-      const btnPick = card.querySelector(".btnPick");
+      // card clicabil (ca “înainte”)
+      card.addEventListener("click", (e) => {
+        // dacă ai apăsat pe un buton, nu deschide dublu
+        if (e.target && e.target.closest && e.target.closest("button")) return;
+        openOrder(o);
+      });
 
-      if (btnOpen) {
-        btnOpen.onclick = () => {
-          localStorage.setItem("editOrder", JSON.stringify(o));
-          location.href = "editorder.html";
-        };
-      }
+      card.querySelector(".btnOpen").onclick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        openOrder(o);
+      };
 
-      if (btnPick) {
-        btnPick.onclick = () => {
-          localStorage.setItem("pickingOrder", JSON.stringify(o));
-          location.href = "pickingorder.html";
-        };
-      }
+      card.querySelector(".btnPick").onclick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        startPicking(o);
+      };
 
       list.appendChild(card);
     });
   }
 
-  // 7) SEARCH LIVE (autocomplete – opțional)
+  // sugestii search
   if (searchInput && searchResults) {
     searchInput.oninput = () => {
       const q = String(searchInput.value || "").toLowerCase().trim();
       searchResults.innerHTML = "";
       if (!q) return;
 
-      // sugestii unice de clienți
       const matches = (orders || [])
         .map(o => o?.client?.name)
         .filter(Boolean)
@@ -1181,7 +1226,7 @@ async function initOrdersPage() {
     };
   }
 
-  // 8) EVENTS
+  // events filtre
   if (selGroup) {
     selGroup.onchange = () => {
       rebuildCategoryOptions();
@@ -1209,13 +1254,14 @@ async function initOrdersPage() {
     };
   }
 
-  // 9) INIT
+  // init
   buildGroupOptions();
   rebuildCategoryOptions();
-  if (selStatus && !selStatus.value) selStatus.value = ""; // default Toate
+  if (selStatus && !selStatus.value) selStatus.value = "";
   renderTabs();
   render();
 }
+
 
 
 
