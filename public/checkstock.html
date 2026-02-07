@@ -4,42 +4,60 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Inventar Stoc</title>
+
   <link rel="stylesheet" href="checkstockhtml.css" />
 </head>
 <body>
-
   <div class="csApp">
 
     <!-- TOP BAR -->
-    <div class="csTopbar">
-      <button class="csBack" onclick="location.href='index.html'">← Înapoi</button>
-
-      <div class="csTitle">
-        <span class="csIcon">📦</span>
-        <span>Inventar Stoc</span>
+    <header class="csTop">
+      <div class="csBrand">
+        📦 <span>Fast Medical Distribution</span>
       </div>
 
-      <button id="btnRefresh" class="csRefresh">🔄 Refresh</button>
+      <button class="csBack" type="button" onclick="location.href='index.html'">
+        ↩ Înapoi
+      </button>
+    </header>
+
+    <!-- PAGE TITLE -->
+    <div class="csHeader">
+      <h1>Inventar Stoc</h1>
     </div>
 
-    <!-- SEARCH -->
-    <div class="csSearchWrap">
+    <!-- SEARCH + REFRESH -->
+    <div class="csTools">
       <div class="csSearch">
         <span class="csSearchIcon">🔎</span>
         <input id="stockSearch" type="text" placeholder="Caută produs..." />
       </div>
+
+      <button id="btnRefresh" class="csRefresh" type="button">
+        ↻ Refresh
+      </button>
     </div>
 
     <!-- LIST -->
-    <div id="stockList" class="csList"></div>
+    <main id="stockList" class="csList">
+      <!-- populat din JS -->
+    </main>
 
-    <!-- TOTAL -->
-    <div class="csTotalBar">
-      <div class="csTotalInner">
+    <!-- BOTTOM TOTAL (sticky) -->
+    <footer class="csBottom">
+      <div class="csTotalPill">
         <span class="csTotalLabel">Total:</span>
         <span id="inventoryTotal" class="csTotalValue">0 buc</span>
       </div>
-    </div>
+
+      <!-- (opțional) bară jos ca în poză; dacă nu vrei, șterge blocul -->
+      <nav class="csNav">
+        <button type="button" onclick="location.href='index.html'">🏠</button>
+        <button type="button" onclick="location.href='checkprice.html'">🔎</button>
+        <button type="button" onclick="location.href='orders.html'">🧾</button>
+        <button type="button" onclick="location.href='stock.html'">➕</button>
+      </nav>
+    </footer>
 
   </div>
 

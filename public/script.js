@@ -2771,91 +2771,262 @@ async function initCheckStockPage() {
   const list = document.getElementById("stockList");
   const inp = document.getElementById("stockSearch");
   const btn = document.getElementById("btnRefresh");
-  const totalEl = document.getElementById("inventoryTotal");
+  const totalBox = document.getElementById("inventoryTotal");
+
   if (!list) return;
 
+  // ===== utils =====
+  const esc = (s) =>
+    String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+  const toISODate = (v) => {
+    const s = String(v || "").trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+    if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    return "";
+  };
+
+  const qtyBadgeClass = (qty) => {
+    const n = Number(qty || 0);
+    if (n <= 0) return "qty-red";
+    if (n < 500) return "qty-amber";     // praguri “de aspect”
+    if (n < 2000) return "qty-yellow";
+    return "qty-green";
+  };
+
   let stock = [];
-  let grouped = []; // [{gtin, productName, totalQty}]
 
-  function computeGrouped() {
-    const map = new Map();
+  async function load() {
+    list.innerHTML = `<p class="hint">Se încarcă stocul...</p>`;
 
-    (stock || []).forEach(s => {
-      const g = normalizeGTIN(s.gtin);
-      if (!g) return;
+    const r = await apiFetch("/api/stock");
+    stock = await r.json().catch(() => []);
 
-      const name = String(s.productName || "-");
-      const qty = Number(s.qty || 0);
-
-      const key = g; // grupăm pe GTIN
-      if (!map.has(key)) map.set(key, { gtin: key, productName: name, totalQty: 0 });
-      map.get(key).totalQty += qty;
+    // sort stabil: productName, apoi loc, apoi lot
+    stock.sort((a, b) => {
+      const pn = String(a.productName || "").localeCompare(String(b.productName || ""), "ro");
+      if (pn !== 0) return pn;
+      const lc = String(a.location || "").localeCompare(String(b.location || ""), "ro");
+      if (lc !== 0) return lc;
+      return String(a.lot || "").localeCompare(String(b.lot || ""), "ro");
     });
 
-    grouped = [...map.values()].sort((a,b) =>
-      String(a.productName||"").localeCompare(String(b.productName||""), "ro")
-    );
+    render();
+  }
+
+  function groupStock(arr) {
+    // grupare pe productName + gtin (dacă există) ca să nu unești produse diferite cu același nume
+    const map = new Map();
+
+    (arr || []).forEach((s) => {
+      const name = String(s.productName || "").trim() || "Produs";
+      const gtin = String(s.gtin || "").trim();
+      const key = `${name}|||${gtin}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          productName: name,
+          gtin,
+          totalQty: 0,
+          lots: []
+        });
+      }
+      const g = map.get(key);
+      g.totalQty += Number(s.qty || 0);
+      g.lots.push(s);
+    });
+
+    return [...map.values()];
   }
 
   function render() {
     const q = String(inp?.value || "").toLowerCase().trim();
+
+    const filteredStock = !q
+      ? stock
+      : stock.filter((x) =>
+          String(x.productName || "").toLowerCase().includes(q) ||
+          String(x.lot || "").toLowerCase().includes(q) ||
+          String(x.location || "").toLowerCase().includes(q) ||
+          String(x.gtin || "").toLowerCase().includes(q)
+        );
+
+    const groups = groupStock(filteredStock);
+
     list.innerHTML = "";
 
-    let arr = grouped;
-    if (q) {
-      arr = arr.filter(x =>
-        String(x.productName||"").toLowerCase().includes(q) ||
-        String(x.gtin||"").toLowerCase().includes(q)
-      );
-    }
-
-    if (!arr.length) {
-      list.innerHTML = `<p class="hint" style="opacity:.7;font-weight:700;">Nu există stoc.</p>`;
-      if (totalEl) totalEl.textContent = `0 buc`;
+    if (!groups.length) {
+      list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
+      if (totalBox) totalBox.textContent = "0 buc";
       return;
     }
 
-    let grandTotal = 0;
+    // total general
+    const grandTotal = groups.reduce((s, g) => s + Number(g.totalQty || 0), 0);
+    if (totalBox) totalBox.textContent = `${grandTotal} buc`;
 
-    arr.forEach(p => {
-      grandTotal += Number(p.totalQty || 0);
-
+    groups.forEach((g) => {
       const card = document.createElement("div");
-      card.className = "csCard";
+      card.className = "csProdCard";
 
-const pillClass = (Number(p.totalQty) < LOW_STOCK_LIMIT) ? "yellow" : "green";
+      const top = document.createElement("div");
+      top.className = "csProdTop";
 
-      card.innerHTML = `
-        <div class="csLeft">
-          <div class="csDoc">📝</div>
-          <div style="min-width:0;">
-            <div class="csName">${escapeHtml(p.productName || "-")} <span style="opacity:.65;font-weight:900;">TOTAL:</span> ${Number(p.totalQty||0)} buc</div>
-            <div class="csSub">${Number(p.totalQty||0)} buc</div>
-          </div>
+      top.innerHTML = `
+        <div class="csProdLeft">
+          <div class="csIcon">🗂️</div>
+          <div class="csName">${esc(g.productName)}</div>
         </div>
-
-        <div class="csRight">
-          <div class="csPill ${pillClass}">${Number(p.totalQty||0)} buc</div>
-          <button class="csEdit" type="button" title="Editează">✏️</button>
+        <div class="csQtyBadge ${qtyBadgeClass(g.totalQty)}">
+          ${Number(g.totalQty || 0)} buc
         </div>
       `;
 
-      // ✏️ momentan placeholder (revenim la edit pe loturi după ce stabilim UI)
-      card.querySelector(".csEdit").onclick = () => {
-        alert(`Editează (placeholder)\n\n${p.productName}\nGTIN: ${p.gtin}\nTotal: ${p.totalQty} buc`);
+      const details = document.createElement("div");
+      details.className = "csLots";
+      details.style.display = "none";
+
+      // lot rows
+      (g.lots || []).forEach((s) => {
+        const row = document.createElement("div");
+        row.className = "csLotRow";
+
+        const expISO = toISODate(s.expiresAt);
+
+        row.innerHTML = `
+          <div class="csLotGrid">
+            <div class="csField">
+              <div class="csLbl">LOT</div>
+              <input class="csInp lot" value="${esc(s.lot || "")}" disabled>
+            </div>
+
+            <div class="csField">
+              <div class="csLbl">EXP</div>
+              <input class="csInp exp" type="date" value="${esc(expISO)}" disabled>
+            </div>
+
+            <div class="csField">
+              <div class="csLbl">CANTITATE</div>
+              <input class="csInp qty" type="number" min="0" value="${Number(s.qty || 0)}" disabled>
+            </div>
+
+            <div class="csField">
+              <div class="csLbl">LOC</div>
+              <input class="csInp loc" value="${esc(s.location || "A")}" disabled>
+            </div>
+          </div>
+
+          <div class="csRowActions">
+            <button class="btnEdit" type="button">Editează</button>
+            <button class="btnSave" type="button" style="display:none;">Salvează</button>
+            <button class="btnCancel" type="button" style="display:none;">Renunță</button>
+            <div class="status"></div>
+          </div>
+        `;
+
+        const lotEl = row.querySelector(".lot");
+        const expEl = row.querySelector(".exp");
+        const qtyEl = row.querySelector(".qty");
+        const locEl = row.querySelector(".loc");
+
+        const btnEdit = row.querySelector(".btnEdit");
+        const btnSave = row.querySelector(".btnSave");
+        const btnCancel = row.querySelector(".btnCancel");
+        const statusEl = row.querySelector(".status");
+
+        const orig = {
+          lot: lotEl.value,
+          exp: expEl.value,
+          qty: qtyEl.value,
+          loc: locEl.value
+        };
+
+        const setEditMode = (on) => {
+          lotEl.disabled = !on;
+          expEl.disabled = !on;
+          qtyEl.disabled = !on;
+          locEl.disabled = !on;
+
+          btnEdit.style.display = on ? "none" : "";
+          btnSave.style.display = on ? "" : "none";
+          btnCancel.style.display = on ? "" : "none";
+
+          if (!on) statusEl.textContent = "";
+        };
+
+        btnEdit.onclick = () => setEditMode(true);
+
+        btnCancel.onclick = () => {
+          lotEl.value = orig.lot;
+          expEl.value = orig.exp;
+          qtyEl.value = orig.qty;
+          locEl.value = orig.loc;
+          setEditMode(false);
+        };
+
+        btnSave.onclick = async () => {
+          statusEl.textContent = "Salvez...";
+          try {
+            const payload = {
+              lot: String(lotEl.value || "").trim(),
+              expiresAt: String(expEl.value || "").slice(0, 10),
+              qty: Number(qtyEl.value),
+              location: String(locEl.value || "").trim()
+            };
+
+            const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            const out = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(out.error || "Eroare la salvare");
+
+            // actualizăm local
+            s.lot = payload.lot;
+            s.expiresAt = payload.expiresAt;
+            s.qty = payload.qty;
+            s.location = payload.location;
+
+            statusEl.textContent = "Salvat ✅";
+            setTimeout(() => (statusEl.textContent = ""), 900);
+
+            setEditMode(false);
+
+            // refresh UI (totaluri / badge)
+            render();
+          } catch (e) {
+            statusEl.textContent = "Eroare ❌";
+            alert(e.message || "Eroare");
+          }
+        };
+
+        setEditMode(false);
+        details.appendChild(row);
+      });
+
+      // toggle expand
+      top.style.cursor = "pointer";
+      top.onclick = () => {
+        const open = details.style.display !== "none";
+        details.style.display = open ? "none" : "block";
+        card.classList.toggle("open", !open);
       };
 
+      card.appendChild(top);
+      card.appendChild(details);
       list.appendChild(card);
     });
-
-    if (totalEl) totalEl.textContent = `${grandTotal} buc`;
-  }
-
-  async function load() {
-    const r = await apiFetch("/api/stock");
-    stock = await r.json().catch(() => []);
-    computeGrouped();
-    render();
   }
 
   if (inp) inp.addEventListener("input", render);
@@ -2863,6 +3034,7 @@ const pillClass = (Number(p.totalQty) < LOW_STOCK_LIMIT) ? "yellow" : "green";
 
   await load();
 }
+
 
 
 

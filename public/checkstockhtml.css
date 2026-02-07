@@ -1,210 +1,365 @@
 :root{
-  --bg:#f3f5f7;
+  --bg:#eef2f7;
   --card:#ffffff;
-  --text:#111827;
-  --muted:#6b7280;
-  --border:#e5e7eb;
+  --border:#d9e1ee;
+  --text:#1b2430;
+  --muted:#6b7787;
 
-  --pillGreen:#c7f9d4;
-  --pillGreenText:#14532d;
-
-  --pillYellow:#ffe7b3;
-  --pillYellowText:#7c2d12;
-
-  --shadow:0 10px 25px rgba(0,0,0,.08);
+  --green:#5bbd5a;
+  --amber:#f0b23e;
+  --yellow:#f3c64a;
 }
 
 *{ box-sizing:border-box; }
+html,body{ height:100%; }
 body{
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background:var(--bg);
-  color:var(--text);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .csApp{
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 14px 12px 90px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
 }
 
-/* topbar */
-.csTopbar{
+/* TOP */
+.csTop{
+  position:sticky;
+  top:0;
+  z-index:10;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:14px;
   padding:10px 12px;
-  box-shadow: var(--shadow);
+  background:#fff;
+  border-bottom:1px solid var(--border);
 }
 
-.csBack, .csRefresh{
-  border:1px solid var(--border);
-  background:#fff;
-  padding:10px 12px;
-  border-radius:12px;
-  cursor:pointer;
+.csBrand{
+  display:flex;
+  align-items:center;
+  gap:8px;
   font-weight:700;
 }
 
-.csTitle{
-  display:flex;
-  align-items:center;
-  gap:10px;
+.csBack{
+  border:1px solid var(--border);
+  background:#f7f9fc;
+  padding:8px 10px;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* TITLE */
+.csHeader{
+  padding:10px 12px 6px;
+}
+.csHeader h1{
+  margin:6px 0 0;
   font-size:22px;
   font-weight:900;
 }
 
-.csIcon{
-  font-size:20px;
-}
-
-/* search */
-.csSearchWrap{
-  margin-top:12px;
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:14px;
+/* TOOLS */
+.csTools{
   padding:10px 12px;
-  box-shadow: var(--shadow);
+  display:flex;
+  gap:10px;
+  align-items:center;
 }
 
 .csSearch{
+  flex:1;
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
+  background:#fff;
   border:1px solid var(--border);
   border-radius:12px;
   padding:10px 12px;
-  background:#fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03);
 }
 
-.csSearchIcon{ opacity:.65; }
+.csSearchIcon{
+  opacity:.65;
+}
 
-.csSearch input{
-  width:100%;
+#stockSearch{
   border:none;
   outline:none;
-  font-size:16px;
+  width:100%;
+  font-size:15px;
+  background:transparent;
 }
 
-/* list */
-.csList{
-  margin-top:14px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.csCard{
-  background:var(--card);
+.csRefresh{
   border:1px solid var(--border);
-  border-radius:16px;
-  padding:12px 12px;
-  box-shadow: var(--shadow);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  background:#fff;
+  padding:10px 12px;
+  border-radius:12px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03);
 }
 
-.csLeft{
-  min-width:0;
+/* LIST */
+.csList{
+  padding:2px 12px 120px; /* lasă loc pentru footer */
+}
+
+/* CARD (compatibil cu structura pe care o generezi deja în JS) */
+.stockCard, .inv-card, .csCard{
+  background: var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px;
+  margin:10px 0;
+  box-shadow: 0 2px 10px rgba(17,24,39,.06);
+}
+
+/* dacă JS-ul tău creează .stockCard + .stockTitle etc (cum ai în initCheckStockPage) */
+.stockTitle{
+  font-weight:900;
+  font-size:15px;
+  margin-bottom:10px;
   display:flex;
   align-items:flex-start;
   gap:10px;
 }
-
-.csDoc{
-  width:34px;
-  height:34px;
-  border-radius:10px;
-  background:#fff;
-  border:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.stockTitle::before{
+  content:"🗂️";
+  font-size:18px;
+  margin-top:1px;
+  opacity:.9;
 }
 
+.stockGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+  margin-top:6px;
+}
+
+.field{
+  background:#f7f9fc;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px 10px;
+}
+
+.lbl{
+  font-size:11px;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  color: var(--muted);
+  margin-bottom:6px;
+  font-weight:800;
+}
+
+.inp{
+  width:100%;
+  border:none;
+  background:transparent;
+  outline:none;
+  font-weight:800;
+  color: var(--text);
+}
+
+.qtyRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.unit{
+  color: var(--muted);
+  font-weight:700;
+}
+
+/* actions row */
+.actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+}
+.actions button{
+  border:1px solid var(--border);
+  background:#fff;
+  padding:9px 12px;
+  border-radius:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.actions .status{
+  margin-left:auto;
+  font-weight:800;
+  color: var(--muted);
+}
+
+/* BOTTOM */
+.csBottom{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:10px 12px 12px;
+  background: rgba(238,242,247,.95);
+  backdrop-filter: blur(8px);
+  border-top:1px solid var(--border);
+}
+
+.csTotalPill{
+  background:#e7f0ff;
+  border:1px solid #cfe0ff;
+  border-radius:999px;
+  padding:10px 14px;
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  font-weight:900;
+  box-shadow: 0 2px 10px rgba(17,24,39,.08);
+}
+
+.csTotalLabel{ opacity:.85; }
+.csTotalValue{ }
+
+/* bottom nav (optional) */
+.csNav{
+  margin-top:10px;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  background:#ffffff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:10px 8px;
+  box-shadow: 0 2px 10px rgba(17,24,39,.08);
+}
+
+.csNav button{
+  border:none;
+  background:transparent;
+  font-size:20px;
+  cursor:pointer;
+  padding:8px 10px;
+  border-radius:12px;
+}
+.csNav button:active{
+  background:#f0f4fa;
+}
+
+/* CARD produs (TOTAL) */
+.csProdCard{
+  background:#fff;
+  border:1px solid #d9e1ee;
+  border-radius:14px;
+  padding:12px;
+  margin:10px 0;
+  box-shadow: 0 2px 10px rgba(17,24,39,.06);
+}
+
+.csProdTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.csProdLeft{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.csIcon{ font-size:18px; opacity:.9; }
 .csName{
   font-weight:900;
-  font-size:16px;
+  font-size:15px;
   line-height:1.2;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width: 560px;
 }
 
-.csSub{
-  margin-top:4px;
-  color:var(--muted);
-  font-weight:700;
-  font-size:14px;
-}
-
-.csRight{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-shrink:0;
-}
-
-.csPill{
-  padding:8px 12px;
-  border-radius:999px;
-  font-weight:900;
-  border:1px solid rgba(0,0,0,.06);
-  white-space:nowrap;
-}
-
-.csPill.green{ background:var(--pillGreen); color:var(--pillGreenText); }
-.csPill.yellow{ background:var(--pillYellow); color:var(--pillYellowText); }
-
-.csEdit{
-  width:42px;
-  height:42px;
+.csQtyBadge{
+  padding:8px 10px;
   border-radius:12px;
-  border:1px solid var(--border);
+  font-weight:900;
+  min-width:86px;
+  text-align:center;
+  border:1px solid #d9e1ee;
+}
+
+.qty-green{ background:#cfeecf; }
+.qty-yellow{ background:#dff2c7; }
+.qty-amber{ background:#ffe4b6; }
+.qty-red{ background:#ffd0d0; }
+
+.csLots{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px dashed #d9e1ee;
+}
+
+.csLotRow{
+  background:#f7f9fc;
+  border:1px solid #d9e1ee;
+  border-radius:12px;
+  padding:10px;
+  margin:10px 0;
+}
+
+.csLotGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+
+.csField{
   background:#fff;
-  cursor:pointer;
-  font-size:18px;
+  border:1px solid #d9e1ee;
+  border-radius:12px;
+  padding:8px 10px;
 }
 
-/* total bar bottom */
-.csTotalBar{
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 10px 12px;
-  background: rgba(243,245,247,.85);
-  backdrop-filter: blur(8px);
+.csLbl{
+  font-size:11px;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  color:#6b7787;
+  margin-bottom:6px;
+  font-weight:800;
 }
 
-.csTotalInner{
-  max-width: 980px;
-  margin: 0 auto;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  padding: 12px 14px;
+.csInp{
+  width:100%;
+  border:none;
+  background:transparent;
+  outline:none;
+  font-weight:800;
+}
+
+.csRowActions{
   display:flex;
   align-items:center;
-  justify-content:center;
   gap:10px;
-  font-weight: 900;
+  margin-top:10px;
 }
-
-.csTotalLabel{ opacity:.8; }
-.csTotalValue{ font-size:16px; }
-
-/* responsive */
-@media (max-width:520px){
-  .csTitle{ font-size:18px; }
-  .csName{ max-width: 240px; }
+.csRowActions button{
+  border:1px solid #d9e1ee;
+  background:#fff;
+  padding:9px 12px;
+  border-radius:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.csRowActions .status{
+  margin-left:auto;
+  font-weight:800;
+  color:#6b7787;
 }
