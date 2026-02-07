@@ -77,6 +77,7 @@ async function seedClientsFromFileIfEmpty() {
 
 
 
+
 function readJson(filePath, fallback) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
@@ -231,6 +232,40 @@ out.push({
   walk(tree, []);
   return out;
 }
+
+function buildProductsTreeFromDbRows(rows) {
+  const tree = {};
+
+  rows.forEach(p => {
+    const cat = String(p.category || "Altele").trim() || "Altele";
+    if (!tree[cat]) tree[cat] = [];
+    tree[cat].push({ name: p.name });
+  });
+
+  // sortăm produsele în fiecare categorie
+  Object.keys(tree).forEach(cat => {
+    tree[cat].sort((a, b) => String(a.name).localeCompare(String(b.name), "ro"));
+  });
+
+  return tree;
+}
+
+function toProductFlat(row) {
+  const gtins = Array.isArray(row.gtins) ? row.gtins : (row.gtins ? row.gtins : []);
+  const primary = row.gtin || (gtins[0] || "");
+
+  const category = String(row.category || "");
+  return {
+    id: row.id,
+    name: row.name,
+    gtin: primary,
+    gtins: gtins,
+    price: Number(row.price || 0),
+    category,
+    path: category || "Altele"
+  };
+}
+
 
 
 const LOCATION_ORDER = ["A", "B", "C", "R1", "R2", "R3"];
@@ -591,10 +626,33 @@ res.json({ ok: true });
 
 
 // ----- API CLIENTS -----
-app.get("/api/clients-tree", (req, res) => {
-  const flat = readJson(CLIENTS_FILE, []);
-  res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
+app.get("/api/clients-tree", async (req, res) => {
+  try {
+    if (db.hasDb()) {
+      const r = await db.q(
+        `SELECT name, group_name, category
+         FROM clients
+         ORDER BY name ASC`
+      );
+
+      const flat = r.rows.map(x => ({
+        name: x.name,
+        group: x.group_name || "",
+        category: x.category || ""
+      }));
+
+      return res.json(buildClientsTreeFromFlat(flat));
+    }
+
+    // fallback local
+    const flat = readJson(CLIENTS_FILE, []);
+    return res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
+  } catch (e) {
+    console.error("clients-tree error:", e);
+    res.status(500).json({ error: "Eroare la clients-tree" });
+  }
 });
+
 
 app.get("/api/clients-flat", async (req, res) => {
   try {
@@ -673,103 +731,52 @@ function readProductsAsList() {
 
 
 // ----- API PRODUCTS -----
-app.get("/api/products-tree", (req, res) => {
-  const list = readProductsAsList();
-  const CATEGORY_ORDER = [
-  "Seni Active Classic x30",
-  "Seni Classic Air x30",
-  "Seni Aleze x30",
-  "Seni Lady",
-  "Manusi",
-  "Altele"
-];
-
-
-  const treeByCategory = {};
-
-  list.forEach(p => {
-    const cat = (p.category || "Altele").trim();
-    if (!treeByCategory[cat]) treeByCategory[cat] = [];
-
-    // renderTree din frontend folosește item.name
-    treeByCategory[cat].push({ name: p.name });
-  });
-function sizeRank(name) {
-  const n = String(name || "").toLowerCase();
-
-  if (n.includes("small") || n.includes(" s ")) return 1;
-  if (n.includes("medium") || n.includes(" m ")) return 2;
-  if (n.includes("large") || n.includes(" l ")) return 3;
-  if (n.includes("xl") || n.includes("x-large") || n.includes("extra large")) return 4;
-
-  return 999; // fără mărime → la final
-}
-
-  // sortare produse în fiecare categorie
-  Object.keys(treeByCategory).forEach(cat => {
-    treeByCategory[cat].sort((a, b) => a.name.localeCompare(b.name, "ro"));
-  });
-
-  // sortare categorii
- const sorted = {};
-
-CATEGORY_ORDER.forEach(cat => {
-  if (treeByCategory[cat]) {
-    sorted[cat] = treeByCategory[cat];
-  }
-});
-
-// 🔁 adăugăm orice categorie care NU e în listă
-Object.keys(treeByCategory).forEach(cat => {
-  if (!sorted[cat]) {
-    sorted[cat] = treeByCategory[cat];
-  }
-});
-
-
-
-res.json(sorted);
-});
-
-
-
-app.get("/api/products-flat", (req, res) => {
-  const data = readJson(PRODUCTS_FILE, []);
-
-  // dacă e listă, returneaz-o direct (cu path fallback)
-  if (Array.isArray(data)) {
-    return res.json(
-      data.map(p => ({
-        ...p,
-        id: String(p.id),
-        path: p.path && String(p.path).trim()
-          ? p.path
-          : `Produse / ${p.category || "Altele"}`
-      }))
-    );
-  }
-
-  // altfel, e vechiul tree
-  const flat = flattenProductsTree(data);
-  res.json(flat);
-});
-// ----- API PRODUCTS (flat) -----
-app.get("/api/products-flat", async (req, res) => {
+app.get("/api/products-tree", async (req, res) => {
   try {
-    // DB mode
     if (db.hasDb()) {
-      const r = await db.q(`SELECT id, name FROM products ORDER BY name ASC`);
-      return res.json(r.rows.map(x => ({ id: String(x.id), name: x.name })));
+      const r = await db.q(
+        `SELECT id, name, gtin, gtins, price, category
+         FROM products
+         ORDER BY name ASC`
+      );
+      return res.json(buildProductsTreeFromDbRows(r.rows));
     }
 
-    // fallback JSON
-    const list = readProductsAsList(); // deja există în server.js
-    return res.json(list.map(p => ({ id: String(p.id), name: p.name })));
+    // fallback local
+    const products = readJson(PRODUCTS_FILE, []);
+    return res.json(buildProductsTree(products));
   } catch (e) {
-    console.error("products-flat error:", e);
-    res.status(500).json({ error: "Eroare la produse" });
+    console.error("products-tree error:", e);
+    res.status(500).json({ error: "Eroare la products-tree" });
   }
 });
+
+
+
+
+app.get("/api/products-flat", async (req, res) => {
+  try {
+    if (db.hasDb()) {
+      const r = await db.q(
+        `SELECT id, name, gtin, gtins, price, category
+         FROM products
+         ORDER BY name ASC`
+      );
+
+      const out = r.rows.map(toProductFlat);
+      return res.json(out);
+    }
+
+    // fallback local
+    const tree = buildProductsTree(readJson(PRODUCTS_FILE, []));
+    return res.json(flattenProductsTree(tree));
+  } catch (e) {
+    console.error("products-flat error:", e);
+    res.status(500).json({ error: "Eroare la products-flat" });
+  }
+});
+
+
 
 
 
@@ -1621,6 +1628,84 @@ app.post("/api/clients", async (req, res) => {
   }
 });
 
+async function ensureDefaultAdmin() {
+  if (!db.hasDb()) return;
+
+  const username = process.env.DEFAULT_ADMIN_USER || "admin";
+  const password = process.env.DEFAULT_ADMIN_PASS || "admin";
+
+  const r = await db.q("SELECT COUNT(*)::int AS n FROM users");
+  const n = r.rows?.[0]?.n || 0;
+
+  if (n > 0) {
+    console.log("[BOOT] users exist -> skip default admin");
+    return;
+  }
+
+  const bcrypt = require("bcryptjs");
+  const password_hash = await bcrypt.hash(password, 10);
+
+  await db.q(
+    "INSERT INTO users (username, password_hash, role) VALUES ($1,$2,$3)",
+    [username, password_hash, "admin"]
+  );
+
+  console.log(`[BOOT] Default admin created: ${username} (schimbă parola din env!)`);
+}
+
+const fs = require("fs");
+const path = require("path");
+
+async function seedProductsFromFileIfEmpty() {
+  if (!db.hasDb()) return;
+
+  const r = await db.q("SELECT COUNT(*)::int AS n FROM products");
+  const n = r.rows?.[0]?.n || 0;
+  if (n > 0) {
+    console.log("[BOOT] products exist -> skip seed");
+    return;
+  }
+
+  const filePath = path.join(__dirname, "data", "products.json");
+  if (!fs.existsSync(filePath)) {
+    console.warn("[BOOT] products.json not found -> skip seed");
+    return;
+  }
+
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const items = JSON.parse(raw || "[]");
+  if (!Array.isArray(items) || !items.length) {
+    console.warn("[BOOT] products.json empty -> skip seed");
+    return;
+  }
+
+  console.log(`[BOOT] Seeding products from file (${items.length})...`);
+
+  for (const p of items) {
+    const id = Number(p.id);
+    const name = String(p.name || "").trim();
+    const gtin = String(p.gtin || "").trim() || null;
+    const gtins = Array.isArray(p.gtins) ? p.gtins : [];
+    const price = Number(p.price || 0);
+    const category = String(p.category || "").trim();
+
+    if (!id || !name) continue;
+
+    await db.q(
+      `INSERT INTO products (id, name, gtin, gtins, price, category)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (id) DO UPDATE SET
+         name=EXCLUDED.name,
+         gtin=EXCLUDED.gtin,
+         gtins=EXCLUDED.gtins,
+         price=EXCLUDED.price,
+         category=EXCLUDED.category`,
+      [id, name, gtin, JSON.stringify(gtins), price, category]
+    );
+  }
+
+  console.log("[BOOT] Products seeded ✅");
+}
 
 
 
@@ -1632,16 +1717,25 @@ app.post("/api/clients", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-db.ensureTables()
-  .then(async () => {
-    console.log("✅ DB ready");
+async function startServer() {
+  // dacă nu ai DB (ex: local fără DATABASE_URL), pornește fără seed DB
+  if (db.hasDb()) {
+    await db.ensureTables();
     await seedClientsFromFileIfEmpty();
-    app.listen(PORT, () => console.log("Server pornit pe port", PORT));
-  })
-  .catch(e => {
-    console.error("❌ DB init error:", e.message);
-    process.exit(1);
-  });
+    await seedProductsFromFileIfEmpty();   // o adăugăm mai jos
+    await ensureDefaultAdmin();            // o adăugăm mai jos
+  } else {
+    console.warn("[WARN] DATABASE_URL lipsă -> rulez fără DB (fallback pe fișiere).");
+  }
+
+  app.listen(PORT, () => console.log("Server on", PORT));
+}
+
+startServer().catch(err => {
+  console.error("BOOT ERROR:", err);
+  process.exit(1);
+});
+
 
 
 

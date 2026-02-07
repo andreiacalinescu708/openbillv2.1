@@ -3,46 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Selectează client</title>
+  <title>Clienți</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="userBar"></div>
   <header class="topbar">
-    <div id="userBar"></div>
+    <div class="topbar-left">
+      <span class="brand">⚕️ Fast Medical Distribution</span>
+    </div>
 
-  <div class="left-actions">
-    <a class="linkbtn" href="index.html">←</a>
-  </div>
+    <div class="topbar-center"></div>
 
-  <h1>Comenzi</h1>
-
-  <div class="actions">
-    <button id="btnThemeToggle">🌙</button>
-  </div>
-</header>
-
-  <button class="linkbtn" id="btnViewCurrentOrder">
-  🧾 Vizualizează comanda actuală
-</button>
-
-
+    <div class="topbar-right">
+      <button id="btnToggleTheme" class="icon-btn">🌙</button>
+      <div id="userBar"></div>
+    </div>
+  </header>
 
   <main class="container">
-    <p class="hint">Click pe client ca să începi o comandă.</p>
-    <div class="client-search">
-  <input
-    type="text"
-    id="searchClient"
-    placeholder="Caută client..."
-  />
-  <div id="clientSearchResults" class="list"></div>
-</div>
-    <div id="clientsTree" class="tree"></div>
-    <div id="clientsSearchResults" class="list"></div>
-  </main>
-  <a class="linkbtn" href="index.html">Dashboard</a>
+    <button class="linkbtn" id="btnViewCurrentOrder">🧾 Vizualizează comanda actuală</button>
 
+    <p class="hint">Selectează un client ca să intri în fișa lui.</p>
+
+    <div class="client-search">
+      <input type="text" id="searchClient" placeholder="Caută client..." />
+      <div id="clientSearchResults" class="list"></div>
+    </div>
+
+    <div id="clientsTree" class="tree"></div>
+
+    <a class="linkbtn" href="index.html">Dashboard</a>
+  </main>
 
   <script src="script.js"></script>
 </body>

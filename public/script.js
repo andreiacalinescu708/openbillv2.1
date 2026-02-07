@@ -337,6 +337,41 @@ function initViewCurrentOrderButton() {
 
 }
 
+async function initClientHomePage() {
+  if (!location.pathname.endsWith("client.html")) return;
+
+  const client = getSelectedClient();
+  if (!client) {
+    alert("Nu este selectat niciun client.");
+    location.href = "adauga_comanda.html";
+    return;
+  }
+
+  const nameEl = document.getElementById("clientName");
+  const metaEl = document.getElementById("clientMeta");
+
+  if (nameEl) nameEl.textContent = `Client: ${client.name}`;
+  if (metaEl) metaEl.textContent = `Grup: ${client.group || "-"} • Categorie: ${client.category || "-"}`;
+
+  const btnNewOrder = document.getElementById("btnNewOrder");
+  const btnPrices = document.getElementById("btnPrices");
+  const btnClientOrders = document.getElementById("btnClientOrders");
+
+  if (btnNewOrder) btnNewOrder.onclick = () => (location.href = "comanda.html");
+
+  // placeholder: deocamdată doar mesaj
+  if (btnPrices) btnPrices.onclick = () => {
+    alert("Verifică prețuri (placeholder). Facem pagina pe client imediat după ce stabilim layout-ul.");
+  };
+
+  // aici facem “Comenzi doar pentru client”
+  if (btnClientOrders) btnClientOrders.onclick = () => {
+    localStorage.setItem("ordersClientFilter", client.name);
+    location.href = "orders.html";
+  };
+}
+
+
 
 
 
@@ -511,7 +546,7 @@ async function initAddClientPage() {
     name => {
       const client = flat.find(c => c.name === name);
       if (client && setSelectedClient(client)) {
-        location.href = "comanda.html";
+        location.href = "client.html";
       }
     },
     { accordion: false } // ✅ aici e locul
@@ -537,7 +572,7 @@ async function initAddClientPage() {
 
         b.onclick = () => {
           if (setSelectedClient(c)) {
-            location.href = "comanda.html";
+            location.href = "client.html";
           }
         };
 
@@ -996,6 +1031,8 @@ async function initOrdersPage() {
     clientGroupMap[name] = String(c.group || "").trim();
     clientCategoryMap[name] = String(c.category || "").trim();
   });
+  const forcedClient = localStorage.getItem("ordersClientFilter") || "";
+
 
   // helper: group-ul real pt o comandă
   function getOrderGroup(o) {
@@ -1116,6 +1153,11 @@ async function initOrdersPage() {
 
       const clientName = String(o?.client?.name || "").toLowerCase();
       if (q && !clientName.includes(q)) return false;
+      if (forcedClient) {
+  const cn = String(o?.client?.name || "");
+  if (cn !== forcedClient) return false;
+}
+
 
       return true;
     });
@@ -1319,11 +1361,14 @@ let html = `
       if (searchInput) searchInput.value = "";
       if (searchResults) searchResults.innerHTML = "";
 
+          localStorage.removeItem("ordersClientFilter");
+
       setStatusFilter("");       // ✅ Tabs = Toate
       rebuildCategoryOptions();  // ✅ refă categorii pt toate traseele
       renderTabs();              // ✅ refă badges
       render();
     };
+
   }
 
   // 9) INIT
@@ -3064,6 +3109,8 @@ if (document.getElementById("clientsList")) {
   await initAddClientForm();
 }
 if (document.getElementById("editItemsList")) await initEditOrderPage();
+if (location.pathname.endsWith("client.html")) initClientHomePage();
+
 if (document.getElementById("stockList")) await initCheckStockPage();
 
 
