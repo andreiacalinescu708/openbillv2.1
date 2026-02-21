@@ -74,7 +74,45 @@ async function seedClientsFromFileIfEmpty() {
   console.log("✅ Clients seeded into DB from clients.json");
 }
 
+async function seedProductsFromFileIfEmpty() {
+  if (!db.hasDb()) return;
 
+  const r = await db.q("SELECT COUNT(*)::int AS n FROM products");
+  if ((r.rows?.[0]?.n ?? 0) > 0) return;
+
+  const list = readProductsAsList();
+
+  for (const p of list) {
+    const name = String(p.name || "").trim();
+    if (!name) continue;
+
+    const id = String(p.id || (Date.now().toString() + Math.random().toString(36).slice(2)));
+
+    const gtinClean = normalizeGTIN(p.gtin || "") || null;
+
+    const gtinsArr = []
+      .concat(gtinClean ? [gtinClean] : [])
+      .concat(Array.isArray(p.gtins) ? p.gtins : [])
+      .map(normalizeGTIN)
+      .filter(Boolean);
+
+    const category = String(p.category || "Altele").trim() || "Altele";
+    const price = (p.price != null && p.price !== "") ? Number(p.price) : null;
+
+    await db.q(
+      `INSERT INTO products (id, name, gtin, gtins, category, price)
+       VALUES ($1,$2,$3,$4::jsonb,$5,$6)
+       ON CONFLICT (gtin) DO UPDATE SET
+         name = EXCLUDED.name,
+         gtins = EXCLUDED.gtins,
+         category = EXCLUDED.category,
+         price = EXCLUDED.price`,
+      [id, name, gtinClean, JSON.stringify(gtinsArr), category, (Number.isFinite(price) ? price : null)]
+    );
+  }
+
+  console.log("✅ Products seeded into DB from products.json");
+}
 
 
 function readJson(filePath, fallback) {
@@ -480,85 +518,71 @@ function readProductsAsList() {
 
 
 // ----- API PRODUCTS -----
-app.get("/api/products-tree", (req, res) => {
-  const list = readProductsAsList();
-  const CATEGORY_ORDER = [
-  "Seni Active Classic x30",
-  "Seni Classic Air x30",
-  "Seni Aleze x30",
-  "Seni Lady",
-  "Manusi",
-  "Altele"
-];
+app.get("/api/products-tree", async (req, res) => {
+  try {
+    let list = [];
 
+    if (db.hasDb()) {
+      const r = await db.q(`SELECT id, name, category FROM products ORDER BY name ASC`);
+      list = r.rows.map(x => ({ id: x.id, name: x.name, category: x.category || "Altele" }));
+    } else {
+      list = readProductsAsList();
+    }
 
-  const treeByCategory = {};
+    const CATEGORY_ORDER = ["Seni Active Classic x30","Seni Classic Air x30","Seni Aleze x30","Seni Lady","Manusi","Altele"];
+    const treeByCategory = {};
 
-  list.forEach(p => {
-    const cat = (p.category || "Altele").trim();
-    if (!treeByCategory[cat]) treeByCategory[cat] = [];
+    list.forEach(p => {
+      const cat = (p.category || "Altele").trim();
+      if (!treeByCategory[cat]) treeByCategory[cat] = [];
+      treeByCategory[cat].push({ name: p.name });
+    });
 
-    // renderTree din frontend folosește item.name
-    treeByCategory[cat].push({ name: p.name });
-  });
-function sizeRank(name) {
-  const n = String(name || "").toLowerCase();
+    Object.keys(treeByCategory).forEach(cat => {
+      treeByCategory[cat].sort((a,b) => a.name.localeCompare(b.name, "ro"));
+    });
 
-  if (n.includes("small") || n.includes(" s ")) return 1;
-  if (n.includes("medium") || n.includes(" m ")) return 2;
-  if (n.includes("large") || n.includes(" l ")) return 3;
-  if (n.includes("xl") || n.includes("x-large") || n.includes("extra large")) return 4;
+    const sorted = {};
+    CATEGORY_ORDER.forEach(cat => { if (treeByCategory[cat]) sorted[cat] = treeByCategory[cat]; });
+    Object.keys(treeByCategory).forEach(cat => { if (!sorted[cat]) sorted[cat] = treeByCategory[cat]; });
 
-  return 999; // fără mărime → la final
-}
-
-  // sortare produse în fiecare categorie
-  Object.keys(treeByCategory).forEach(cat => {
-    treeByCategory[cat].sort((a, b) => a.name.localeCompare(b.name, "ro"));
-  });
-
-  // sortare categorii
- const sorted = {};
-
-CATEGORY_ORDER.forEach(cat => {
-  if (treeByCategory[cat]) {
-    sorted[cat] = treeByCategory[cat];
-  }
-});
-
-// 🔁 adăugăm orice categorie care NU e în listă
-Object.keys(treeByCategory).forEach(cat => {
-  if (!sorted[cat]) {
-    sorted[cat] = treeByCategory[cat];
+    res.json(sorted);
+  } catch (e) {
+    console.error("products-tree error:", e);
+    res.status(500).json({ error: "Eroare la produse" });
   }
 });
 
 
 
-res.json(sorted);
-});
+app.get("/api/products-flat", async (req, res) => {
+  try {
+    if (db.hasDb()) {
+      const r = await db.q(
+        `SELECT id, name, gtin, gtins, category, price
+         FROM products
+         ORDER BY name ASC`
+      );
 
+      return res.json(r.rows.map(x => ({
+        id: String(x.id),
+        name: x.name,
+        gtin: x.gtin || "",
+        gtins: x.gtins || [],
+        category: x.category || "Altele",
+        price: x.price,
+        path: `Produse / ${x.category || "Altele"}`
+      })));
+    }
 
-
-app.get("/api/products-flat", (req, res) => {
-  const data = readJson(PRODUCTS_FILE, []);
-
-  // dacă e listă, returneaz-o direct (cu path fallback)
-  if (Array.isArray(data)) {
-    return res.json(
-      data.map(p => ({
-        ...p,
-        id: String(p.id),
-        path: p.path && String(p.path).trim()
-          ? p.path
-          : `Produse / ${p.category || "Altele"}`
-      }))
-    );
+    // fallback JSON
+    const data = readJson(PRODUCTS_FILE, []);
+    if (Array.isArray(data)) return res.json(data);
+    return res.json(flattenProductsTree(data));
+  } catch (e) {
+    console.error("products-flat error:", e);
+    res.status(500).json({ error: "Eroare la produse" });
   }
-
-  // altfel, e vechiul tree
-  const flat = flattenProductsTree(data);
-  res.json(flat);
 });
 
 
@@ -1224,19 +1248,28 @@ app.post("/api/products", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Lipsește numele" });
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-    const gtinClean = String(gtin || "").trim() || null;
-    const gtinsArr = Array.isArray(gtins) ? gtins : (gtinClean ? [gtinClean] : []);
+    const id = Date.now().toString() + Math.random().toString(36).slice(2);
 
-    const r = await db.q(
-      `INSERT INTO products (name, gtin, gtins, category, price)
-       VALUES ($1,$2,$3::jsonb,$4,$5)
-       RETURNING id`,
-      [name.trim(), gtinClean, JSON.stringify(gtinsArr), category || "Altele", (price != null ? Number(price) : null)]
+    const gtinClean = normalizeGTIN(gtin || "") || null;
+
+    const gtinsArr = []
+      .concat(gtinClean ? [gtinClean] : [])
+      .concat(Array.isArray(gtins) ? gtins : [])
+      .map(normalizeGTIN)
+      .filter(Boolean);
+
+    const cat = String(category || "Altele").trim() || "Altele";
+    const pr = (price != null && price !== "") ? Number(price) : null;
+
+    await db.q(
+      `INSERT INTO products (id, name, gtin, gtins, category, price)
+       VALUES ($1,$2,$3,$4::jsonb,$5,$6)`,
+      [id, name.trim(), gtinClean, JSON.stringify(gtinsArr), cat, (Number.isFinite(pr) ? pr : null)]
     );
 
-    logAudit(req, "PRODUCT_ADD", "product", String(r.rows[0].id), { name, gtin: gtinClean, category, price });
+    await logAudit(req, "PRODUCT_ADD", "product", id, { name, gtin: gtinClean, category: cat, price: pr });
 
-    res.json({ ok: true, id: String(r.rows[0].id) });
+    res.json({ ok: true, id });
   } catch (e) {
     if (String(e.message || "").includes("duplicate key")) {
       return res.status(400).json({ error: "GTIN existent deja" });
@@ -1322,10 +1355,11 @@ async function ensureDefaultAdmin() {
   // - dacă DB e configurat greșit / cade temporar, NU vrem 502 (Railway).
   // - pornim serverul oricum; doar API-urile DB pot da erori până rezolvi DB.
   try {
-    await db.ensureTables();
-    console.log("✅ DB ready");
-    await seedClientsFromFileIfEmpty();
-    await ensureDefaultAdmin();
+   await db.ensureTables();
+console.log("✅ DB ready");
+await seedClientsFromFileIfEmpty();
+await seedProductsFromFileIfEmpty();
+await ensureDefaultAdmin();
   } catch (e) {
     console.error("❌ DB init error (pornesc fără DB):", e?.message || e);
   }
