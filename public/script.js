@@ -3364,7 +3364,7 @@ if (isRegisterPage) { initRegister(); return; }
 
   await protectPage();
   await renderUserBar();
-  await initClientPricesPage();
+  
 
   if (document.getElementById("inventoryList")) initInventoryPage();
   if (document.getElementById("stockProduct")) initStockPage();
@@ -3373,12 +3373,15 @@ if (isRegisterPage) { initRegister(); return; }
   if (document.getElementById("ordersList")) initOrdersPage();
   if (document.getElementById("productsList")) initCheckPricePage();
   if (document.getElementById("pickingList")) await initPickingOrderPage();
+  if (location.pathname.endsWith("client.html")) initClientHomePage();
+  await initClientPricesPage();
+
 if (document.getElementById("clientsList")) {
   await loadClientsAdmin();
   await initAddClientForm();
 }
 if (document.getElementById("editItemsList")) await initEditOrderPage();
-if (location.pathname.endsWith("client.html")) await initClientHomePage();
+
 
 if (document.getElementById("stockList")) await initCheckStockPage();
 
