@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Client</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -11,51 +11,27 @@
     <div class="topbar-left">
       <span class="brand">⚕️ Fast Medical Distribution</span>
     </div>
-
-    <div class="topbar-center"></div>
-
     <div class="topbar-right">
-      <button id="btnToggleTheme" class="icon-btn">🌙</button>
       <div id="userBar"></div>
     </div>
   </header>
 
   <main class="container">
     <div class="panel">
-      <h2 id="clientName" style="margin-top:0;">Client: -</h2>
-      <div id="clientMeta" class="hint">-</div>
+      <h2 id="clientName">Client</h2>
+      <p id="clientMeta" class="hint"></p>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
-        <button id="btnNewOrder" class="btn" style="border:none; background: var(--accent); color:#fff;">
-          ➕ Comandă nouă
-        </button>
-
-        <button id="btnClientOrders" class="btn">
-          📦 Comenzi client
-        </button>
-
-        <button id="btnChangeClient" class="btn">
-          🔁 Schimbă client
-        </button>
-
-        <a class="btn" href="index.html" style="text-decoration:none; display:inline-flex; align-items:center;">
-          ⬅️ Dashboard
-        </a>
+      <div class="list" id="clientActions">
+        <button class="itembtn" id="btnNewOrder">🧾 Comandă nouă</button>
+        <button class="itembtn" id="btnPrices">💰 Prețuri speciale</button>
+        <button class="itembtn" id="btnSold">📒 Sold client</button>
+        <button class="itembtn" id="btnInvoices">🧾 Facturi client</button>
+        <button class="itembtn" id="btnClientOrders">📦 Comenzi client</button>
       </div>
     </div>
 
-    <div class="panel" style="margin-top:16px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-        <h3 style="margin:0;">💰 Prețuri speciale</h3>
-        <div class="hint" id="clientPricesCount">-</div>
-      </div>
-
-      <input id="clientPriceSearch" placeholder="Caută produs în prețurile speciale..." style="margin-top:12px;" />
-
-      <div id="clientPricesBox" style="margin-top:12px;">
-        <p class="hint">Se încarcă…</p>
-      </div>
-    </div>
+    <a class="linkbtn" href="adauga_comanda.html">⬅️ Înapoi la clienți</a>
+    <a class="linkbtn" href="index.html">Dashboard</a>
   </main>
 
   <script src="script.js"></script>
