@@ -560,7 +560,7 @@ app.get("/api/products-flat", async (req, res) => {
   try {
     if (db.hasDb()) {
       const r = await db.q(
-        `SELECT id, name, gtin, gtins, category, price
+        `SELECT id, name, gtins, category, price
          FROM products
          ORDER BY name ASC`
       );
@@ -568,7 +568,7 @@ app.get("/api/products-flat", async (req, res) => {
       return res.json(r.rows.map(x => ({
         id: String(x.id),
         name: x.name,
-        gtin: x.gtin || "",
+        gtin: "",                // păstrăm compatibilitate cu frontend-ul
         gtins: x.gtins || [],
         category: x.category || "Altele",
         price: x.price,
