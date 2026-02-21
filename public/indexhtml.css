@@ -312,3 +312,24 @@ body.dark .bn-item.active{
   background: rgba(11,91,255,.18);
   border-color: rgba(255,255,255,.10);
 }
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body {
+  background: #f2f4f8;
+}
+
+.topbar {
+  margin: 0 !important;
+}
+
+.user-bar {
+  margin-top: 0 !important;
+}
+
+.container {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
