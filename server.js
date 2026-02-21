@@ -5,7 +5,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const db = require("./db");
-const { randomUUID } = require("crypto");
+
 
 const app = express();
 app.set("trust proxy", 1);
@@ -1252,7 +1252,7 @@ app.post("/api/products", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Lipsește numele" });
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-    const id = randomUUID(); // 🔥 ID unic automat
+   
 
     const gtinClean = normalizeGTIN(gtin || "") || null;
 
@@ -1266,10 +1266,10 @@ app.post("/api/products", async (req, res) => {
     const pr = (price != null && price !== "") ? Number(price) : null;
 
     await db.q(
-      `INSERT INTO products (id, name, gtin, gtins, category, price)
-       VALUES ($1,$2,$3,$4::jsonb,$5,$6)`,
-      [id, name.trim(), gtinClean, JSON.stringify(gtinsArr), cat, (Number.isFinite(pr) ? pr : null)]
-    );
+  `INSERT INTO products (name, gtin, gtins, category, price)
+   VALUES ($1,$2,$3::jsonb,$4,$5)`,
+  [name, gtinClean, JSON.stringify(gtinsArr), category, price]
+);
 
     await logAudit(req, "PRODUCT_ADD", "product", id, {
       name,
