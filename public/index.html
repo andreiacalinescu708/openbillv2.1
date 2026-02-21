@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Acasă</title>
+
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="indexhtml.css" />
 </head>
+
 <body>
   <header class="topbar">
     <div class="left-actions">
@@ -23,6 +26,7 @@
     </div>
   </header>
 
+  <!-- user chip + logout (stilizat din CSS) -->
   <div id="userBar" class="user-bar"></div>
 
   <main class="container">
@@ -31,7 +35,6 @@
       <section class="hub-card">
         <div class="hub-head">
           <div class="hub-icon" aria-hidden="true">
-            <!-- warehouse icon -->
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M3 10.5L12 5l9 5.5v10.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
               <path d="M7 22V13h10v9" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -45,15 +48,9 @@
         </div>
 
         <div class="hub-actions">
-          <a class="hub-btn primary" href="stock.html">
-            Recepție marfă
-          </a>
-          <a class="hub-btn" href="checkstock.html">
-            Inventar stoc
-          </a>
-          <a class="hub-btn" href="orders.html">
-            Comenzi
-          </a>
+          <a class="hub-btn primary" href="stock.html">Recepție marfă</a>
+          <a class="hub-btn" href="checkstock.html">Inventar stoc</a>
+          <a class="hub-btn" href="orders.html">Comenzi</a>
         </div>
       </section>
 
@@ -61,7 +58,6 @@
       <section class="hub-card">
         <div class="hub-head">
           <div class="hub-icon" aria-hidden="true">
-            <!-- route / field icon -->
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M6 20c4-7 8-7 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
               <path d="M4 6h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -76,22 +72,8 @@
         </div>
 
         <div class="hub-actions">
-          <a class="hub-btn primary" href="adauga_comanda.html">
-            Lista Clienti
-          </a>
-          <a class="hub-btn disabled" href="#" onclick="return false;">
-          
-
-          </a>
-        </div>
-        <div class="hub-actions">
-          <a class="hub-btn primary" href="checkprice.html">
-            Produse Si Preturi
-          </a>
-          <a class="hub-btn disabled" href="#" onclick="return false;">
-          
-
-          </a>
+          <a class="hub-btn primary" href="adauga_comanda.html">Lista Clienti</a>
+          <a class="hub-btn" href="checkprice.html">Produse Si Preturi</a>
         </div>
       </section>
 
@@ -99,7 +81,6 @@
       <section class="hub-card">
         <div class="hub-head">
           <div class="hub-icon" aria-hidden="true">
-            <!-- office/doc icon -->
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
               <path d="M14 3v4a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -113,15 +94,32 @@
         </div>
 
         <div class="hub-actions">
-          <a class="hub-btn disabled" href="#" onclick="return false;">
-            CSV / Import (în curând)
-          </a>
-          <button onclick="location.href='clienti.html'">Administrare clienți</button>
-
+          <a class="hub-btn disabled" href="#" onclick="return false;">CSV / Import (în curând)</a>
+          <a class="hub-btn" href="clienti.html">Administrare clienți</a>
         </div>
       </section>
     </div>
   </main>
+
+  <!-- bottom nav ca în Design 1 -->
+  <nav class="bottom-nav" aria-label="Navigare">
+    <a class="bn-item active" href="index.html" aria-current="page">
+      <span class="bn-ico">🏠</span>
+      <span class="bn-txt">Dashboard</span>
+    </a>
+    <a class="bn-item" href="stock.html">
+      <span class="bn-ico">📦</span>
+      <span class="bn-txt">Depozit</span>
+    </a>
+    <a class="bn-item" href="adauga_comanda.html">
+      <span class="bn-ico">🚚</span>
+      <span class="bn-txt">Teren</span>
+    </a>
+    <a class="bn-item" href="clienti.html">
+      <span class="bn-ico">🏢</span>
+      <span class="bn-txt">Birou</span>
+    </a>
+  </nav>
 
   <script src="script.js"></script>
 </body>

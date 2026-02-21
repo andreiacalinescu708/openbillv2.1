@@ -125,9 +125,13 @@ async function renderUserBar() {
   }
 
   bar.innerHTML = `
-    <div style="text-align:right">
-      👤 ${me.user.username} (${me.user.role})
-      <button id="btnLogout">Logout</button>
+    <div class="userbar-inner">
+      <div class="user-pill">
+        <span class="user-ico">👤</span>
+        <span class="user-txt">${escapeHtml(me.user.username)} (${escapeHtml(me.user.role)})</span>
+      </div>
+
+      <button id="btnLogout" class="logout-btn" type="button">Logout</button>
     </div>
   `;
 
