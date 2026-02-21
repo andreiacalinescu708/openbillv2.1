@@ -431,25 +431,35 @@ async function initClientPricesPage() {
       .replaceAll("'", "&#039;");
 
   let selectedProduct = null;
+  let currentClient = null; // ✅ ținem clientul încărcat (cu prices actuale)
   let products = [];
   let productById = new Map();
 
-  function renderSelected() {
-    if (!selectedProduct) {
-      selBox.innerHTML = "<i>(nimic)</i>";
-      return;
-    }
-
-    const p = selectedProduct;
-    const base = Number(p.price || 0);
-
-    selBox.innerHTML = `
-      <div><b>${esc(p.name)}</b></div>
-      <div class="hint">${esc(p.path || "")}</div>
-      <div class="hint">Preț listă: <b>${base.toFixed(2)} RON</b></div>
-      <div class="hint">ID produs: <b>${esc(p.id)}</b></div>
-    `;
+ function renderSelected() {
+  if (!selectedProduct) {
+    selBox.innerHTML = "<i>(nimic)</i>";
+    return;
   }
+
+  const p = selectedProduct;
+  const base = Number(p.price || 0);
+
+  const prices = currentClient?.prices || {};
+  const spRaw = prices[String(p.id)];
+  const hasSpecial = spRaw != null && spRaw !== "";
+  const special = Number(spRaw || 0);
+
+  selBox.innerHTML = `
+    <div><b>${esc(p.name)}</b></div>
+    <div class="hint">${esc(p.path || "")}</div>
+    <div class="hint">Preț listă: <b>${base.toFixed(2)} RON</b></div>
+    <div class="hint">Preț special: <b>${hasSpecial ? special.toFixed(2) : "—"}</b> ${hasSpecial ? "RON" : ""}</div>
+    <div class="hint">ID produs: <b>${esc(p.id)}</b></div>
+  `;
+
+  // ✅ dacă există deja preț special, îl pun direct în input ca să-l poți edita ușor
+  inpNewPrice.value = hasSpecial ? String(special) : "";
+}
 
   function renderProductsSearch(q) {
     boxResults.innerHTML = "";
@@ -470,10 +480,15 @@ async function initClientPricesPage() {
       const b = document.createElement("button");
       b.className = "itembtn";
       b.innerHTML = `<b>${esc(p.name)}</b> <span class="hint">(${esc(p.path || "")})</span>`;
-      b.onclick = () => {
-        selectedProduct = p;
-        renderSelected();
-      };
+    b.onclick = () => {
+  selectedProduct = p;
+
+  // ✅ golește search + închide sugestiile
+  inpSearch.value = "";
+  boxResults.innerHTML = "";
+
+  renderSelected();
+};
       boxResults.appendChild(b);
     });
   }
@@ -581,6 +596,7 @@ async function initClientPricesPage() {
 
   async function refreshAll() {
     const [client, prods] = await Promise.all([loadClient(), loadProducts()]);
+    currentClient = client;
     products = Array.isArray(prods) ? prods : [];
     productById = new Map();
     products.forEach(p => productById.set(String(p.id), p));
