@@ -5,6 +5,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const db = require("./db");
+const { randomUUID } = require("crypto");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -86,7 +87,7 @@ async function seedProductsFromFileIfEmpty() {
     const name = String(p.name || "").trim();
     if (!name) continue;
 
-    const id = String(p.id || (Date.now().toString() + Math.random().toString(36).slice(2)));
+    const id = p.id || randomUUID();
 
     const gtinClean = normalizeGTIN(p.gtin || "") || null;
 
@@ -1242,13 +1243,16 @@ app.post("/api/logout", (req, res) => {
 
 
 
+
+
 app.post("/api/products", async (req, res) => {
   try {
     const { name, gtin, category, price, gtins } = req.body;
+
     if (!name) return res.status(400).json({ error: "Lipsește numele" });
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-    const id = Date.now().toString() + Math.random().toString(36).slice(2);
+    const id = randomUUID(); // 🔥 ID unic automat
 
     const gtinClean = normalizeGTIN(gtin || "") || null;
 
@@ -1267,9 +1271,15 @@ app.post("/api/products", async (req, res) => {
       [id, name.trim(), gtinClean, JSON.stringify(gtinsArr), cat, (Number.isFinite(pr) ? pr : null)]
     );
 
-    await logAudit(req, "PRODUCT_ADD", "product", id, { name, gtin: gtinClean, category: cat, price: pr });
+    await logAudit(req, "PRODUCT_ADD", "product", id, {
+      name,
+      gtin: gtinClean,
+      category: cat,
+      price: pr
+    });
 
     res.json({ ok: true, id });
+
   } catch (e) {
     if (String(e.message || "").includes("duplicate key")) {
       return res.status(400).json({ error: "GTIN existent deja" });

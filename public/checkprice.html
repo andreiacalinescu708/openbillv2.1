@@ -7,23 +7,41 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-          <button onclick="location.href='index.html'">⟵ Înapoi</button>
 
+  <!-- Header -->
+  <div class="topbar">
+    <button class="back-btn" onclick="location.href='index.html'">⟵ Înapoi</button>
+    <h1>Produse & Prețuri</h1>
+    <button id="btnShowAddProduct" class="primary-btn">➕ Adaugă</button>
+  </div>
+
+  <!-- User -->
   <div id="userBar"></div>
-  <input id="productsSearch" placeholder="Caută produs...">
-<div id="productsList"></div>
-<script src="script.js"></script>
 
-
+  <!-- Search -->
   <div class="page">
+    <input id="productsSearch" class="search-input" placeholder="Caută produs..." />
+    <div id="productsList" class="products-container"></div>
+  </div>
 
-    
-      <button onclick="location.href='index.html'">⟵ Înapoi</button>
+  <!-- Modal Adăugare Produs -->
+  <div id="addProductModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Adaugă produs nou</h3>
+
+      <input id="newProdName" placeholder="Nume produs" />
+      <input id="newProdGtin" placeholder="GTIN" />
+      <input id="newProdPrice" type="number" step="0.01" placeholder="Preț listă" />
+      <input id="newProdCategory" placeholder="Categorie (ex: Manusi)" />
+
+      <div class="modal-actions">
+        <button id="btnSaveProduct" class="primary-btn">Salvează</button>
+        <button id="btnCancelProduct" class="secondary-btn">Anulează</button>
+      </div>
     </div>
-
-    <div id="productsList" style="margin-top:16px;"></div>
   </div>
 
   <script src="script.js"></script>
+
 </body>
 </html>
