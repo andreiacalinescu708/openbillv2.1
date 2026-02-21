@@ -363,9 +363,9 @@ async function initClientHomePage() {
   if (btnNewOrder) btnNewOrder.onclick = () => (location.href = "comanda.html");
 
   // ✅ Prețuri speciale = pagină separată
-  if (btnPrices) btnPrices.onclick = () => {
-    location.href = "client_prices.html";
-  };
+ if (btnPrices) btnPrices.onclick = () => {
+  location.href = "client_prices.html";
+};
 
   // ✅ Comenzi doar pentru client
   if (btnClientOrders) btnClientOrders.onclick = () => {
@@ -383,6 +383,261 @@ async function initClientHomePage() {
   };
 }
 
+
+async function initClientPricesPage() {
+  if (!location.pathname.endsWith("client_prices.html")) return;
+
+  const elName = document.getElementById("pricesClientName");
+  const elMeta = document.getElementById("pricesClientMeta");
+  const list = document.getElementById("clientPricesList");
+
+  const inpSearch = document.getElementById("priceProductSearch");
+  const boxResults = document.getElementById("priceProductResults");
+
+  const selBox = document.getElementById("selectedProductBox");
+  const inpNewPrice = document.getElementById("newSpecialPrice");
+  const btnAdd = document.getElementById("btnAddSpecialPriceNow");
+
+  const btnReload = document.getElementById("btnReloadPrices");
+
+  if (!list || !inpSearch || !boxResults || !selBox || !btnAdd) return;
+
+  const clientLocal = getSelectedClient();
+  if (!clientLocal || !clientLocal.id) {
+    alert("Nu este selectat niciun client. Selectează clientul din lista de clienți.");
+    location.href = "adauga_comanda.html";
+    return;
+  }
+
+  // 1) încărcăm clientul real din DB (ca să avem mereu prices actual)
+  async function loadClient() {
+    const r = await apiFetch(`/api/clients/${encodeURIComponent(clientLocal.id)}`);
+    const c = await r.json();
+    return c;
+  }
+
+  // 2) încărcăm catalog produse (pt nume + preț listă)
+  async function loadProducts() {
+    const r = await apiFetch("/api/products-flat");
+    return await r.json();
+  }
+
+  const esc = (s) =>
+    String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+  let selectedProduct = null;
+  let products = [];
+  let productById = new Map();
+
+  function renderSelected() {
+    if (!selectedProduct) {
+      selBox.innerHTML = "<i>(nimic)</i>";
+      return;
+    }
+
+    const p = selectedProduct;
+    const base = Number(p.price || 0);
+
+    selBox.innerHTML = `
+      <div><b>${esc(p.name)}</b></div>
+      <div class="hint">${esc(p.path || "")}</div>
+      <div class="hint">Preț listă: <b>${base.toFixed(2)} RON</b></div>
+      <div class="hint">ID produs: <b>${esc(p.id)}</b></div>
+    `;
+  }
+
+  function renderProductsSearch(q) {
+    boxResults.innerHTML = "";
+    const query = String(q || "").toLowerCase().trim();
+    if (!query) return;
+
+    const matches = products
+      .filter(p => {
+        const name = String(p.name || "").toLowerCase();
+        const path = String(p.path || "").toLowerCase();
+        const gtin = String(p.gtin || "").toLowerCase();
+        const gtins = Array.isArray(p.gtins) ? p.gtins.join(" ").toLowerCase() : "";
+        return name.includes(query) || path.includes(query) || gtin.includes(query) || gtins.includes(query);
+      })
+      .slice(0, 25);
+
+    matches.forEach(p => {
+      const b = document.createElement("button");
+      b.className = "itembtn";
+      b.innerHTML = `<b>${esc(p.name)}</b> <span class="hint">(${esc(p.path || "")})</span>`;
+      b.onclick = () => {
+        selectedProduct = p;
+        renderSelected();
+      };
+      boxResults.appendChild(b);
+    });
+  }
+
+  async function saveClientPrices(clientId, pricesObj) {
+    const r = await apiFetch(`/api/clients/${encodeURIComponent(clientId)}/prices`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prices: pricesObj })
+    });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(out.error || "Eroare la salvare prețuri");
+    return out;
+  }
+
+  function renderPrices(client) {
+    list.innerHTML = "";
+
+    const prices = client.prices || {};
+    const entries = Object.entries(prices);
+
+    if (!entries.length) {
+      list.innerHTML = `<p class="hint">Clientul nu are prețuri speciale.</p>`;
+      return;
+    }
+
+    // sort după nume produs
+    entries.sort(([a], [b]) => {
+      const pa = productById.get(String(a));
+      const pb = productById.get(String(b));
+      const na = String(pa?.name || `Produs ${a}`);
+      const nb = String(pb?.name || `Produs ${b}`);
+      return na.localeCompare(nb, "ro");
+    });
+
+    entries.forEach(([pid, sp]) => {
+      const p = productById.get(String(pid));
+      const pname = p?.name || `Produs ID ${pid}`;
+      const ppath = p?.path || "";
+      const base = Number(p?.price || 0);
+      const special = Number(sp || 0);
+
+      const row = document.createElement("div");
+      row.className = "cartItem"; // reuse style frumos
+
+      row.innerHTML = `
+        <div class="cartLeft">
+          <strong>${esc(pname)}</strong>
+          <div class="hint">${esc(ppath)}</div>
+          <div class="hint">Preț listă: <b>${base.toFixed(2)} RON</b></div>
+          <div class="hint">ID produs: <b>${esc(pid)}</b></div>
+        </div>
+
+        <div class="cartRight" style="gap:8px;">
+          <input type="number" step="0.01" value="${Number.isFinite(special) ? special : 0}"
+                 style="width:120px;" />
+          <button class="btnSave">💾</button>
+          <button class="btnDel">🗑</button>
+        </div>
+      `;
+
+      const inp = row.querySelector("input");
+      const btnSave = row.querySelector(".btnSave");
+      const btnDel = row.querySelector(".btnDel");
+
+      btnSave.onclick = async () => {
+        try {
+          const v = Number(inp.value);
+          if (!Number.isFinite(v) || v <= 0) {
+            alert("Preț invalid. Pune un număr > 0.");
+            return;
+          }
+
+          // actualizăm local + salvăm în DB
+          client.prices = client.prices || {};
+          client.prices[String(pid)] = v;
+
+          await saveClientPrices(client.id, client.prices);
+          alert("Salvat ✅");
+        } catch (e) {
+          alert(e.message || "Eroare");
+        }
+      };
+
+      btnDel.onclick = async () => {
+        if (!confirm("Ștergi prețul special pentru acest produs?")) return;
+        try {
+          client.prices = client.prices || {};
+          delete client.prices[String(pid)];
+
+          await saveClientPrices(client.id, client.prices);
+          row.remove();
+
+          if (!Object.keys(client.prices).length) {
+            renderPrices(client);
+          }
+        } catch (e) {
+          alert(e.message || "Eroare");
+        }
+      };
+
+      list.appendChild(row);
+    });
+  }
+
+  async function refreshAll() {
+    const [client, prods] = await Promise.all([loadClient(), loadProducts()]);
+    products = Array.isArray(prods) ? prods : [];
+    productById = new Map();
+    products.forEach(p => productById.set(String(p.id), p));
+
+    if (elName) elName.textContent = `Prețuri speciale – ${client.name}`;
+    if (elMeta) elMeta.textContent = `Grup: ${client.group || "-"} • Categorie: ${client.category || "-"}`;
+
+    renderSelected();
+    renderPrices(client);
+
+    // ținem clientul actualizat și în localStorage (ca să fie consistent)
+    localStorage.setItem("clientSelectat", JSON.stringify(client));
+  }
+
+  inpSearch.addEventListener("input", () => renderProductsSearch(inpSearch.value));
+
+  btnAdd.onclick = async () => {
+    try {
+      if (!selectedProduct) {
+        alert("Selectează un produs din rezultate.");
+        return;
+      }
+
+      const v = Number(inpNewPrice.value);
+      if (!Number.isFinite(v) || v <= 0) {
+        alert("Preț invalid. Pune un număr > 0.");
+        return;
+      }
+
+      // luăm client curent din localStorage (după refreshAll e sincron)
+      const c = getSelectedClient();
+      if (!c || !c.id) return alert("Client invalid.");
+
+      c.prices = c.prices || {};
+      c.prices[String(selectedProduct.id)] = v;
+
+      await saveClientPrices(c.id, c.prices);
+
+      // refresh ca să vedem lista actualizată + sort
+      await refreshAll();
+
+      inpNewPrice.value = "";
+      inpSearch.value = "";
+      boxResults.innerHTML = "";
+      selectedProduct = null;
+      renderSelected();
+
+      alert("Preț special adăugat ✅");
+    } catch (e) {
+      alert(e.message || "Eroare");
+    }
+  };
+
+  if (btnReload) btnReload.onclick = refreshAll;
+
+  await refreshAll();
+}
 
 
 
@@ -3109,6 +3364,7 @@ if (isRegisterPage) { initRegister(); return; }
 
   await protectPage();
   await renderUserBar();
+  await initClientPricesPage();
 
   if (document.getElementById("inventoryList")) initInventoryPage();
   if (document.getElementById("stockProduct")) initStockPage();

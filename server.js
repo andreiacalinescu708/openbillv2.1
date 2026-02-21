@@ -386,6 +386,52 @@ app.get("/api/clients-flat", async (req, res) => {
   }
 });
 
+// === Client details (din DB) ===
+app.get("/api/clients/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id);
+
+    const r = await db.q(
+      `SELECT id, name, group_name AS "group", category, prices
+       FROM clients
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (!r.rows.length) return res.status(404).json({ error: "Client inexistent" });
+
+    const c = r.rows[0];
+    c.prices = c.prices || {};
+    return res.json(c);
+  } catch (e) {
+    console.error("GET /api/clients/:id error:", e);
+    res.status(500).json({ error: "Eroare server" });
+  }
+});
+
+
+// === Save prices (în DB) ===
+// body: { prices: { "<productId>": 12.34, ... } }
+app.put("/api/clients/:id/prices", async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    const prices = req.body?.prices;
+
+    if (!prices || typeof prices !== "object" || Array.isArray(prices)) {
+      return res.status(400).json({ error: "Body invalid. Trimite { prices: {...} }" });
+    }
+
+    await db.q(
+      `UPDATE clients SET prices = $1::jsonb WHERE id = $2`,
+      [JSON.stringify(prices), id]
+    );
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("PUT /api/clients/:id/prices error:", e);
+    res.status(500).json({ error: "Eroare server" });
+  }
+});
 
 // ===== CLIENTS ADAPTERS (for new flat clients.json) =====
 function buildClientsTreeFromFlat(flat) {
