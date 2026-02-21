@@ -87,7 +87,7 @@ async function seedProductsFromFileIfEmpty() {
     const name = String(p.name || "").trim();
     if (!name) continue;
 
-    const id = p.id || randomUUID();
+    const id = (p.id != null && String(p.id).trim() !== "") ? String(p.id) : null;
 
     const gtinClean = normalizeGTIN(p.gtin || "") || null;
 
@@ -1252,10 +1252,9 @@ app.post("/api/products", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Lipsește numele" });
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-   
-
     const gtinClean = normalizeGTIN(gtin || "") || null;
 
+    // gtins jsonb = listă cu gtin principal + cele extra
     const gtinsArr = []
       .concat(gtinClean ? [gtinClean] : [])
       .concat(Array.isArray(gtins) ? gtins : [])
@@ -1265,27 +1264,47 @@ app.post("/api/products", async (req, res) => {
     const cat = String(category || "Altele").trim() || "Altele";
     const pr = (price != null && price !== "") ? Number(price) : null;
 
-    await db.q(
-  `INSERT INTO products (name, gtin, gtins, category, price)
-   VALUES ($1,$2,$3::jsonb,$4,$5)`,
-  [name, gtinClean, JSON.stringify(gtinsArr), category, price]
+    // IMPORTANT: returnăm id (și îl folosim la audit)
+   const r = await db.q(
+  `INSERT INTO products (name, gtins, category, price)
+   VALUES ($1,$2::jsonb,$3,$4)
+   RETURNING id`,
+  [
+    String(name).trim(),
+    JSON.stringify(gtinsArr),
+    cat,
+    (Number.isFinite(pr) ? pr : null)
+  ]
 );
 
+    const id = r.rows[0].id;
+
     await logAudit(req, "PRODUCT_ADD", "product", id, {
-      name,
+      name: String(name).trim(),
       gtin: gtinClean,
       category: cat,
       price: pr
     });
 
-    res.json({ ok: true, id });
+    return res.json({ ok: true, id });
 
   } catch (e) {
-    if (String(e.message || "").includes("duplicate key")) {
-      return res.status(400).json({ error: "GTIN existent deja" });
+    // arată exact CE constraint e lovit
+    if (String(e.code) === "23505") {
+      // e.constraint e foarte util
+      const c = String(e.constraint || "");
+
+      if (c.includes("products_gtin") || c.includes("gtin")) {
+        return res.status(400).json({ error: "GTIN existent deja" });
+      }
+      if (c.includes("products_name") || c.includes("name")) {
+        return res.status(400).json({ error: "Produs existent deja (nume duplicat)" });
+      }
+      return res.status(400).json({ error: "Valoare existentă deja (duplicat)" });
     }
-    console.error("POST product error:", e);
-    res.status(500).json({ error: "Eroare DB product add" });
+
+    console.error("POST /api/products error:", e);
+    return res.status(500).json({ error: e.message || "Eroare DB product add" });
   }
 });
 
