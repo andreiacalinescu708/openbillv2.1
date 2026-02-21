@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Client</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -11,27 +11,68 @@
     <div class="topbar-left">
       <span class="brand">⚕️ Fast Medical Distribution</span>
     </div>
+
     <div class="topbar-right">
+      <button id="btnToggleTheme" class="icon-btn">🌙</button>
       <div id="userBar"></div>
     </div>
   </header>
 
   <main class="container">
-    <div class="panel">
-      <h2 id="clientName">Client</h2>
-      <p id="clientMeta" class="hint"></p>
+    <div class="card">
+      <h2 id="clientName">Client: -</h2>
+      <p id="clientMeta" class="hint">-</p>
 
-      <div class="list" id="clientActions">
-        <button class="itembtn" id="btnNewOrder">🧾 Comandă nouă</button>
-        <button class="itembtn" id="btnPrices">💰 Prețuri speciale</button>
-        <button class="itembtn" id="btnSold">📒 Sold client</button>
-        <button class="itembtn" id="btnInvoices">🧾 Facturi client</button>
-        <button class="itembtn" id="btnClientOrders">📦 Comenzi client</button>
+      <div class="dashboard" style="margin-top:14px;">
+        <button class="dash-btn primary" id="btnNewOrder">
+          <span class="icon">🧾</span>
+          <div>
+            <strong>Comandă nouă</strong>
+            <small>Începe o comandă pentru client</small>
+          </div>
+        </button>
+
+        <button class="dash-btn" id="btnPrices">
+          <span class="icon">💲</span>
+          <div>
+            <strong>Prețuri speciale</strong>
+            <small>Vezi / adaugă / șterge prețuri client</small>
+          </div>
+        </button>
+
+        <button class="dash-btn" id="btnClientSold">
+          <span class="icon">📉</span>
+          <div>
+            <strong>Sold client</strong>
+            <small>(placeholder momentan)</small>
+          </div>
+        </button>
+
+        <button class="dash-btn" id="btnClientInvoices">
+          <span class="icon">🧾</span>
+          <div>
+            <strong>Facturi client</strong>
+            <small>(placeholder momentan)</small>
+          </div>
+        </button>
+
+        <button class="dash-btn" id="btnClientOrders">
+          <span class="icon">📦</span>
+          <div>
+            <strong>Comenzi client</strong>
+            <small>Filtrează orders doar pe clientul acesta</small>
+          </div>
+        </button>
+
+        <a class="dash-btn" href="index.html" style="text-decoration:none;">
+          <span class="icon">🏠</span>
+          <div>
+            <strong>Dashboard</strong>
+            <small>Înapoi</small>
+          </div>
+        </a>
       </div>
     </div>
-
-    <a class="linkbtn" href="adauga_comanda.html">⬅️ Înapoi la clienți</a>
-    <a class="linkbtn" href="index.html">Dashboard</a>
   </main>
 
   <script src="script.js"></script>

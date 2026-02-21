@@ -356,22 +356,30 @@ async function initClientHomePage() {
 
   const btnNewOrder = document.getElementById("btnNewOrder");
   const btnPrices = document.getElementById("btnPrices");
-  const btnSold = document.getElementById("btnSold");
-  const btnInvoices = document.getElementById("btnInvoices");
   const btnClientOrders = document.getElementById("btnClientOrders");
+  const btnClientSold = document.getElementById("btnClientSold");
+  const btnClientInvoices = document.getElementById("btnClientInvoices");
 
   if (btnNewOrder) btnNewOrder.onclick = () => (location.href = "comanda.html");
 
-  // ✅ Prețuri speciale = altă pagină (cum ai cerut)
-  if (btnPrices) btnPrices.onclick = () => (location.href = "client_prices.html");
+  // ✅ Prețuri speciale = pagină separată
+  if (btnPrices) btnPrices.onclick = () => {
+    location.href = "client_prices.html";
+  };
 
-  if (btnSold) btnSold.onclick = () => (location.href = "client_sold.html");
-  if (btnInvoices) btnInvoices.onclick = () => (location.href = "client_facturi.html");
-
-  // filtrăm orders.html doar pentru clientul ăsta
+  // ✅ Comenzi doar pentru client
   if (btnClientOrders) btnClientOrders.onclick = () => {
     localStorage.setItem("ordersClientFilter", client.name);
     location.href = "orders.html";
+  };
+
+  // placeholders
+  if (btnClientSold) btnClientSold.onclick = () => {
+    alert("Sold client: placeholder. Mai târziu îl legăm la programul de facturare.");
+  };
+
+  if (btnClientInvoices) btnClientInvoices.onclick = () => {
+    alert("Facturi client: placeholder. Mai târziu îl legăm la programul de facturare.");
   };
 }
 
