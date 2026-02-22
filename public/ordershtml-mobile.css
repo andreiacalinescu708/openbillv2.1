@@ -247,33 +247,43 @@ body{
   display:flex;
   gap:10px;
   overflow:auto;
-  padding: 2px 2px;
+  padding:10px 0;
 }
 
 .mTab{
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background:#fff;
-  font-weight: 900;
   display:flex;
   align-items:center;
-  gap:10px;
-  white-space: nowrap;
+  gap:8px;
+  border:1px solid #ddd;
+  background:#f7f7f7;
+  border-radius:999px;
+  padding:10px 14px;
+  font-size:16px;
+  white-space:nowrap;
 }
 
 .mTab .badge{
-  min-width: 28px;
-  height: 28px;
-  border-radius: 999px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-weight: 900;
-  border: 1px solid rgba(2,8,23,.12);
-  padding: 0 8px;
+  min-width:22px;
+  height:22px;
+  padding:0 8px;
+  border-radius:999px;
+  background:#e6e6e6;
+  font-weight:700;
+  font-size:14px;
+}
+
+.mTab.active{
+  background:#2f80ed;
+  color:#fff;
+  border-color:#2f80ed;
+}
+
+.mTab.active .badge{
+  background:rgba(255,255,255,.25);
+  color:#fff;
 }
 
 /* culori ca în poză */
@@ -300,5 +310,11 @@ body{
 
 /* ascundem dropdown-ul de status, pentru că status vine din tabs */
 #filterStatus { display: none; }
+
+/* dacă badge-ul e gol, nu-l mai arăta (altfel rămâne “cercul” ăla) */
+.mTab .badge:empty { display: none; }
+
+/* doar ca siguranță: textul să fie mereu vizibil */
+.mTab { color: var(--text); }
 
 
