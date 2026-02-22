@@ -147,7 +147,7 @@
   const LOW_STOCK_LIMIT = 30;
 
 
-  const CATEGORY_ORDER = [
+ const CATEGORY_ORDER = [
   "Seni Active Classic x30",
   "Seni Active Classic x10",
   "Seni Classic Air x30",
@@ -159,13 +159,29 @@
   "Altele"
 ];
 
+// scoate emoji/simboluri și normalizează
+function normCat(s) {
+  return String(s || "")
+    .replace(/[^\p{L}\p{N} ]+/gu, " ") // keep letters/numbers/spaces only
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 function sortCategories(keys) {
-  const orderIndex = new Map(CATEGORY_ORDER.map((c, i) => [c, i]));
+  const orderIndex = new Map(CATEGORY_ORDER.map((c, i) => [normCat(c), i]));
+
   return [...keys].sort((a, b) => {
-    const ia = orderIndex.has(a) ? orderIndex.get(a) : 9999;
-    const ib = orderIndex.has(b) ? orderIndex.get(b) : 9999;
+    const na = normCat(a);
+    const nb = normCat(b);
+
+    const ia = orderIndex.has(na) ? orderIndex.get(na) : 9999;
+    const ib = orderIndex.has(nb) ? orderIndex.get(nb) : 9999;
+
     if (ia !== ib) return ia - ib;
-    return String(a).localeCompare(String(b), "ro");
+
+    // dacă nu sunt în ordine fixă -> alfabet după varianta “curățată”
+    return na.localeCompare(nb, "ro");
   });
 }
 
