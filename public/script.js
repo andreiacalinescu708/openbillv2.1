@@ -682,9 +682,9 @@
           label = item;
           value = item;
         } else if (typeof item === "object") {
-          label = item.name;
-          value = item.name; // IMPORTANT: folosim name ca legătură
-        } else {
+  label = item.name;
+  value = item.id; // ✅ folosim ID ca legătură
+} else {
           return;
         }
 
@@ -967,11 +967,11 @@
     
     treeBox.innerHTML = "";
     treeBox.appendChild(
-      renderTree(tree, name => {
-        const p = flat.find(x => x.name === name);
-        if (p) addToCart(p);
-      })
-    );
+  renderTree(tree, productId => {
+    const p = flat.find(x => String(x.id) === String(productId));
+    if (p) addToCart(p);
+  })
+);
 
     renderCart();
 

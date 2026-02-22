@@ -536,7 +536,7 @@ app.get("/api/products-tree", async (req, res) => {
     list.forEach(p => {
       const cat = (p.category || "Altele").trim();
       if (!treeByCategory[cat]) treeByCategory[cat] = [];
-      treeByCategory[cat].push({ name: p.name });
+      treeByCategory[cat].push({ id: p.id, name: p.name });
     });
 
     Object.keys(treeByCategory).forEach(cat => {
@@ -565,15 +565,20 @@ app.get("/api/products-flat", async (req, res) => {
          ORDER BY name ASC`
       );
 
-      return res.json(r.rows.map(x => ({
-        id: String(x.id),
-        name: x.name,
-        gtin: "",                // păstrăm compatibilitate cu frontend-ul
-        gtins: x.gtins || [],
-        category: x.category || "Altele",
-        price: x.price,
-        path: `Produse / ${x.category || "Altele"}`
-      })));
+     return res.json(r.rows.map(x => {
+  const arr = Array.isArray(x.gtins) ? x.gtins : [];
+  const primary = x.gtin || arr[0] || "";
+
+  return {
+    id: String(x.id),
+    name: x.name,
+    gtin: primary,          // ✅ GTIN principal mereu
+    gtins: arr,
+    category: x.category || "Altele",
+    price: x.price,
+    path: `Produse / ${x.category || "Altele"}`
+  };
+}));
     }
 
     // fallback JSON
