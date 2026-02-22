@@ -1,5 +1,6 @@
 // db.js
 const { Pool } = require("pg");
+const crypto = require("crypto");
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -24,7 +25,7 @@ async function q(text, params) {
 async function ensureTables() {
   if (!pool) return;
 
-  // ORDERS
+  // 1) ORDERS
   await q(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
@@ -40,7 +41,7 @@ async function ensureTables() {
     ON orders (created_at DESC)
   `);
 
-  // STOCK
+  // 2) STOCK
   await q(`
     CREATE TABLE IF NOT EXISTS stock (
       id TEXT PRIMARY KEY,
@@ -59,7 +60,7 @@ async function ensureTables() {
     ON stock (gtin)
   `);
 
-  // AUDIT
+  // 3) AUDIT (păstrezi audit la produse aici - e pentru toate entitățile)
   await q(`
     CREATE TABLE IF NOT EXISTS audit (
       id TEXT PRIMARY KEY,
@@ -77,7 +78,7 @@ async function ensureTables() {
     ON audit (created_at DESC)
   `);
 
-  // USERS
+  // 4) USERS
   await q(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -89,7 +90,10 @@ async function ensureTables() {
     )
   `);
 
-  // CLIENTS  (id TEXT ca să poți avea CL001)
+  // MIGRARE safe (dacă tabela exista fără coloana active)
+  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
+
+  // 5) CLIENTS
   await q(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
@@ -101,7 +105,10 @@ async function ensureTables() {
     )
   `);
 
-  // PRODUCTS (include active)
+  // MIGRARE safe (dacă tabela exista fără prices)
+  await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb`);
+
+  // 6) PRODUCTS (cu active!)
   await q(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
@@ -115,24 +122,11 @@ async function ensureTables() {
     )
   `);
 
-  // ✅ MIGRĂRI (pentru DB-uri vechi)
-  await q(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true
-  `);
-
-  await q(`
-    ALTER TABLE clients
-    ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb
-  `);
-
-  await q(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true
-  `);
+  // MIGRARE safe: dacă tabela exista deja fără active
+  await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
 }
-const crypto = require("crypto");
 
+// scrie audit in DB (optional de folosit)
 async function auditLog({ action, entity, entity_id = null, user = null, details = null }) {
   const id = crypto.randomUUID();
   await q(
@@ -143,7 +137,4 @@ async function auditLog({ action, entity, entity_id = null, user = null, details
   return id;
 }
 
-
-
 module.exports = { q, ensureTables, hasDb, auditLog };
-

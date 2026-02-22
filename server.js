@@ -2,6 +2,13 @@
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const express = require("express");
+
+app.get("/api/version", (req, res) => {
+  res.json({
+    version: "2026-02-22-1",
+    hasDb: db.hasDb()
+  });
+});
 const fs = require("fs");
 const path = require("path");
 const db = require("./db");
@@ -654,8 +661,8 @@ app.get("/api/products-flat", async (req, res) => {
     if (Array.isArray(data)) return res.json(data);
     return res.json(flattenProductsTree(data));
   } catch (e) {
-    console.error("products-flat error:", e);
-    res.status(500).json({ error: "Eroare la produse" });
+   console.error("products-flat error:", e);
+res.status(500).json({ error: "Eroare la produse", detail: e.message, code: e.code });
   }
 });
 
