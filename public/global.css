@@ -1,73 +1,32 @@
-/* ===== COMPAT FIX pentru pagini vechi (evită alb pe alb) ===== */
+/* ===============================
+   FMD GLOBAL DARK BACKGROUND
+   =============================== */
 
-/* 1) Default text pe dark */
-body{
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  background:
+    radial-gradient(1000px 600px at 15% -10%, rgba(56,189,248,.18), transparent 60%),
+    radial-gradient(900px 500px at 85% 0%, rgba(99,102,241,.14), transparent 55%),
+    radial-gradient(900px 700px at 50% 120%, rgba(56,189,248,.08), transparent 60%),
+    #0b1220;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   color: rgba(255,255,255,.92);
 }
 
-/* 2) Linkuri vizibile */
-a{ color: inherit; }
-a:visited{ color: inherit; }
-
-/* 3) Zone albe / light (foarte frecvent: container, table, card) -> text închis */
-.container,
-main.container,
-.content,
-.page,
-.wrapper,
-.card,
-.panel,
-.box,
-section,
-table,
-thead,
-tbody,
-tr,
-td,
-th,
-.modal,
-.dialog{
-  color: #0f172a;
+/* Default text safe */
+p, span, div, h1, h2, h3, h4, h5, h6, label {
+  color: inherit;
 }
 
-/* 4) Dacă aceste zone sunt albe (sau foarte deschise) forțăm fundal + border ușor */
-.container,
-main.container,
-.card,
-.panel,
-.box,
-section{
-  background: rgba(255,255,255,.92);
-  border: 1px solid rgba(15,23,42,.10);
-  border-radius: 16px;
-}
-
-/* 5) Headere din topbar rămân albe */
-.topbar,
-.topbar *{
-  color: rgba(255,255,255,.95);
-}
-
-/* 6) Inputuri/selecturi: să fie lizibile peste tot */
-input, select, textarea{
-  background: rgba(255,255,255,.96);
-  color: #0f172a;
-  border: 1px solid rgba(15,23,42,.15);
-}
-
-/* 7) Butoane: text închis dacă sunt pe fundal alb */
-button, .btn, .linkbtn{
-  color: #0f172a;
-}
-
-/* dacă ai butoane pe topbar/zone dark, poți suprascrie local în CSS-ul paginii */
-
-/* 8) Tabele (multe pagini au tabele) */
-table{
-  background: rgba(255,255,255,.96);
-  color: #0f172a;
-  border-collapse: collapse;
-}
-th, td{
-  border-bottom: 1px solid rgba(15,23,42,.08);
+/* Linkuri */
+a {
+  color: rgba(255,255,255,.9);
+  text-decoration: none;
 }
