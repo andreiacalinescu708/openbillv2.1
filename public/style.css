@@ -1,15 +1,7 @@
 /* =========================
    LIGHT BUSINESS THEME
 ========================= */
-:root {
-  --bg: #f4f6f9;
-  --card: #ffffff;
-  --text: #1f2937;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-}
+
 
 /* =========================
    RESET
@@ -21,8 +13,6 @@
 body {
   margin: 0;
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
 }
 
 /* =========================
@@ -132,7 +122,7 @@ button,
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: white;
+  background: var(--card);
   font-size: 14px;
   cursor: pointer;
 }
@@ -294,7 +284,7 @@ button:hover,
   padding: 20px;
   border-radius: 16px;
   border: 1px solid #ddd;
-  background: #fff;
+  background: var(--card);
   cursor: pointer;
 
   text-align: left;
@@ -630,7 +620,7 @@ body.dark .hub-btn:hover {
 
 .modal-card {
   width: min(520px, calc(100% - 24px));
-  background: #fff;
+  background: var(--card);
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 12px 32px rgba(0,0,0,0.2);
@@ -647,7 +637,7 @@ body.dark .hub-btn:hover {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid #ddd;
-  background: #fff;
+  background: var(--card);
   cursor: pointer;
 }
 
@@ -684,7 +674,7 @@ body.dark .hub-btn:hover {
 }
 
 #scannerModal .modal-card{
-  background: #fff;
+  background: var(--card);
   border-radius: 12px;
   width: min(420px, 92vw);
   margin: 60px auto;
@@ -733,7 +723,7 @@ body::after{
 
 .modalCard{
   width: min(520px, 96vw);
-  background: #fff;
+  background: var(--card);
   border-radius: 18px;
   box-shadow: 0 24px 80px rgba(0,0,0,.35);
   padding: 18px 18px 16px;
@@ -909,7 +899,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 }
 
 .page { padding: 12px; }
-.card { background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.card { background: var(--card); padding: 12px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
 .topbar { display:flex; align-items:center; gap:10px; padding: 10px; }
 .btnBack { text-decoration:none; padding:8px 10px; border-radius:10px; background:#f3f3f3; color:#111; }
 .input { width:100%; padding:10px; margin:6px 0; border:1px solid #ddd; border-radius:10px; }
@@ -925,7 +915,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 /* ===== Edit Order UI (pro) ===== */
 .page { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .pageTitle { margin: 0; font-size: 22px; }
-.muted { color: #6b7280; }
+.muted { color: var(--muted); }
 .small { font-size: 12px; }
 
 .topbar {
@@ -949,7 +939,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 }
 
 .card {
-  background: #fff;
+  background: var(--card);
   border: 1px solid #eee;
   border-radius: 14px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.04);
@@ -969,7 +959,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
   width: 100%;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   outline: none;
   margin-bottom: 10px;
 }
@@ -1002,14 +992,14 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
   width: 80px;
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   text-align: center;
 }
 .dark .qtyInput { background:#0f172a; color:#e5e7eb; border-color:#1f2937; }
 
 .iconBtn {
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--card);
   padding: 8px 10px;
   border-radius: 12px;
   cursor: pointer;
@@ -1020,8 +1010,8 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 .iconBtn.danger { border-color: #fecaca; }
 
 .btn {
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--card);
   padding: 10px 12px;
   border-radius: 12px;
   cursor: pointer;
@@ -1036,7 +1026,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
 .resultBtn {
   text-align: left;
   border: 1px solid #f1f5f9;
-  background: #fff;
+  background: var(--card);
   border-radius: 14px;
   padding: 10px 12px;
   cursor: pointer;
@@ -1051,7 +1041,7 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
   padding: 12px;
   border: 1px dashed #e5e7eb;
   border-radius: 14px;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .footerLine {
