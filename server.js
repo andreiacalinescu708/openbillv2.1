@@ -524,7 +524,7 @@ app.get("/api/products-tree", async (req, res) => {
     let list = [];
 
     if (db.hasDb()) {
-      const r = await db.q(`SELECT id, name, category FROM products ORDER BY name ASC`);
+     const r = await db.q(`SELECT id, name, category FROM products WHERE active=true ORDER BY name ASC`);
       list = r.rows.map(x => ({ id: x.id, name: x.name, category: x.category || "Altele" }));
     } else {
       list = readProductsAsList();
@@ -555,15 +555,63 @@ app.get("/api/products-tree", async (req, res) => {
 });
 
 
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
+
+    const id = String(req.params.id);
+    const { name, gtin, category, price, gtins } = req.body || {};
+
+    const gtinClean = normalizeGTIN(gtin || "") || null;
+
+    const gtinsArr = []
+      .concat(gtinClean ? [gtinClean] : [])
+      .concat(Array.isArray(gtins) ? gtins : [])
+      .map(normalizeGTIN)
+      .filter(Boolean);
+
+    const cat = String(category || "Altele").trim() || "Altele";
+    const pr = (price != null && price !== "") ? Number(price) : null;
+
+    await db.q(
+      `UPDATE products
+       SET name=$1, gtin=$2, gtins=$3::jsonb, category=$4, price=$5
+       WHERE id=$6`,
+      [String(name || "").trim(), gtinClean, JSON.stringify(gtinsArr), cat, (Number.isFinite(pr) ? pr : null), id]
+    );
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("PUT /api/products/:id error:", e);
+    return res.status(500).json({ error: e.message || "Eroare DB edit produs" });
+  }
+});
+
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
+
+    const id = String(req.params.id);
+
+    await db.q(`UPDATE products SET active=false WHERE id=$1`, [id]);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("DELETE /api/products/:id error:", e);
+    return res.status(500).json({ error: e.message || "Eroare DB arhivare produs" });
+  }
+});
+
 
 app.get("/api/products-flat", async (req, res) => {
   try {
     if (db.hasDb()) {
-      const r = await db.q(
-        `SELECT id, name, gtins, category, price
-         FROM products
-         ORDER BY name ASC`
-      );
+     const r = await db.q(
+  `SELECT id, name, gtin, gtins, category, price
+   FROM products
+   WHERE active = true
+   ORDER BY name ASC`
+);
 
      return res.json(r.rows.map(x => {
   const arr = Array.isArray(x.gtins) ? x.gtins : [];
@@ -634,6 +682,22 @@ app.get("/api/orders", async (req, res) => {
 app.post("/api/orders", async (req, res) => {
   try {
     const { client, items } = req.body;
+    const normalizedItems = (items || []).map(it => {
+  const qty = Number(it.qty || 0);
+  const unitPrice = (it.price != null) ? Number(it.price) : 0; // preț client (deja calculat în frontend)
+  const lineTotal = unitPrice * qty;
+
+  return {
+    id: it.id,
+    name: it.name,
+    gtin: it.gtin,
+    qty,
+    unitPrice,
+    lineTotal,
+    allocations: it.allocations || [] // dacă există
+  };
+});
+
     if (!items || !items.length) {
       return res.status(400).json({ error: "Comandă goală" });
     }
@@ -641,13 +705,13 @@ app.post("/api/orders", async (req, res) => {
     // păstrăm exact structura existentă (cu allocations deja făcute în frontend sau server)
     // momentan NU atingem stocul aici (îl mutăm în DB imediat după ce confirmi că orders persistă)
 
-    const newOrder = {
-      id: Date.now().toString(),
-      client,
-      items,
-      status: "in_procesare",
-      createdAt: new Date().toISOString()
-    };
+   const newOrder = {
+  id: Date.now().toString(),
+  client,
+  items: normalizedItems,
+  status: "in_procesare",
+  createdAt: new Date().toISOString()
+};
 
     if (!db.hasDb()) {
       // fallback JSON (local)

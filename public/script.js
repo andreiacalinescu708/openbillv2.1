@@ -748,71 +748,232 @@
     return box;
   }
 
-  async function initCheckPricePage() {
-    const box = document.getElementById("productsList");
-    const search = document.getElementById("productsSearch");
-    if (!box) return;
+async function initCheckPricePage() {
+  const box = document.getElementById("productsList");
+  const search = document.getElementById("productsSearch");
+  const btnClear = document.getElementById("btnClearSearch");
+  const countEl = document.getElementById("cpCount");
 
+  if (!box) return;
+
+  // ---- modal refs
+  const modal = document.getElementById("editProductModal");
+  const btnClose = document.getElementById("btnCloseEditModal");
+  const btnCancel = document.getElementById("btnCancelEdit");
+  const btnSave = document.getElementById("btnSaveEdit");
+  const btnArchive = document.getElementById("btnArchiveProduct");
+  const msg = document.getElementById("editModalMsg");
+
+  const fId = document.getElementById("editProdId");
+  const fName = document.getElementById("editProdName");
+  const fCat = document.getElementById("editProdCategory");
+  const fPrice = document.getElementById("editProdPrice");
+  const fGtin = document.getElementById("editProdGtin");
+  const fGtins = document.getElementById("editProdGtins");
+
+  const esc = (s) =>
+    String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+  let products = [];
+
+  async function load() {
     const res = await apiFetch("/api/products-flat");
-    const products = await res.json();
+    const data = await res.json().catch(() => []);
+    products = Array.isArray(data) ? data : [];
+    render();
+  }
 
-    function render(list) {
-      const sorted = [...list].sort((a, b) =>
-        String(a.name).localeCompare(String(b.name), "ro")
-      );
-
-      box.innerHTML = "";
-
-      if (!sorted.length) {
-        box.innerHTML = "<p class='hint'>Nu există produse.</p>";
-        return;
-      }
-
-      const table = document.createElement("table");
-      table.style.width = "100%";
-      table.style.borderCollapse = "collapse";
-
-      table.innerHTML = `
-        <thead>
-          <tr>
-            <th style="text-align:left; padding:10px; border-bottom:1px solid #eee;">Produs</th>
-            <th style="text-align:right; padding:10px; border-bottom:1px solid #eee;">Preț listă (RON)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      `;
-
-      const tbody = table.querySelector("tbody");
-
-      sorted.forEach(p => {
-        const price = Number(p.price || 0);
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td style="padding:10px; border-bottom:1px solid #f3f3f3;">${p.name}</td>
-          <td style="padding:10px; border-bottom:1px solid #f3f3f3; text-align:right;">
-            <strong>${price.toFixed(2)}</strong>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      box.appendChild(table);
-    }
-
-    render(products);
-
-    if (search) {
-      search.addEventListener("input", () => {
-        const q = search.value.toLowerCase().trim();
-        if (!q) return render(products);
-
-        render(products.filter(p =>
-          String(p.name || "").toLowerCase().includes(q)
-        ));
-      });
+  function showModal(on) {
+    if (!modal) return;
+    modal.classList.toggle("hidden", !on);
+    modal.setAttribute("aria-hidden", on ? "false" : "true");
+    if (!on) {
+      if (msg) msg.style.display = "none";
     }
   }
+
+  function setMsg(text) {
+    if (!msg) return;
+    msg.textContent = text || "";
+    msg.style.display = text ? "" : "none";
+  }
+
+  function openEdit(p) {
+    fId.value = String(p.id);
+    fName.value = p.name || "";
+    fCat.value = p.category || "";
+    fPrice.value = (p.price == null ? "" : String(p.price));
+    fGtin.value = p.gtin || "";
+
+    const arr = Array.isArray(p.gtins) ? p.gtins : [];
+    fGtins.value = arr.join("\n");
+
+    setMsg("");
+    showModal(true);
+    setTimeout(() => fName.focus(), 50);
+  }
+
+  async function doArchive(id, name) {
+    if (!confirm(`Arhivezi produsul?\n\n${name}\n\nVa dispărea din listă, dar rămâne în comenzile vechi.`)) return;
+
+    const r = await apiFetch(`/api/products/${encodeURIComponent(id)}`, { method: "DELETE" });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) return alert(out.error || "Eroare la arhivare");
+
+    await load();
+  }
+
+  async function doSave() {
+    const id = String(fId.value || "").trim();
+    if (!id) return;
+
+    const name = String(fName.value || "").trim();
+    const category = String(fCat.value || "").trim() || "Altele";
+    const priceRaw = String(fPrice.value || "").trim();
+    const gtin = String(fGtin.value || "").trim();
+
+    if (!name) return setMsg("Completează numele produsului.");
+
+    const gtins = String(fGtins.value || "")
+      .split("\n")
+      .map(x => x.trim())
+      .filter(Boolean);
+
+    const payload = {
+      name,
+      category,
+      price: priceRaw === "" ? null : Number(priceRaw),
+      gtin,
+      gtins
+    };
+
+    const r = await apiFetch(`/api/products/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) return setMsg(out.error || "Eroare la salvare");
+
+    showModal(false);
+    await load();
+  }
+
+  function render() {
+    const q = String(search?.value || "").toLowerCase().trim();
+
+    const filtered = !q ? products : products.filter(p => {
+      const name = String(p.name || "").toLowerCase();
+      const cat = String(p.category || "").toLowerCase();
+      const gtin = String(p.gtin || "").toLowerCase();
+      const gtins = Array.isArray(p.gtins) ? p.gtins.join(" ").toLowerCase() : "";
+      return name.includes(q) || cat.includes(q) || gtin.includes(q) || gtins.includes(q);
+    });
+
+    if (countEl) countEl.textContent = String(filtered.length);
+
+    // sort nume
+    const sorted = [...filtered].sort((a,b) =>
+      String(a.name || "").localeCompare(String(b.name || ""), "ro")
+    );
+
+    if (!sorted.length) {
+      box.innerHTML = `<p class="hint" style="padding:14px; color:rgba(231,238,247,.7)">Nu există produse.</p>`;
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "cp-table";
+
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Produs</th>
+          <th style="text-align:right;">Preț listă</th>
+          <th style="text-align:right;">Acțiuni</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    sorted.forEach(p => {
+      const tr = document.createElement("tr");
+
+      const price = Number(p.price || 0);
+
+      tr.innerHTML = `
+        <td>
+          <div class="cp-name">${esc(p.name || "")}</div>
+          <div class="cp-meta">
+            <span class="cp-pill">Categorie: ${esc(p.category || "Altele")}</span>
+            ${p.gtin ? `<span class="cp-pill">GTIN: ${esc(p.gtin)}</span>` : ``}
+          </div>
+        </td>
+
+        <td class="cp-price">${price.toFixed(2)} RON</td>
+
+        <td>
+          <div class="cp-actionsCell">
+            <button class="cp-btn cp-rowbtn" data-act="edit" data-id="${esc(p.id)}">Edit</button>
+            <button class="cp-btn cp-rowbtn danger" data-act="del" data-id="${esc(p.id)}">Șterge</button>
+          </div>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+    box.innerHTML = "";
+    box.appendChild(table);
+
+    // handlers
+    table.querySelectorAll("button[data-act]").forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const act = btn.dataset.act;
+
+        const prod = products.find(x => String(x.id) === String(id));
+        if (!prod) return;
+
+        if (act === "del") return doArchive(prod.id, prod.name);
+        if (act === "edit") return openEdit(prod);
+      };
+    });
+  }
+
+  // ---- modal close behaviors
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target && e.target.dataset && e.target.dataset.close === "1") showModal(false);
+    });
+  }
+  if (btnClose) btnClose.onclick = () => showModal(false);
+  if (btnCancel) btnCancel.onclick = () => showModal(false);
+
+  if (btnSave) btnSave.onclick = doSave;
+
+  if (btnArchive) btnArchive.onclick = async () => {
+    const id = String(fId.value || "").trim();
+    const name = String(fName.value || "").trim() || "(fără nume)";
+    showModal(false);
+    await doArchive(id, name);
+  };
+
+  // search
+  if (search) search.addEventListener("input", render);
+  if (btnClear) btnClear.onclick = () => { search.value = ""; render(); };
+
+  // init
+  await load();
+} 
 
 
 
