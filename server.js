@@ -158,7 +158,7 @@ async function logAudit(req, action, entity, entityId, details = {}) {
   const u = req?.session?.user || null;
 
   const row = {
-    id: Date.now().toString() + Math.random().toString(36).slice(2),
+   id: crypto.randomUUID(),
     action,
     entity,
     entityId: String(entityId || ""),

@@ -72,6 +72,11 @@ async function ensureTables() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+  await q(`
+  ALTER TABLE audit
+  ALTER COLUMN id TYPE TEXT
+  USING id::text
+`);
 
   await q(`
     CREATE INDEX IF NOT EXISTS audit_created_at_idx
