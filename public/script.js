@@ -1088,7 +1088,8 @@ async function initCheckPricePage() {
     };
   }
   const tree = await fetch("/api/products-tree").then(r => r.json());
-    const flat = await fetch("/api/products-flat").then(r => r.json());
+   const flatRaw = await fetch("/api/products-flat").then(r => r.json());
+const flat = Array.isArray(flatRaw) ? flatRaw : [];
 
 
 

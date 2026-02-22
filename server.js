@@ -5,6 +5,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const db = require("./db");
+const crypto = require("crypto");
 
 
 const app = express();
@@ -100,9 +101,11 @@ async function seedProductsFromFileIfEmpty() {
     const category = String(p.category || "Altele").trim() || "Altele";
     const price = (p.price != null && p.price !== "") ? Number(p.price) : null;
 
-    await db.q(
-  `INSERT INTO products (name, gtin, gtins, category, price, active)
-   VALUES ($1,$2,$3::jsonb,$4,$5,true)
+   const idFinal = id && String(id).trim() ? String(id) : crypto.randomUUID();
+
+await db.q(
+  `INSERT INTO products (id, name, gtin, gtins, category, price, active)
+   VALUES ($1,$2,$3,$4::jsonb,$5,$6,true)
    ON CONFLICT (gtin) DO UPDATE SET
      name = EXCLUDED.name,
      gtins = EXCLUDED.gtins,
@@ -110,6 +113,7 @@ async function seedProductsFromFileIfEmpty() {
      price = EXCLUDED.price,
      active = true`,
   [
+    idFinal,
     name,
     gtinClean,
     JSON.stringify(gtinsArr),
