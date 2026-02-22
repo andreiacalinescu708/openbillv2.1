@@ -148,15 +148,15 @@
 
 
  const CATEGORY_ORDER = [
-  "Seni Active Classic x30",
-  "Seni Active Classic x10",
-  "Seni Classic Air x30",
-  "Seni Classic Air x10",
-  "Seni Aleze x30",
-  "Seni Lady",
-  "Manusi",
-  "Absorbante Bella",
-  "Altele"
+  "🩲 Seni Active Classic x30",
+  "🩲 Seni Active Classic x10",
+  "🩹 Seni Classic Air x30",
+  "🩹 Seni Classic Air x10",
+  "🛏️ Seni Aleze x30",
+  "🌸 Seni Lady",
+  "🧤 Manusi",
+  "🩸 Absorbante Bella",
+  "📦 Altele"
 ];
 
 // scoate emoji/simboluri și normalizează
