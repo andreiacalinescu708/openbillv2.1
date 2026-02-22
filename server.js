@@ -524,7 +524,12 @@ app.get("/api/products-tree", async (req, res) => {
     let list = [];
 
     if (db.hasDb()) {
-     const r = await db.q(`SELECT id, name, category FROM products WHERE active=true ORDER BY name ASC`);
+    const r = await db.q(`
+  SELECT id, name, category
+  FROM products
+  WHERE COALESCE(active, true) = true
+  ORDER BY name ASC
+`);
       list = r.rows.map(x => ({ id: x.id, name: x.name, category: x.category || "Altele" }));
     } else {
       list = readProductsAsList();
@@ -609,7 +614,7 @@ app.get("/api/products-flat", async (req, res) => {
      const r = await db.q(
   `SELECT id, name, gtin, gtins, category, price
    FROM products
-   WHERE active = true
+   WHERE COALESCE(active, true) = true
    ORDER BY name ASC`
 );
 
