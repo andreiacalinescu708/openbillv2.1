@@ -1349,7 +1349,7 @@ app.post("/api/products", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Lipsește numele" });
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
-    const id = Date.now().toString() + Math.random().toString(36).slice(2);
+    const id = crypto.randomUUID();
 
     const gtinClean = normalizeGTIN(gtin || "") || null;
 

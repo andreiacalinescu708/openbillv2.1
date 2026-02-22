@@ -36,11 +36,6 @@ async function ensureTables() {
     )
   `);
 
-  await q(`
-    CREATE INDEX IF NOT EXISTS orders_created_at_idx
-    ON orders (created_at DESC)
-  `);
-
   // ================= STOCK =================
   await q(`
     CREATE TABLE IF NOT EXISTS stock (
@@ -55,11 +50,6 @@ async function ensureTables() {
     )
   `);
 
-  await q(`
-    CREATE INDEX IF NOT EXISTS stock_gtin_idx
-    ON stock (gtin)
-  `);
-
   // ================= AUDIT =================
   await q(`
     CREATE TABLE IF NOT EXISTS audit (
@@ -71,16 +61,6 @@ async function ensureTables() {
       details JSONB,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
-  `);
-  await q(`
-  ALTER TABLE audit
-  ALTER COLUMN id TYPE TEXT
-  USING id::text
-`);
-
-  await q(`
-    CREATE INDEX IF NOT EXISTS audit_created_at_idx
-    ON audit (created_at DESC)
   `);
 
   // ================= USERS =================
@@ -95,8 +75,6 @@ async function ensureTables() {
     )
   `);
 
-  await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
-
   // ================= CLIENTS =================
   await q(`
     CREATE TABLE IF NOT EXISTS clients (
@@ -108,8 +86,6 @@ async function ensureTables() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
-
-  await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb`);
 
   // ================= PRODUCTS =================
   await q(`
@@ -125,7 +101,17 @@ async function ensureTables() {
     )
   `);
 
-  // 🔥 MIGRĂRI PENTRU DB VECHI (foarte important)
+  // =========================================================
+  // ✅ MIGRĂRI pentru DB vechi (AICI era problema ta)
+  // Dacă id-urile au fost create ca INTEGER în trecut, le facem TEXT.
+  // =========================================================
+  await q(`ALTER TABLE products ALTER COLUMN id TYPE TEXT USING id::text`);
+  await q(`ALTER TABLE stock    ALTER COLUMN id TYPE TEXT USING id::text`);
+  await q(`ALTER TABLE orders   ALTER COLUMN id TYPE TEXT USING id::text`);
+  await q(`ALTER TABLE clients  ALTER COLUMN id TYPE TEXT USING id::text`);
+  await q(`ALTER TABLE audit    ALTER COLUMN id TYPE TEXT USING id::text`);
+
+  // coloane lipsă (safe)
   await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtin TEXT`);
   await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtins JSONB NOT NULL DEFAULT '[]'::jsonb`);
   await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS category TEXT`);
@@ -133,21 +119,30 @@ async function ensureTables() {
   await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
   await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
 
+  await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb`);
+  await q(`ALTER TABLE users   ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
+
+  // indexuri
+  await q(`CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC)`);
+  await q(`CREATE INDEX IF NOT EXISTS stock_gtin_idx ON stock (gtin)`);
+  await q(`CREATE INDEX IF NOT EXISTS audit_created_at_idx ON audit (created_at DESC)`);
+
   await q(`CREATE INDEX IF NOT EXISTS products_name_idx ON products (name)`);
   await q(`CREATE INDEX IF NOT EXISTS products_category_idx ON products (category)`);
   await q(`CREATE INDEX IF NOT EXISTS products_active_idx ON products (active)`);
 
-  // ⚠️ Unique pe gtin doar dacă nu ai duplicate
+  // unique gtin (parțial)
   await q(`
     CREATE UNIQUE INDEX IF NOT EXISTS products_gtin_ux
     ON products (gtin)
     WHERE gtin IS NOT NULL
   `);
 
+  // normalize active null (dacă au existat rânduri fără active)
   await q(`UPDATE products SET active = true WHERE active IS NULL`);
 }
 
-// ================= AUDIT LOG =================
+// ================= AUDIT LOG (DB) =================
 async function auditLog({ action, entity, entity_id = null, user = null, details = null }) {
   if (!pool) return;
 
