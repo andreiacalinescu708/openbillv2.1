@@ -357,3 +357,18 @@ body{
   background: rgba(0,0,0,.10);
 }
 .cp-spacer{ flex:1; }
+
+.btnHome{
+  display:inline-block;
+  padding:10px 14px;
+  border-radius:10px;
+  background:#ffffff;
+  color:#0b57d0;
+  text-decoration:none;
+  font-weight:600;
+  border:1px solid rgba(0,0,0,.12);
+}
+
+.btnHome:hover{
+  filter:brightness(.95);
+}
