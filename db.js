@@ -137,13 +137,13 @@ async function auditLog({ action, entity, entity_id = null, user = null, details
   const id = crypto.randomUUID();
   await q(
     `INSERT INTO audit (id, action, entity, entity_id, user_json, details)
-     VALUES ($1,$2,$3,$4,$5,$6)`,
-    [id, action, entity, entity_id, user, details]
+     VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)`,
+    [id, action, entity, entity_id, JSON.stringify(user), JSON.stringify(details)]
   );
   return id;
 }
 
 
-module.exports = { q, ensureTables, hasDb };
+
 module.exports = { q, ensureTables, hasDb, auditLog };
 

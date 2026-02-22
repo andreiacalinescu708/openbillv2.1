@@ -432,7 +432,11 @@ app.get("/api/clients-flat", async (req, res) => {
     return res.json(clients);
   } catch (e) {
     console.error("clients-flat error:", e);
-    res.status(500).json({ error: "Eroare la clienți" });
+    res.status(500).json({
+  error: "Eroare la produse",
+  detail: e.message,
+  code: e.code
+});
   }
 });
 
