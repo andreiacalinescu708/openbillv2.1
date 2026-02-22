@@ -1297,3 +1297,21 @@ body.dark .btnGhost{ border-color: rgba(255,255,255,.18); color:#fff; }
   justify-content:flex-end;
   gap:10px;
 }
+
+/* ===== FORCE DARK TEXT ===== */
+
+.card,
+.panel,
+.row,
+.listItem,
+.resultBtn,
+.dash-btn,
+.hub-btn {
+  color: var(--text);
+}
+
+.dash-btn small,
+.row small,
+.card small {
+  color: var(--muted);
+}
