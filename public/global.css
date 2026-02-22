@@ -100,3 +100,39 @@ strong {
 .hint {
   color: var(--muted) !important;
 }
+
+/* ===== FIX VIZIBILITATE pentru comanda.html (tree/list buttons) ===== */
+#productsTree button,
+#productsTree .itembtn,
+#productSearchResults button,
+#productSearchResults .itembtn,
+.tree button,
+.list button,
+.itembtn{
+  color: rgba(255,255,255,.92) !important;
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+}
+
+#productsTree button:hover,
+#productsTree .itembtn:hover,
+.tree button:hover,
+.list button:hover,
+.itembtn:hover{
+  background: rgba(255,255,255,.12) !important;
+}
+
+/* dacă ai heading-uri/texte care rămân întunecate */
+.panel, .panel *{
+  color: rgba(255,255,255,.92);
+}
+.hint, .small{
+  color: rgba(255,255,255,.70) !important;
+}
+
+/* opțional: mai puțin alb pe “pills”/butoane mari */
+.accHead{
+  background: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-color: rgba(255,255,255,.16) !important;
+}
