@@ -147,6 +147,29 @@
   const LOW_STOCK_LIMIT = 30;
 
 
+  const CATEGORY_ORDER = [
+  "Seni Active Classic x30",
+  "Seni Active Classic x10",
+  "Seni Classic Air x30",
+  "Seni Classic Air x10",
+  "Seni Aleze x30",
+  "Seni Lady",
+  "Manusi",
+  "Absorbante Bella",
+  "Altele"
+];
+
+function sortCategories(keys) {
+  const orderIndex = new Map(CATEGORY_ORDER.map((c, i) => [c, i]));
+  return [...keys].sort((a, b) => {
+    const ia = orderIndex.has(a) ? orderIndex.get(a) : 9999;
+    const ib = orderIndex.has(b) ? orderIndex.get(b) : 9999;
+    if (ia !== ib) return ia - ib;
+    return String(a).localeCompare(String(b), "ro");
+  });
+}
+
+
   // ================= STORAGE =================
   function getSelectedClient() {
     try {
@@ -709,7 +732,7 @@
     }
 
   if (obj && typeof obj === "object") {
-    Object.keys(obj).forEach(k => {
+  sortCategories(Object.keys(obj)).forEach(k => {
 
       // ✅ dacă accordion e dezactivat: afișare simplă cu <h4>
       if (!accordion) {
@@ -1568,33 +1591,56 @@ const flat = Array.isArray(flatRaw) ? flatRaw : [];
     }
 
     // 4) CATEGORY OPTIONS REBUILT by group
-    function rebuildCategoryOptions() {
-      if (!selCategory) return;
+  function rebuildCategoryOptions() {
+  if (!selCategory) return;
 
-      const gFilter = selGroup ? (selGroup.value || "") : "";
+  const gFilter = selGroup ? (selGroup.value || "") : "";
 
-      const cats = new Set();
-      orders.forEach(o => {
-        const g = getOrderGroup(o);
-        if (gFilter && g !== gFilter) return;
+  // strângem categoriile existente (din comenzi)
+  const catsSet = new Set();
+  orders.forEach(o => {
+    const g = getOrderGroup(o);
+    if (gFilter && g !== gFilter) return;
 
-        const cat = getOrderCategory(o);
-        if (cat) cats.add(cat);
-      });
+    const cat = getOrderCategory(o);
+    if (cat) catsSet.add(cat);
+  });
 
-      const prev = selCategory.value || "";
-      selCategory.innerHTML = `<option value="">Toate</option>`;
+  const prev = selCategory.value || "";
+  selCategory.innerHTML = `<option value="">Toate</option>`;
 
-      [...cats].sort((a, b) => a.localeCompare(b, "ro")).forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        selCategory.appendChild(opt);
-      });
+  // ✅ ordinea fixă (poți modifica cum vrei)
+  const CATEGORY_ORDER = [
+    "Seni Active Classic x30",
+    "Seni Active Classic x10",
+    "Seni Classic Air x30",
+    "Seni Classic Air x10",
+    "Seni Aleze x30",
+    "Seni Lady",
+    "Manusi",
+    "Absorbante Bella",
+    "Altele"
+  ];
 
-      // păstrează selecția dacă e validă
-      selCategory.value = cats.has(prev) ? prev : "";
-    }
+  const cats = [...catsSet];
+
+  // întâi cele din CATEGORY_ORDER, apoi restul (în ordine alfabetică)
+  const ordered = [];
+  CATEGORY_ORDER.forEach(c => { if (catsSet.has(c)) ordered.push(c); });
+
+  const rest = cats
+    .filter(c => !CATEGORY_ORDER.includes(c))
+    .sort((a, b) => a.localeCompare(b, "ro"));
+
+  [...ordered, ...rest].forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    selCategory.appendChild(opt);
+  });
+
+  selCategory.value = catsSet.has(prev) ? prev : "";
+}
 
     
 

@@ -558,7 +558,7 @@ app.get("/api/products-tree", async (req, res) => {
       list = readProductsAsList();
     }
 
-    const CATEGORY_ORDER = ["Seni Active Classic x30","Seni Classic Air x30","Seni Aleze x30","Seni Lady","Manusi","Altele"];
+    const CATEGORY_ORDER = ["Seni Active Classic x30","Seni Active Classic x10","Seni Classic Air x30","Seni Classic Air x10","Seni Aleze x30","Seni Lady","Manusi","Altele","Absorbante Bella",];
     const treeByCategory = {};
 
     list.forEach(p => {
