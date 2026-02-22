@@ -101,15 +101,22 @@ async function seedProductsFromFileIfEmpty() {
     const price = (p.price != null && p.price !== "") ? Number(p.price) : null;
 
     await db.q(
-      `INSERT INTO products (id, name, gtin, gtins, category, price)
-       VALUES ($1,$2,$3,$4::jsonb,$5,$6)
-       ON CONFLICT (gtin) DO UPDATE SET
-         name = EXCLUDED.name,
-         gtins = EXCLUDED.gtins,
-         category = EXCLUDED.category,
-         price = EXCLUDED.price`,
-      [id, name, gtinClean, JSON.stringify(gtinsArr), category, (Number.isFinite(price) ? price : null)]
-    );
+  `INSERT INTO products (name, gtin, gtins, category, price, active)
+   VALUES ($1,$2,$3::jsonb,$4,$5,true)
+   ON CONFLICT (gtin) DO UPDATE SET
+     name = EXCLUDED.name,
+     gtins = EXCLUDED.gtins,
+     category = EXCLUDED.category,
+     price = EXCLUDED.price,
+     active = true`,
+  [
+    name,
+    gtinClean,
+    JSON.stringify(gtinsArr),
+    category,
+    (Number.isFinite(price) ? price : null)
+  ]
+);
   }
 
   console.log("✅ Products seeded into DB from products.json");
@@ -1339,12 +1346,13 @@ app.post("/api/products", async (req, res) => {
     const pr = (price != null && price !== "") ? Number(price) : null;
 
     // IMPORTANT: returnăm id (și îl folosim la audit)
-   const r = await db.q(
-  `INSERT INTO products (name, gtins, category, price)
-   VALUES ($1,$2::jsonb,$3,$4)
+  const r = await db.q(
+  `INSERT INTO products (name, gtin, gtins, category, price, active)
+   VALUES ($1,$2,$3::jsonb,$4,$5,true)
    RETURNING id`,
   [
     String(name).trim(),
+    gtinClean,
     JSON.stringify(gtinsArr),
     cat,
     (Number.isFinite(pr) ? pr : null)
