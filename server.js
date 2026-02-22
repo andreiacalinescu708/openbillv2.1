@@ -3,12 +3,7 @@ const session = require("express-session");
 const bcrypt = require("bcrypt");
 const express = require("express");
 
-app.get("/api/version", (req, res) => {
-  res.json({
-    version: "2026-02-22-1",
-    hasDb: db.hasDb()
-  });
-});
+
 const fs = require("fs");
 const path = require("path");
 const db = require("./db");
@@ -16,6 +11,12 @@ const crypto = require("crypto");
 
 
 const app = express();
+app.get("/api/version", (req, res) => {
+  res.json({
+    version: "2026-02-22-1",
+    hasDb: db.hasDb()
+  });
+});
 app.set("trust proxy", 1);
 
 
