@@ -1826,11 +1826,24 @@ const flat = Array.isArray(flatRaw) ? flatRaw : [];
 
         const gtin = i.gtin || "-";
 
-  // vrem prețul salvat în comandă (snapshot)
-  const unitPrice = (i.unitPrice != null) ? Number(i.unitPrice) : null;
+ // preț snapshot din comandă:
+// - comenzi noi: i.unitPrice (preț client la momentul comenzii)
+// - comenzi vechi: poate exista i.price (preț listă salvat pe item)
+const unitPrice = (i.unitPrice != null) ? Number(i.unitPrice) : null;
+const itemPrice = (i.price != null) ? Number(i.price) : null;
 
-  // dacă nu există (comenzi vechi), afișăm 0 și marcăm ca lipsă
-  const p = Number.isFinite(unitPrice) ? unitPrice : 0;
+// ✅ dacă unitPrice lipsește sau e 0, folosim prețul din item (din comandă)
+let p = null;
+
+if (Number.isFinite(unitPrice) && unitPrice > 0) {
+  p = unitPrice;
+} else if (Number.isFinite(itemPrice) && itemPrice > 0) {
+  p = itemPrice;
+} else {
+  p = 0;
+}
+
+const isFallbackList = !(Number.isFinite(unitPrice) && unitPrice > 0) && (Number.isFinite(itemPrice) && itemPrice > 0);
 
   const qty = Number(i.qty || 0);
   const subtotal = (i.lineTotal != null && Number.isFinite(Number(i.lineTotal)))
@@ -1842,9 +1855,10 @@ const flat = Array.isArray(flatRaw) ? flatRaw : [];
     <strong>${i.name}</strong> × ${i.qty}
     <div class="muted small">GTIN: ${gtin}</div>
   <div class="muted small">
-    Preț client: <b>${p.toFixed(2)} RON</b>
-    ${unitPrice == null ? "<span class='muted'>(nesalvat)</span>" : ""}
-  </div>
+  ${isFallbackList ? "Preț listă:" : "Preț client:"}
+  <b>${p.toFixed(2)} RON</b>
+  ${p <= 0 ? "<span class='muted'>(lipsă)</span>" : ""}
+</div>
     <div class="muted small">Subtotal: <b>${subtotal.toFixed(2)} RON</b></div>
   `;
 
