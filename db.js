@@ -25,7 +25,7 @@ async function q(text, params) {
 async function ensureTables() {
   if (!pool) return;
 
-  // 1) ORDERS
+  // ================= ORDERS =================
   await q(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
@@ -41,7 +41,7 @@ async function ensureTables() {
     ON orders (created_at DESC)
   `);
 
-  // 2) STOCK
+  // ================= STOCK =================
   await q(`
     CREATE TABLE IF NOT EXISTS stock (
       id TEXT PRIMARY KEY,
@@ -60,7 +60,7 @@ async function ensureTables() {
     ON stock (gtin)
   `);
 
-  // 3) AUDIT (păstrezi audit la produse aici - e pentru toate entitățile)
+  // ================= AUDIT =================
   await q(`
     CREATE TABLE IF NOT EXISTS audit (
       id TEXT PRIMARY KEY,
@@ -78,7 +78,7 @@ async function ensureTables() {
     ON audit (created_at DESC)
   `);
 
-  // 4) USERS
+  // ================= USERS =================
   await q(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -90,10 +90,9 @@ async function ensureTables() {
     )
   `);
 
-  // MIGRARE safe (dacă tabela exista fără coloana active)
   await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
 
-  // 5) CLIENTS
+  // ================= CLIENTS =================
   await q(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
@@ -105,15 +104,14 @@ async function ensureTables() {
     )
   `);
 
-  // MIGRARE safe (dacă tabela exista fără prices)
   await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb`);
 
-  // 6) PRODUCTS (cu active!)
+  // ================= PRODUCTS =================
   await q(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      gtin TEXT UNIQUE,
+      gtin TEXT,
       gtins JSONB NOT NULL DEFAULT '[]'::jsonb,
       category TEXT,
       price NUMERIC(12,2),
@@ -122,18 +120,47 @@ async function ensureTables() {
     )
   `);
 
-  // MIGRARE safe: dacă tabela exista deja fără active
+  // 🔥 MIGRĂRI PENTRU DB VECHI (foarte important)
+  await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtin TEXT`);
+  await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtins JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS category TEXT`);
+  await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC(12,2)`);
   await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
+  await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
+
+  await q(`CREATE INDEX IF NOT EXISTS products_name_idx ON products (name)`);
+  await q(`CREATE INDEX IF NOT EXISTS products_category_idx ON products (category)`);
+  await q(`CREATE INDEX IF NOT EXISTS products_active_idx ON products (active)`);
+
+  // ⚠️ Unique pe gtin doar dacă nu ai duplicate
+  await q(`
+    CREATE UNIQUE INDEX IF NOT EXISTS products_gtin_ux
+    ON products (gtin)
+    WHERE gtin IS NOT NULL
+  `);
+
+  await q(`UPDATE products SET active = true WHERE active IS NULL`);
 }
 
-// scrie audit in DB (optional de folosit)
+// ================= AUDIT LOG =================
 async function auditLog({ action, entity, entity_id = null, user = null, details = null }) {
+  if (!pool) return;
+
   const id = crypto.randomUUID();
+
   await q(
     `INSERT INTO audit (id, action, entity, entity_id, user_json, details)
      VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)`,
-    [id, action, entity, entity_id, JSON.stringify(user), JSON.stringify(details)]
+    [
+      id,
+      String(action),
+      String(entity),
+      entity_id ? String(entity_id) : null,
+      JSON.stringify(user || null),
+      JSON.stringify(details || null)
+    ]
   );
+
   return id;
 }
 
