@@ -114,18 +114,20 @@ const crypto = require("crypto");
 async function auditLog({ action, entity, entity_id = null, user = null, details = null }) {
   const id = crypto.randomUUID();
 
-  await q(
-    `INSERT INTO audit (id, action, entity, entity_id, user_json, details)
-     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)`,
-    [
-      id,
-      String(action),
-      String(entity),
-      entity_id ? String(entity_id) : null,
-      JSON.stringify(user || null),
-      JSON.stringify(details || null),
-    ]
-  );
+ await q(`
+  CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    gtin TEXT UNIQUE,
+    gtins JSONB NOT NULL DEFAULT '[]'::jsonb,
+    category TEXT,
+    price NUMERIC(12,2),
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )
+`);
+// ✅ MIGRARE: dacă tabela exista deja fără coloana active
+await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
 
   return id;
 }

@@ -1333,9 +1333,10 @@ app.post("/api/products", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Lipsește numele" });
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
+    const id = Date.now().toString() + Math.random().toString(36).slice(2);
+
     const gtinClean = normalizeGTIN(gtin || "") || null;
 
-    // gtins jsonb = listă cu gtin principal + cele extra
     const gtinsArr = []
       .concat(gtinClean ? [gtinClean] : [])
       .concat(Array.isArray(gtins) ? gtins : [])
@@ -1345,43 +1346,37 @@ app.post("/api/products", async (req, res) => {
     const cat = String(category || "Altele").trim() || "Altele";
     const pr = (price != null && price !== "") ? Number(price) : null;
 
-    // IMPORTANT: returnăm id (și îl folosim la audit)
-  const r = await db.q(
-  `INSERT INTO products (name, gtin, gtins, category, price, active)
-   VALUES ($1,$2,$3::jsonb,$4,$5,true)
-   RETURNING id`,
-  [
-    String(name).trim(),
-    gtinClean,
-    JSON.stringify(gtinsArr),
-    cat,
-    (Number.isFinite(pr) ? pr : null)
-  ]
-);
+    // ✅ setăm gtin = primul gtin din listă (dacă există), ca să ai GTIN principal mereu
+    const primaryGtin = gtinClean || (gtinsArr[0] || null);
 
-    const id = r.rows[0].id;
+    const r = await db.q(
+      `INSERT INTO products (id, name, gtin, gtins, category, price, active)
+       VALUES ($1,$2,$3,$4::jsonb,$5,$6,true)
+       RETURNING id`,
+      [
+        id,
+        String(name).trim(),
+        primaryGtin,
+        JSON.stringify(gtinsArr),
+        cat,
+        (Number.isFinite(pr) ? pr : null)
+      ]
+    );
 
-    await logAudit(req, "PRODUCT_ADD", "product", id, {
+    await logAudit(req, "PRODUCT_ADD", "product", r.rows[0].id, {
       name: String(name).trim(),
-      gtin: gtinClean,
+      gtin: primaryGtin,
       category: cat,
       price: pr
     });
 
-    return res.json({ ok: true, id });
+    return res.json({ ok: true, id: r.rows[0].id });
 
   } catch (e) {
-    // arată exact CE constraint e lovit
     if (String(e.code) === "23505") {
-      // e.constraint e foarte util
       const c = String(e.constraint || "");
-
-      if (c.includes("products_gtin") || c.includes("gtin")) {
-        return res.status(400).json({ error: "GTIN existent deja" });
-      }
-      if (c.includes("products_name") || c.includes("name")) {
-        return res.status(400).json({ error: "Produs existent deja (nume duplicat)" });
-      }
+      if (c.includes("gtin")) return res.status(400).json({ error: "GTIN existent deja" });
+      if (c.includes("name")) return res.status(400).json({ error: "Produs existent deja (nume duplicat)" });
       return res.status(400).json({ error: "Valoare existentă deja (duplicat)" });
     }
 
