@@ -1,32 +1,34 @@
 /* ===============================
-   FMD GLOBAL DARK BACKGROUND
+   GLOBAL THEME (FMD) - Modern Dark
    =============================== */
 
-html, body {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-
-  background:
+:root{
+  --bg:
     radial-gradient(1000px 600px at 15% -10%, rgba(56,189,248,.18), transparent 60%),
     radial-gradient(900px 500px at 85% 0%, rgba(99,102,241,.14), transparent 55%),
     radial-gradient(900px 700px at 50% 120%, rgba(56,189,248,.08), transparent 60%),
     #0b1220;
 
+  --card: rgba(255,255,255,.06);
+  --card2: rgba(255,255,255,.08);
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.68);
+  --line: rgba(255,255,255,.12);
+  --shadow: 0 16px 40px rgba(0,0,0,.35);
+
+  --radius: 16px;
+}
+
+html, body { height: 100%; }
+
+body{
+  margin:0;
+  min-height:100vh;
+  background: var(--bg);
+  color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  color: rgba(255,255,255,.92);
 }
 
-/* Default text safe */
-p, span, div, h1, h2, h3, h4, h5, h6, label {
-  color: inherit;
-}
-
-/* Linkuri */
-a {
-  color: rgba(255,255,255,.9);
-  text-decoration: none;
-}
+/* Basic reset */
+*{ box-sizing:border-box; }
+a{ color: inherit; text-decoration:none; }

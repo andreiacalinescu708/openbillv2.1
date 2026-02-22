@@ -3,12 +3,6 @@
    ========================= */
 
 :root{
-  --bg: #f5f7fb;
-  --card: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --line: rgba(15, 23, 42, .10);
-  --shadow: 0 12px 30px rgba(15, 23, 42, .08);
   --blue1: #0b5bff;
   --blue2: #0a86ff;
   --blue3: #0748d8;
@@ -311,25 +305,4 @@ body.dark .hub-icon{
 body.dark .bn-item.active{
   background: rgba(11,91,255,.18);
   border-color: rgba(255,255,255,.10);
-}
-html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-body {
-  background: #f2f4f8;
-}
-
-.topbar {
-  margin: 0 !important;
-}
-
-.user-bar {
-  margin-top: 0 !important;
-}
-
-.container {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
 }
