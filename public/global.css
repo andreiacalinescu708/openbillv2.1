@@ -79,3 +79,10 @@ input, textarea, select{
 button{
   font-family: inherit;
 }
+
+.authBody{
+  background:
+    radial-gradient(800px 400px at 20% 10%, rgba(37,99,235,.15), transparent),
+    radial-gradient(900px 500px at 80% 30%, rgba(59,130,246,.12), transparent),
+    var(--bg);
+}
