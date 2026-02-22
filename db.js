@@ -24,6 +24,7 @@ async function q(text, params) {
 async function ensureTables() {
   if (!pool) return;
 
+  // ORDERS
   await q(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
@@ -39,6 +40,7 @@ async function ensureTables() {
     ON orders (created_at DESC)
   `);
 
+  // STOCK
   await q(`
     CREATE TABLE IF NOT EXISTS stock (
       id TEXT PRIMARY KEY,
@@ -57,6 +59,7 @@ async function ensureTables() {
     ON stock (gtin)
   `);
 
+  // AUDIT
   await q(`
     CREATE TABLE IF NOT EXISTS audit (
       id TEXT PRIMARY KEY,
@@ -74,6 +77,7 @@ async function ensureTables() {
     ON audit (created_at DESC)
   `);
 
+  // USERS
   await q(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -85,7 +89,7 @@ async function ensureTables() {
     )
   `);
 
-  // IMPORTANT: clients.id = TEXT ca să poți avea CL001
+  // CLIENTS  (id TEXT ca să poți avea CL001)
   await q(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
@@ -97,6 +101,7 @@ async function ensureTables() {
     )
   `);
 
+  // PRODUCTS (include active)
   await q(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
@@ -105,30 +110,36 @@ async function ensureTables() {
       gtins JSONB NOT NULL DEFAULT '[]'::jsonb,
       category TEXT,
       price NUMERIC(12,2),
+      active BOOLEAN NOT NULL DEFAULT true,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
+  `);
+
+  // ✅ MIGRĂRI (pentru DB-uri vechi)
+  await q(`
+    ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true
+  `);
+
+  await q(`
+    ALTER TABLE clients
+    ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb
+  `);
+
+  await q(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true
   `);
 }
 const crypto = require("crypto");
 
 async function auditLog({ action, entity, entity_id = null, user = null, details = null }) {
   const id = crypto.randomUUID();
-
- await q(`
-  CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    gtin TEXT UNIQUE,
-    gtins JSONB NOT NULL DEFAULT '[]'::jsonb,
-    category TEXT,
-    price NUMERIC(12,2),
-    active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )
-`);
-// ✅ MIGRARE: dacă tabela exista deja fără coloana active
-await q(`ALTER TABLE products ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
-
+  await q(
+    `INSERT INTO audit (id, action, entity, entity_id, user_json, details)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [id, action, entity, entity_id, user, details]
+  );
   return id;
 }
 
