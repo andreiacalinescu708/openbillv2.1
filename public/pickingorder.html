@@ -5,8 +5,8 @@
   <title>Pregătire comandă</title>
   
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="pickingorder.css">
-  <link rel="stylesheet" href="global.css">
+<link rel="stylesheet" href="global.css">
+<link rel="stylesheet" href="pickingorder.css">
 </head>
 <body>
 
@@ -33,60 +33,7 @@
   </div>
 </div>
 
-<!-- ✅ PICKING MODAL (cantitate + actualizează lot) -->
-<div id="pickModal" class="modal" style="display:none;">
-  <div class="modalCard">
-    <button id="pickModalClose" class="modalClose" type="button">✕</button>
 
-    <h3 id="pickModalTitle" class="modalTitle">Picking</h3>
-
-    <div class="modalBody">
-      <div class="modalRow">
-        <div class="modalLabel">Produs</div>
-        <div id="pickModalProduct" class="modalValue">—</div>
-      </div>
-
-      <div class="modalRow">
-        <div class="modalLabel">GTIN comandă</div>
-        <div id="pickModalGtin" class="modalValue">—</div>
-      </div>
-
-      <div class="modalRow">
-        <div class="modalLabel">LOT scanat</div>
-        <div id="pickModalScannedLot" class="modalValue">—</div>
-      </div>
-      <div class="modalRow">
-  <div class="modalLabel">Locație lot scanat</div>
-  <div id="pickModalLocation" class="modalValue">—</div>
-</div>
-
-<div class="modalRow">
-  <div class="modalLabel">Rămas pe comandă</div>
-  <div id="pickModalRemainingOrder" class="modalValue">—</div>
-</div>
-
-
-      <div class="modalRow" id="pickModalPlannedRow" style="display:none;">
-        <div class="modalLabel">LOT în comandă</div>
-        <div id="pickModalPlannedLot" class="modalValue">—</div>
-      </div>
-
-      <div class="modalRow">
-        <label class="modalLabel" for="pickModalQty">Cantitate</label>
-        <input id="pickModalQty" class="modalInput" type="number" min="1" value="1" />
-        <div id="pickModalHint" class="modalHint"></div>
-      </div>
-
-      <div class="modalActions">
-        <button id="pickModalBtnAdd" class="btnPrimary" type="button">Adaugă</button>
-        <button id="pickModalBtnReplaceLot" class="btnDanger" type="button" style="display:none;">
-          Actualizează LOT
-        </button>
-        <button id="pickModalBtnCancel" class="btnGhost" type="button">Anulează</button>
-      </div>
-    </div>
-  </div>
-</div>
 <!-- ✅ PICK MODAL (cantitate + replace lot) -->
 <div id="pickModal" class="modal" style="display:none;">
   <div class="modalCard" role="dialog" aria-modal="true">
