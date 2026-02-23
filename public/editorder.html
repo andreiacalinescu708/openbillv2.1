@@ -314,7 +314,7 @@
       color: var(--text-secondary);
     }
     
-    /* Items List - AICI E FIXUL PRINCIPAL */
+    /* Items List - FIX COMPLET AICI */
     .items-list {
       display: flex;
       flex-direction: column;
@@ -328,16 +328,22 @@
       align-items: center;
       justify-content: space-between;
       padding: 1rem;
-      background: var(--bg-item);
-      border: 1px solid var(--border-color);
+      background-color: #334155 !important;
+      background: #334155 !important;
+      border: 1px solid #475569;
       border-radius: 12px;
       transition: all 0.2s;
-      color: var(--text-primary);
+      color: #f8fafc !important;
+    }
+    
+    .item-row * {
+      color: #f8fafc !important;
     }
     
     .item-row:hover {
-      border-color: var(--accent-primary);
-      background: var(--bg-hover);
+      border-color: #3b82f6;
+      background-color: #475569 !important;
+      background: #475569 !important;
     }
     
     .item-info {
@@ -347,13 +353,13 @@
     .item-name {
       font-weight: 600;
       margin-bottom: 0.5rem;
-      color: var(--text-primary);
+      color: #f8fafc !important;
       font-size: 1rem;
     }
     
     .item-meta {
       font-size: 0.8125rem;
-      color: var(--text-secondary);
+      color: #cbd5e1 !important;
       font-family: monospace;
       display: flex;
       gap: 1rem;
@@ -361,7 +367,7 @@
     }
     
     .item-price {
-      color: var(--accent-primary);
+      color: #60a5fa !important;
       font-weight: 700;
       font-size: 1.125rem;
       margin-right: 1rem;
@@ -379,9 +385,9 @@
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-card);
-      color: var(--text-primary);
+      border: 1px solid #475569;
+      background: #1e293b !important;
+      color: #f8fafc !important;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -392,19 +398,19 @@
     }
     
     .qty-btn:hover {
-      background: var(--accent-primary);
-      border-color: var(--accent-primary);
-      color: white;
+      background: #3b82f6 !important;
+      border-color: #3b82f6;
+      color: white !important;
     }
     
     .qty-input {
       width: 50px;
       height: 32px;
       text-align: center;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
+      background: #0f172a !important;
+      border: 1px solid #475569;
       border-radius: 8px;
-      color: var(--text-primary);
+      color: #f8fafc !important;
       padding: 0.25rem;
       font-weight: 600;
       font-size: 0.875rem;
@@ -415,8 +421,8 @@
       height: 32px;
       border-radius: 8px;
       border: none;
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--accent-danger);
+      background: rgba(239, 68, 68, 0.2) !important;
+      color: #ef4444 !important;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -427,8 +433,8 @@
     }
     
     .btn-delete:hover {
-      background: var(--accent-danger);
-      color: white;
+      background: #ef4444 !important;
+      color: white !important;
     }
     
     /* Product Results */
@@ -442,37 +448,37 @@
     
     .result-item {
       padding: 1rem;
-      background: var(--bg-item);
-      border: 1px solid var(--border-color);
+      background: #334155 !important;
+      border: 1px solid #475569;
       border-radius: 10px;
       cursor: pointer;
       transition: all 0.2s;
-      color: var(--text-primary);
+      color: #f8fafc !important;
     }
     
     .result-item:hover {
-      background: var(--bg-hover);
-      border-color: var(--accent-primary);
+      background: #475569 !important;
+      border-color: #3b82f6;
       transform: translateX(4px);
     }
     
     .result-name {
       font-weight: 600;
       margin-bottom: 0.25rem;
-      color: var(--text-primary);
+      color: #f8fafc !important;
     }
     
     .result-category {
       font-size: 0.75rem;
-      color: var(--text-secondary);
+      color: #cbd5e1 !important;
     }
     
     .empty-state {
       text-align: center;
       padding: 3rem;
-      color: var(--text-secondary);
-      background: var(--bg-item);
-      border: 2px dashed var(--border-color);
+      color: #cbd5e1 !important;
+      background: #334155 !important;
+      border: 2px dashed #475569;
       border-radius: 12px;
     }
     
@@ -539,9 +545,6 @@
         justify-content: flex-end;
       }
     }
-    .item-row, .item-name { color: #f8fafc !important; }
-.item-row { background: #334155 !important; }
-.item-meta { color: #cbd5e1 !important; }
   </style>
 </head>
 <body>
