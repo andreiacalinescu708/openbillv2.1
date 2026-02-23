@@ -1365,76 +1365,94 @@ const flat = Array.isArray(flatRaw) ? flatRaw : [];
   }
 
 
-  async function initAddClientForm() {
-    const form = document.getElementById("addClientForm");
-    if (!form) return;
+ async function initAddClientPage() {
+  const treeBox = document.getElementById("clientsTree");
+  const searchInput = document.getElementById("searchClient");
+  const resultsBox = document.getElementById("clientSearchResults");
 
-    const addPriceBtn = document.getElementById("btnAddSpecialPrice");
-    const pricesBox = document.getElementById("specialPricesBox");
-
-    addPriceBtn.onclick = () => {
-      const row = document.createElement("div");
-      row.className = "spRow";
-      row.innerHTML = `
-        <input class="spGtin" placeholder="GTIN" />
-        <input class="spPrice" placeholder="Preț" type="number" step="0.01" />
-        <button type="button" class="spRemove">X</button>
-      `;
-      row.querySelector(".spRemove").onclick = () => row.remove();
-      pricesBox.appendChild(row);
-    };
-
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById("newClientName").value.trim();
-      const group = document.getElementById("newClientGroup").value;
-      const category = document.getElementById("newClientCategory").value;
-
-      if (!name) return alert("Completează numele.");
-
-      // luam produse ca să mapăm GTIN->id
-      const prodRes = await apiFetch("/api/products-flat");
-      const products = await prodRes.json();
-
-  const gtinToId = new Map();
-
-  products.forEach(p => {
-    const all = []
-      .concat(p.gtin ? [p.gtin] : [])
-      .concat(Array.isArray(p.gtins) ? p.gtins : [])
-      .filter(Boolean);
-
-    all.forEach(g => gtinToId.set(normalizeGTIN(g), String(p.id)));
-  });
-
-      const prices = {};
-      [...pricesBox.querySelectorAll(".spRow")].forEach(r => {
-  const gtin = normalizeGTIN(r.querySelector(".spGtin").value.trim());
-        const pr = r.querySelector(".spPrice").value.trim();
-        if (!gtin || !pr) return;
-
-        const pid = gtinToId.get(gtin);
-        if (!pid) return; // GTIN necunoscut
-
-        prices[pid] = Number(pr);
-      });
-
-      const res = await apiFetch("/api/clients", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ name, group, category, prices })
-      });
-
-      const out = await res.json();
-      if (!res.ok) return alert(out.error || "Eroare");
-
-      alert("Client adăugat!");
-      form.reset();
-      pricesBox.innerHTML = "";
-      await loadClientsAdmin();
-    };
+  if (!treeBox || !searchInput || !resultsBox) {
+    console.log("Lipsesc elementele:", {treeBox, searchInput, resultsBox});
+    return;
   }
+
+  try {
+    const [treeRes, flatRes] = await Promise.all([
+      fetch("/api/clients-tree"),
+      fetch("/api/clients-flat")
+    ]);
+    
+    const tree = await treeRes.json();
+    const flat = await flatRes.json();
+
+    // Golește "Se încarcă..."
+    treeBox.innerHTML = "";
+    
+    // Render tree
+    treeBox.appendChild(
+      renderTree(
+        tree,
+        name => {
+          const client = flat.find(c => c.name === name);
+          if (client && setSelectedClient(client)) {
+            location.href = "client.html";
+          }
+        },
+        { accordion: false }
+      )
+    );
+
+    // 🔎 SEARCH LIVE - CORECTAT
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.toLowerCase().trim();
+      
+      // Golește și ascunde
+      resultsBox.innerHTML = "";
+      
+      if (!q) {
+        resultsBox.classList.remove("show");
+        return;
+      }
+
+      const matches = flat.filter(c => 
+        c.name.toLowerCase().includes(q)
+      ).slice(0, 20);
+
+      if (matches.length === 0) {
+        resultsBox.classList.remove("show");
+        return;
+      }
+
+      // Populează rezultatele
+      matches.forEach(c => {
+        const b = document.createElement("button");
+        b.className = "itembtn";
+        b.textContent = c.name;
+        b.onclick = () => {
+          if (setSelectedClient(c)) {
+            searchInput.value = "";
+            resultsBox.classList.remove("show");
+            location.href = "client.html";
+          }
+        };
+        resultsBox.appendChild(b);
+      });
+
+      // ✅ AFIȘEAZĂ DROPDOWN-ul
+      resultsBox.classList.add("show");
+    });
+
+    // Click în afară = închide
+    document.addEventListener("click", (e) => {
+      if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+        resultsBox.classList.remove("show");
+      }
+    });
+
+  } catch (err) {
+    console.error("Eroare la încărcarea clienților:", err);
+    treeBox.innerHTML = "<p class='empty-state'>Eroare la încărcarea clienților</p>";
+  }
+}
 
 
   function getProductClass(name) {
