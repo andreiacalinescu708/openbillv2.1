@@ -322,7 +322,7 @@ function sortCategories(keys) {
   let total = 0;
 
   cart.forEach(i => {
-    const available = stockMap[normalizeGTIN(i.gtin)] || 0;
+   const available = stockMap[normalizeGTIN(i.gtin)] || stockMap[String(i.id)] || 0;
     const insufficient = i.qty > available;
     const price = Number(i.price) || 0;
     const lineTotal = price * i.qty;
@@ -1084,9 +1084,23 @@ async function initCheckPricePage() {
  async function initOrderPage() {
   stockMap = {};
   const stock = await fetch("/api/stock").then(r => r.json());
-  stock.forEach(s => {
+  // În initOrderPage, înlocuiește:
+stock.forEach(s => {
+  stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
+});
+
+// Cu:
+stock.forEach(s => {
+  // Indexare după GTIN
+  if (s.gtin) {
     stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
-  });
+  }
+  // Indexare și după productId (pentru fallback)
+  if (s.productId || s.product_id) {
+    const pid = s.productId || s.product_id;
+    stockMap[String(pid)] = (stockMap[String(pid)] || 0) + Number(s.qty);
+  }
+});
 
   const treeBox = document.getElementById("productsTree");
   const searchInput = document.getElementById("searchProduct");
