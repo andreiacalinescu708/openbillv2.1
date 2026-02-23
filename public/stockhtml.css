@@ -292,3 +292,33 @@ body{
 @media (max-width:360px){
   .grid2{ grid-template-columns:1fr; }
 }
+
+/* ===== FIX: text vizibil în input/select (și autofill) ===== */
+.input, .select,
+input, select, textarea{
+  color: var(--text) !important;
+  caret-color: var(--text) !important;
+}
+
+/* placeholder OK */
+.input::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+
+/* Chrome / Android autofill (cel mai des strică vizibilitatea) */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill{
+  -webkit-text-fill-color: var(--text) !important;
+  box-shadow: 0 0 0 1000px #fff inset !important; /* pt pagina asta inputurile sunt albe */
+  transition: background-color 999999s ease-in-out 0s;
+}
+body.dark input:-webkit-autofill,
+body.dark textarea:-webkit-autofill,
+body.dark select:-webkit-autofill{
+  -webkit-text-fill-color: #e6edf7 !important;
+  box-shadow: 0 0 0 1000px rgba(255,255,255,.08) inset !important;
+}

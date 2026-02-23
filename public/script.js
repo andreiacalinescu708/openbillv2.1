@@ -1465,39 +1465,44 @@ const flat = Array.isArray(flatRaw) ? flatRaw : [];
   btnShow.onclick = () => modal.classList.remove("hidden");
   btnCancel.onclick = () => modal.classList.add("hidden");
 
-  btnSave.onclick = async () => {
-    const name = document.getElementById("newProdName")?.value.trim();
-    const gtin = document.getElementById("newProdGtin")?.value.trim();
-    const priceRaw = document.getElementById("newProdPrice")?.value.trim();
-    const category = document.getElementById("newProdCategory")?.value.trim();
+ btnSave.onclick = async () => {
+  const name = document.getElementById("newProdName")?.value.trim();
+  const gtin = document.getElementById("newProdGtin")?.value.trim();
+  const priceRaw = document.getElementById("newProdPrice")?.value.trim();
+  const category = document.getElementById("newProdCategory")?.value.trim();
 
-    if (!name) return alert("Completează numele produsului.");
+  const gtinsRaw = document.getElementById("newProdGtins")?.value || "";
+  const gtins = gtinsRaw
+    .split("\n")
+    .map(x => x.trim())
+    .filter(Boolean);
 
-    const res = await apiFetch("/api/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        gtin,
-        category,
-        price: priceRaw ? Number(priceRaw) : null
-      })
-    });
+  if (!name) return alert("Completează numele produsului.");
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) return alert(data.error || "Eroare la salvare");
+  const res = await apiFetch("/api/products", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      gtin,        // principal
+      gtins,       // ✅ lista extra
+      category,
+      price: priceRaw ? Number(priceRaw) : null
+    })
+  });
 
-    modal.classList.add("hidden");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return alert(data.error || "Eroare la salvare");
 
-    // reset
-    ["newProdName","newProdGtin","newProdPrice","newProdCategory"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = "";
-    });
+  modal.classList.add("hidden");
 
-    // refresh simplu
-    location.reload();
-  };
+  ["newProdName","newProdGtin","newProdGtins","newProdPrice","newProdCategory"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  location.reload();
+};
 }
 
   // ================= ORDERS.HTML =================
