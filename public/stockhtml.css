@@ -347,3 +347,33 @@ select option{
 .select-wrap, .select-wrap *{
   color: inherit !important;
 }
+
+/* =========================
+   FIX FINAL: text negru pe inputuri/select in stock.html
+   (global.css pune text alb pe input)
+   ========================= */
+
+.screen input,
+.screen select,
+.screen textarea,
+.screen .input,
+.screen .select{
+  color:#0f172a !important;
+  -webkit-text-fill-color:#0f172a !important;
+  caret-color:#0f172a !important;
+  opacity:1 !important;
+  background:#fff !important;
+}
+
+/* placeholder vizibil */
+.screen input::placeholder,
+.screen textarea::placeholder{
+  color:#6b7280 !important;
+  opacity:1 !important;
+}
+
+/* dropdown options */
+.screen select option{
+  color:#0f172a !important;
+  background:#fff !important;
+}
