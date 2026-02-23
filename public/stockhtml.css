@@ -18,6 +18,9 @@
 }
 
 *{ box-sizing:border-box; }
+
+html, body{ height:100%; }
+
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
@@ -136,18 +139,53 @@ body{
   font-weight:700;
 }
 
-.input, .select{
+/* IMPORTANT: stilizăm și elementele native, nu doar clasele */
+.input, .select,
+input, select, textarea{
   width:100%;
   padding:12px 12px;
   border-radius:14px;
   border:1px solid var(--line);
   outline:none;
+
   background:#fff;
   font-size:14px;
+
+  /* FIX: text vizibil indiferent ce face global.css */
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+  caret-color: var(--text) !important;
+
+  /* FIX: unele teme pun opacity mic */
+  opacity: 1 !important;
 }
-.input:focus, .select:focus{
+
+/* select să arate “dropdown”, nu listbox */
+select, .select{
+  appearance: auto;
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+  background-color:#fff;
+}
+
+/* option-urile din dropdown (altfel rămân albe/ciudate) */
+select option{
+  color: var(--text) !important;
+  background: #ffffff !important;
+}
+
+.input:focus, .select:focus,
+input:focus, select:focus, textarea:focus{
   border-color: rgba(37,99,235,.45);
   box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+
+/* placeholder OK */
+.input::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color: var(--muted) !important;
+  opacity: 1 !important;
 }
 
 /* Product select + green check */
@@ -293,32 +331,16 @@ body{
   .grid2{ grid-template-columns:1fr; }
 }
 
-/* ===== FIX: text vizibil în input/select (și autofill) ===== */
-.input, .select,
-input, select, textarea{
-  color: var(--text) !important;
-  caret-color: var(--text) !important;
-}
-
-/* placeholder OK */
-.input::placeholder,
-input::placeholder,
-textarea::placeholder{
-  color: var(--muted) !important;
-  opacity: 1 !important;
-}
-
-/* Chrome / Android autofill (cel mai des strică vizibilitatea) */
+/* ===== Autofill FIX (Chrome/Android) ===== */
 input:-webkit-autofill,
 textarea:-webkit-autofill,
 select:-webkit-autofill{
   -webkit-text-fill-color: var(--text) !important;
-  box-shadow: 0 0 0 1000px #fff inset !important; /* pt pagina asta inputurile sunt albe */
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
   transition: background-color 999999s ease-in-out 0s;
 }
-body.dark input:-webkit-autofill,
-body.dark textarea:-webkit-autofill,
-body.dark select:-webkit-autofill{
-  -webkit-text-fill-color: #e6edf7 !important;
-  box-shadow: 0 0 0 1000px rgba(255,255,255,.08) inset !important;
+
+/* ===== EXTRA: dacă global.css pune font alb pe butoane/linkuri din card ===== */
+.card button, .card a{
+  color: inherit;
 }

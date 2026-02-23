@@ -2716,6 +2716,7 @@ const isFallbackList = !(Number.isFinite(unitPrice) && unitPrice > 0) && (Number
 
   window.location.reload();
     };
+    document.querySelectorAll('select').forEach(s => { s.size = 1; });
   }
   const grouped = {};
   async function initInventoryPage() {
