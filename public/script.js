@@ -280,6 +280,20 @@ function sortCategories(keys) {
   if (!box) return;
 
   const cart = getCart();
+  // DEBUG - vezi ce avem în stockMap vs coș
+  console.log("=== DEBUG STOCK ===");
+  console.log("StockMap keys:", Object.keys(stockMap));
+  console.log("StockMap values:", stockMap);
+  cart.forEach((item, idx) => {
+    const normalized = normalizeGTIN(item.gtin);
+    console.log(`Produs ${idx}: "${item.name}"`);
+    console.log(`  - GTIN raw in cos: "${item.gtin}"`);
+    console.log(`  - GTIN normalizat: "${normalized}"`);
+    console.log(`  - Stoc disponibil: ${stockMap[normalized] || 0}`);
+    console.log(`  - Cantitate ceruta: ${item.qty}`);
+  });
+  console.log("===================");
+
 
   // Update counter și footer
   if (countBadge) {
