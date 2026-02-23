@@ -1933,7 +1933,7 @@ o.items.forEach(i => {
     allocInfo = i.allocations.map(a => {
       const loc = a.location || "-";
       const lot = a.lot || "-";
-      const exp = a.expiresAt ? a.expiresAt.slice(0, 10) : "-"; // doar YYYY-MM-DD
+      const exp = a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('ro-RO') : "-";
       return `<span class="alloc-tag">📍${loc} | LOT:${lot} | EXP:${exp}</span>`;
     }).join(" <span style='color:var(--border-color)'>|</span> ");
   } else {
