@@ -380,3 +380,40 @@ body{
 .csNav{
   background: rgba(255,255,255,.08);
 }
+
+/* =========================
+   FIX vizibilitate pe carduri albe (checkstock)
+   ========================= */
+
+/* 1) compat cu global.css: noi folosim --border în fișierul ăsta */
+:root{
+  --border: var(--line);
+}
+
+/* 2) Orice zonă “light” să aibă text închis */
+.field,
+.csLotRow{
+  color: #0f172a;
+}
+
+/* label-urile rămân gri, dar vizibile */
+.field .lbl,
+.csLotRow .csLbl{
+  color: rgba(15,23,42,.65) !important;
+}
+
+/* INPUT-urile/valorile să fie negru (aici era problema) */
+.field .inp,
+.csLotRow .csInp,
+.stockCard .inp,
+.csCard .inp,
+.csProdCard .csInp{
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+/* dacă ai și valori direct în <div>/<span> în interiorul field-urilor */
+.field *{
+  color: inherit;
+}
