@@ -36,7 +36,7 @@
     
     /* Header */
     .app-header {
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border-color);
       padding: 1rem 2rem;
@@ -71,7 +71,7 @@
     
     /* User Bar */
     #userBar {
-      background: rgba(30, 41, 59, 0.8);
+      background: rgba(30, 41, 59, 0.9);
       border-bottom: 1px solid var(--border-color);
       padding: 0.5rem 2rem;
       display: flex;
@@ -314,7 +314,11 @@
       color: var(--text-secondary);
     }
     
-    /* Items List - FIX COMPLET AICI */
+    /* ==========================================
+       FIX PENTRU CLASELE REALE DIN script.js
+       ========================================== */
+    
+    /* Items List Container */
     .items-list {
       display: flex;
       flex-direction: column;
@@ -323,65 +327,67 @@
       overflow-y: auto;
     }
     
-    .item-row {
+    /* Rand produs - clasa reala folosita de JS este .row */
+    .items-list .row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1rem;
-      background-color: #334155 !important;
+      padding: 1rem !important;
       background: #334155 !important;
-      border: 1px solid #475569;
-      border-radius: 12px;
-      transition: all 0.2s;
-      color: #f8fafc !important;
+      background-color: #334155 !important;
+      border: 1px solid #475569 !important;
+      border-radius: 12px !important;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     
-    .item-row * {
-      color: #f8fafc !important;
-    }
-    
-    .item-row:hover {
-      border-color: #3b82f6;
-      background-color: #475569 !important;
+    .items-list .row:hover {
+      border-color: #3b82f6 !important;
       background: #475569 !important;
+      background-color: #475569 !important;
+      transform: translateX(4px);
     }
     
-    .item-info {
+    /* Partea stanga - info produs */
+    .items-list .rowLeft {
       flex: 1;
-    }
-    
-    .item-name {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
       color: #f8fafc !important;
+    }
+    
+    .items-list .rowLeft strong,
+    .items-list .rowLeft .prodName {
+      display: block;
+      font-weight: 600;
       font-size: 1rem;
+      color: #f8fafc !important;
+      margin-bottom: 0.25rem;
     }
     
-    .item-meta {
-      font-size: 0.8125rem;
+    .items-list .rowLeft .prodMeta,
+    .items-list .rowLeft small,
+    .items-list .rowLeft span {
       color: #cbd5e1 !important;
-      font-family: monospace;
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
+      font-size: 0.8125rem;
     }
     
-    .item-price {
-      color: #60a5fa !important;
-      font-weight: 700;
-      font-size: 1.125rem;
-      margin-right: 1rem;
-      min-width: 80px;
-      text-align: right;
-    }
-    
-    .item-controls {
+    /* Partea dreapta - controale */
+    .items-list .rowRight {
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
     
-    .qty-btn {
+    /* Pret */
+    .items-list .rowRight .price,
+    .items-list .rowLeft .price {
+      color: #60a5fa !important;
+      font-weight: 700;
+      font-size: 1.125rem;
+      margin-right: 1rem;
+    }
+    
+    /* Butoane cantitate */
+    .items-list .iconBtn {
       width: 32px;
       height: 32px;
       border-radius: 8px;
@@ -393,17 +399,30 @@
       align-items: center;
       justify-content: center;
       font-weight: 600;
-      font-size: 1.125rem;
+      font-size: 1rem;
       transition: all 0.2s;
     }
     
-    .qty-btn:hover {
+    .items-list .iconBtn:hover {
       background: #3b82f6 !important;
       border-color: #3b82f6;
       color: white !important;
+      transform: scale(1.05);
     }
     
-    .qty-input {
+    .items-list .iconBtn.danger {
+      background: rgba(239, 68, 68, 0.2) !important;
+      color: #ef4444 !important;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    
+    .items-list .iconBtn.danger:hover {
+      background: #ef4444 !important;
+      color: white !important;
+    }
+    
+    /* Input cantitate */
+    .items-list .qtyInput {
       width: 50px;
       height: 32px;
       text-align: center;
@@ -411,33 +430,21 @@
       border: 1px solid #475569;
       border-radius: 8px;
       color: #f8fafc !important;
-      padding: 0.25rem;
       font-weight: 600;
       font-size: 0.875rem;
+      margin: 0 0.25rem;
     }
     
-    .btn-delete {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: none;
-      background: rgba(239, 68, 68, 0.2) !important;
-      color: #ef4444 !important;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 0.5rem;
-      transition: all 0.2s;
-      font-size: 1rem;
+    .items-list .qtyInput:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
     
-    .btn-delete:hover {
-      background: #ef4444 !important;
-      color: white !important;
-    }
+    /* ==========================================
+       LISTA REZULTATE CAUTARE (partea dreapta)
+       ========================================== */
     
-    /* Product Results */
     .results-list {
       display: flex;
       flex-direction: column;
@@ -446,9 +453,12 @@
       overflow-y: auto;
     }
     
-    .result-item {
+    /* Item din rezultate */
+    .results-list .resultItem,
+    .results-list > div[class*="result"] {
       padding: 1rem;
       background: #334155 !important;
+      background-color: #334155 !important;
       border: 1px solid #475569;
       border-radius: 10px;
       cursor: pointer;
@@ -456,30 +466,30 @@
       color: #f8fafc !important;
     }
     
-    .result-item:hover {
+    .results-list .resultItem:hover,
+    .results-list > div[class*="result"]:hover {
       background: #475569 !important;
+      background-color: #475569 !important;
       border-color: #3b82f6;
       transform: translateX(4px);
     }
     
-    .result-name {
-      font-weight: 600;
-      margin-bottom: 0.25rem;
+    .results-list .resultItem *,
+    .results-list > div[class*="result"] * {
       color: #f8fafc !important;
     }
     
-    .result-category {
-      font-size: 0.75rem;
-      color: #cbd5e1 !important;
-    }
-    
-    .empty-state {
+    /* Empty state */
+    .empty-state,
+    .results-list:empty::before {
+      display: block;
       text-align: center;
       padding: 3rem;
       color: #cbd5e1 !important;
-      background: #334155 !important;
+      background: #334155;
       border: 2px dashed #475569;
       border-radius: 12px;
+      content: "Scrie ceva ca să cauți produse...";
     }
     
     /* Footer Stats */
@@ -535,12 +545,12 @@
         justify-content: center;
       }
       
-      .item-row {
+      .items-list .row {
         flex-wrap: wrap;
         gap: 0.75rem;
       }
       
-      .item-controls {
+      .items-list .rowRight {
         width: 100%;
         justify-content: flex-end;
       }
