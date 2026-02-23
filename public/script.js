@@ -271,96 +271,94 @@ function sortCategories(keys) {
     renderCart();
   }
 
-  function renderCart() {
-    const box = document.getElementById("cartBox");
-    const totalBox = document.getElementById("cartTotal");
+ function renderCart() {
+  const box = document.getElementById("cartBox");
+  const totalBox = document.getElementById("cartTotal");
+  const countBadge = document.getElementById("cartCount");
+  const footer = document.getElementById("cartFooter");
 
-    if (!box) return;
+  if (!box) return;
 
-    const cart = getCart();
+  const cart = getCart();
 
-    box.innerHTML = "";
-
-    if (!cart.length) {
-      box.innerHTML = "<p class='hint'>Coș gol</p>";
-      if (totalBox) totalBox.innerHTML = "";
-      return;
-    }
-
-    let total = 0;
-
-    cart.forEach(i => {
-      const row = document.createElement("div");
-
-    const available = stockMap[normalizeGTIN(i.gtin)] || 0;
-
-      const insufficient = i.qty > available;
-
-      row.className = "cartItem" + (insufficient ? " out-of-stock" : "");
-
-      const left = document.createElement("div");
-      left.className = "cartLeft";
-
-      const price = Number(i.price) || 0;
-      const lineTotal = price * i.qty;
-      total += lineTotal;
-
-      left.innerHTML = `
-        <strong>${i.name}</strong>
-        <div class="price">
-          Preț: ${price.toFixed(2)} RON × ${i.qty}
-          = <strong>${lineTotal.toFixed(2)} RON</strong>
-        </div>
-        ${
-          insufficient
-            ? `<div class="stock-warning">❌ Stoc insuficient (disponibil: ${available})</div>`
-            : `<div class="stock-ok">✔️ Stoc OK (${available})</div>`
-        }
-      `;
-
-      const right = document.createElement("div");
-      right.className = "cartRight";
-
-      const btnDec = document.createElement("button");
-      btnDec.textContent = "−";
-      btnDec.onclick = () => decQtyByGTIN(i.gtin);
-
-      const qtyInput = document.createElement("input");
-      qtyInput.type = "number";
-      qtyInput.min = "1";
-      qtyInput.value = i.qty;
-      qtyInput.style.width = "70px";
-
-      qtyInput.onchange = () => {
-        const val = parseInt(qtyInput.value, 10);
-        if (isNaN(val) || val <= 0) return;
-        i.qty = val;
-        saveCart(cart);
-        renderCart(); // IMPORTANT: actualizează totalul
-      };
-
-      const btnInc = document.createElement("button");
-      btnInc.textContent = "+";
-    btnInc.onclick = () => incQtyByGTIN(i.gtin);
-
-      const btnDel = document.createElement("button");
-      btnDel.textContent = "🗑";
-      btnDel.onclick = () => removeItemByGTIN(i.gtin);
-
-      right.append(btnDec, qtyInput, btnInc, btnDel);
-      row.append(left, right);
-      box.appendChild(row);
-    });
-
-    if (totalBox) {
-      totalBox.innerHTML = `
-        <strong>Total comandă:</strong>
-        <span>${total.toFixed(2)} RON</span>
-      `;
-    }
-    console.log("TOTAL COS:", total);
-
+  // Update counter și footer
+  if (countBadge) {
+    const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+    countBadge.textContent = totalItems;
+    countBadge.style.display = cart.length > 0 ? "flex" : "none";
   }
+  
+  if (footer) {
+    footer.style.display = cart.length > 0 ? "block" : "none";
+  }
+
+  if (!cart.length) {
+    box.innerHTML = `
+      <div class="cart-empty">
+        <div class="cart-empty-icon">🛒</div>
+        <p>Coșul este gol</p>
+        <p style="font-size: 0.875rem;">Adaugă produse din lista din stânga</p>
+      </div>
+    `;
+    if (totalBox) totalBox.textContent = "0.00 RON";
+    return;
+  }
+
+  box.innerHTML = "";
+  let total = 0;
+
+  cart.forEach(i => {
+    const available = stockMap[normalizeGTIN(i.gtin)] || 0;
+    const insufficient = i.qty > available;
+    const price = Number(i.price) || 0;
+    const lineTotal = price * i.qty;
+    total += lineTotal;
+
+    const itemDiv = document.createElement("div");
+    itemDiv.className = "cart-item";
+    if (insufficient) itemDiv.style.borderColor = "var(--danger-500)";
+
+    itemDiv.innerHTML = `
+      <div class="cart-item-header">
+        <div class="cart-item-name">${escapeHtml(i.name)}</div>
+        <button class="cart-item-remove" title="Șterge">🗑</button>
+      </div>
+      <div class="cart-item-details">
+        <div>Preț: <span class="cart-item-price">${price.toFixed(2)} RON</span></div>
+        ${insufficient 
+          ? `<div class="stock-warning">❌ Stoc insuficient (disponibil: ${available})</div>`
+          : `<div class="stock-ok">✔️ Stoc OK (${available})</div>`
+        }
+      </div>
+      <div class="cart-item-controls">
+        <button class="qty-btn dec">−</button>
+        <input type="number" class="qty-input" value="${i.qty}" min="1">
+        <button class="qty-btn inc">+</button>
+      </div>
+    `;
+
+    // Event listeners
+    itemDiv.querySelector(".cart-item-remove").onclick = () => removeItemByGTIN(i.gtin);
+    itemDiv.querySelector(".dec").onclick = () => decQtyByGTIN(i.gtin);
+    itemDiv.querySelector(".inc").onclick = () => incQtyByGTIN(i.gtin);
+    itemDiv.querySelector(".qty-input").onchange = (e) => {
+      const val = parseInt(e.target.value);
+      if (!isNaN(val) && val > 0) {
+        const currentCart = getCart();
+        const item = currentCart.find(x => normalizeGTIN(x.gtin) === normalizeGTIN(i.gtin));
+        if (item) {
+          item.qty = val;
+          saveCart(currentCart);
+          renderCart();
+        }
+      }
+    };
+
+    box.appendChild(itemDiv);
+  });
+
+  if (totalBox) totalBox.textContent = `${total.toFixed(2)} RON`;
+}
 
   function initViewCurrentOrderButton() {
     const btn = document.getElementById("btnViewCurrentOrder");
@@ -1069,26 +1067,163 @@ async function initCheckPricePage() {
     });
   }
   // ================= COMANDA.HTML =================
-  async function initOrderPage() {
-    stockMap = {}; // reset global
-
+ async function initOrderPage() {
+  stockMap = {};
   const stock = await fetch("/api/stock").then(r => r.json());
-
   stock.forEach(s => {
-  stockMap[normalizeGTIN(s.gtin)] =
-    (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
-
+    stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
   });
 
-    const treeBox = document.getElementById("productsTree");
-    const sendBtn = document.getElementById("btnSendOrder");
-    const clearBtn = document.getElementById("btnClearCart");
-    const title = document.getElementById("clientTitle");
+  const treeBox = document.getElementById("productsTree");
+  const searchInput = document.getElementById("searchProduct");
+  const resultsBox = document.getElementById("productSearchResults");
+  const sendBtn = document.getElementById("btnSendOrder");
+  const title = document.getElementById("clientTitle");
+  const meta = document.getElementById("clientMeta");
 
-    console.log("initOrderPage pornit", treeBox);
+  if (!treeBox) return;
 
-    if (!treeBox ) return;
-    if (sendBtn) {
+  // Încărcare date
+  const tree = await fetch("/api/products-tree").then(r => r.json());
+  const flatRaw = await fetch("/api/products-flat").then(r => r.json());
+  const flat = Array.isArray(flatRaw) ? flatRaw : [];
+
+  // Info client
+  const client = getSelectedClient();
+  if (client) {
+    if (title) title.textContent = `Client: ${client.name}`;
+    if (meta) meta.textContent = `Grup: ${client.group || "-"} • Categorie: ${client.category || "-"}`;
+  } else {
+    if (meta) meta.textContent = "Selectează un client pentru a începe comanda";
+  }
+
+  // Render categorii cu noul design
+  function renderCategories(obj) {
+    treeBox.innerHTML = "";
+    
+    if (isObject(obj)) {
+      Object.entries(obj).forEach(([catName, items]) => {
+        const section = document.createElement("div");
+        section.className = "category-section";
+        
+        const header = document.createElement("div");
+        header.className = "category-header";
+        header.innerHTML = `
+          <span>${catName}</span>
+          <span class="category-toggle">▼</span>
+        `;
+        
+        const productsDiv = document.createElement("div");
+        productsDiv.className = "category-products";
+        
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            let productData;
+            if (typeof item === "string") {
+              productData = flat.find(p => p.name === item || p.id === item);
+            } else if (typeof item === "object" && item.id) {
+              productData = item;
+            }
+            
+            if (productData) {
+              const btn = document.createElement("button");
+              btn.className = "product-btn";
+              btn.textContent = productData.name;
+              btn.onclick = () => addToCart(productData);
+              productsDiv.appendChild(btn);
+            }
+          });
+        } else if (isObject(items)) {
+          // Subcategorii
+          Object.entries(items).forEach(([subName, subItems]) => {
+            const subHeader = document.createElement("div");
+            subHeader.style.cssText = "width:100%;padding:8px 0;font-weight:600;color:var(--text-muted);font-size:0.9rem;";
+            subHeader.textContent = subName;
+            productsDiv.appendChild(subHeader);
+            
+            if (Array.isArray(subItems)) {
+              subItems.forEach(item => {
+                let productData;
+                if (typeof item === "string") {
+                  productData = flat.find(p => p.name === item || p.id === item);
+                } else if (typeof item === "object" && item.id) {
+                  productData = item;
+                }
+                
+                if (productData) {
+                  const btn = document.createElement("button");
+                  btn.className = "product-btn";
+                  btn.textContent = productData.name;
+                  btn.onclick = () => addToCart(productData);
+                  productsDiv.appendChild(btn);
+                }
+              });
+            }
+          });
+        }
+        
+        header.onclick = () => {
+          header.classList.toggle("expanded");
+        };
+        
+        section.appendChild(header);
+        section.appendChild(productsDiv);
+        treeBox.appendChild(section);
+      });
+    }
+  }
+
+  renderCategories(tree);
+
+  // Search produse
+  if (searchInput && resultsBox) {
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.toLowerCase().trim();
+      resultsBox.innerHTML = "";
+      
+      if (!q) {
+        resultsBox.classList.remove("show");
+        return;
+      }
+
+      const matches = flat.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.path && p.path.toLowerCase().includes(q))
+      ).slice(0, 20);
+
+      if (matches.length === 0) {
+        resultsBox.classList.remove("show");
+        return;
+      }
+
+      matches.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "search-result-item";
+        div.innerHTML = `
+          <div class="search-result-name">${p.name}</div>
+          <div class="search-result-category">${p.path || p.category || "Produs"}</div>
+        `;
+        div.onclick = () => {
+          addToCart(p);
+          searchInput.value = "";
+          resultsBox.classList.remove("show");
+        };
+        resultsBox.appendChild(div);
+      });
+
+      resultsBox.classList.add("show");
+    });
+
+    // Închide search la click în afară
+    document.addEventListener("click", (e) => {
+      if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+        resultsBox.classList.remove("show");
+      }
+    });
+  }
+
+  // Buton trimite comandă
+  if (sendBtn) {
     sendBtn.onclick = async () => {
       const client = getSelectedClient();
       const items = getCart();
@@ -1114,69 +1249,19 @@ async function initCheckPricePage() {
         data = await res.json();
       } catch {}
 
-      // ❌ STOC INSUFICIENT → NU ȘTERGEM COȘUL
       if (!res.ok || data.error) {
         alert("Stoc insuficient pentru cel puțin un produs.\n\nVerifică cantitățile din coș.");
         return;
       }
 
-      // ✅ SUCCES
       clearCart();
       alert("Comandă trimisă!");
       location.href = "index.html";
     };
   }
-  const tree = await fetch("/api/products-tree").then(r => r.json());
-   const flatRaw = await fetch("/api/products-flat").then(r => r.json());
-const flat = Array.isArray(flatRaw) ? flatRaw : [];
 
-
-
-  // 🔎 SEARCH PRODUSE
-  const searchInput = document.getElementById("searchProduct");
-  const resultsBox = document.getElementById("productSearchResults");
-
-  if (searchInput && resultsBox) {
-    searchInput.addEventListener("input", () => {
-      const q = searchInput.value.toLowerCase().trim();
-      resultsBox.innerHTML = "";
-      if (!q) return;
-
-      flat
-        .filter(p =>
-          p.name.toLowerCase().includes(q) ||
-          p.path.toLowerCase().includes(q)
-        )
-        .slice(0, 20)
-        .forEach(p => {
-          const b = document.createElement("button");
-          b.className = "itembtn";
-          b.textContent = `${p.name} (${p.path})`;
-          b.onclick = () => addToCart(p);
-          resultsBox.appendChild(b);
-        });
-    });
-  }
-
-
-
-    const client = getSelectedClient();
-    if (client && title) {
-      title.textContent = `Client: ${client.name}`;
-    }
-
-    
-    treeBox.innerHTML = "";
-    treeBox.appendChild(
-  renderTree(tree, productId => {
-    const p = flat.find(x => String(x.id) === String(productId));
-    if (p) addToCart(p);
-  })
-);
-
-    renderCart();
-
-  }
+  renderCart();
+}
 
 
   async function loadClientsAdmin() {
