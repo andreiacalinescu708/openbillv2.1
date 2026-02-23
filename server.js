@@ -794,6 +794,85 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
+// UPDATE order (pentru editorder.html)
+app.put("/api/orders/:id", async (req, res) => {
+  try {
+    const orderId = String(req.params.id);
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Items invalid" });
+    }
+
+    if (!db.hasDb()) {
+      return res.status(500).json({ error: "DB neconfigurat" });
+    }
+
+    // 1) Luăm comanda existentă
+    const rOrder = await db.q(
+      `SELECT items FROM orders WHERE id=$1`,
+      [orderId]
+    );
+
+    if (!rOrder.rows.length) {
+      return res.status(404).json({ error: "Comandă inexistentă" });
+    }
+
+    const oldItems = rOrder.rows[0].items || [];
+
+    // 2) Returnăm stocul vechi în DB (din allocations)
+    for (const oldItem of oldItems) {
+      const allocs = oldItem.allocations || [];
+      for (const alloc of allocs) {
+        if (alloc.stockId && alloc.qty) {
+          await db.q(
+            `UPDATE stock SET qty = qty + $1 WHERE id=$2`,
+            [Number(alloc.qty), alloc.stockId]
+          );
+        }
+      }
+    }
+
+    // 3) Alocăm stoc nou pentru items actualizați
+    const newItems = [];
+    
+    for (const it of items) {
+      const qty = Number(it.qty || 0);
+      if (qty <= 0) continue;
+
+      const unitPrice = Number(it.price || 0);
+      
+      // Alocare stoc din DB
+      const allocations = await allocateStockFromDB(it.gtin, qty);
+      
+      newItems.push({
+        id: it.id,
+        name: it.name,
+        gtin: it.gtin,
+        qty: qty,
+        unitPrice: unitPrice,
+        lineTotal: unitPrice * qty,
+        allocations: allocations
+      });
+    }
+
+    // 4) Salvăm comanda actualizată
+    await db.q(
+      `UPDATE orders SET items=$1::jsonb WHERE id=$2`,
+      [JSON.stringify(newItems), orderId]
+    );
+
+    await logAudit(req, "ORDER_UPDATE", "order", orderId, {
+      itemsCount: newItems.length
+    });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("PUT /api/orders/:id error:", e);
+    res.status(500).json({ error: e.message || "Eroare la actualizare" });
+  }
+});
+
 // Funcție nouă pentru alocare stoc din DB
 async function allocateStockFromDB(gtin, neededQty) {
   const g = normalizeGTIN(gtin);
@@ -1105,6 +1184,7 @@ app.post("/api/orders/:id/replace-lot", async (req, res) => {
     return res.status(500).json({ error: e.message || "Eroare DB replace-lot" });
   }
 });
+
 
 app.get("/api/debug-db", async (req, res) => {
   try {
