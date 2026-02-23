@@ -1447,7 +1447,7 @@ app.post("/api/login", async (req, res) => {
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
     const r = await db.q(
-      `SELECT id, username, password_hash, role, active, is_approved
+      `SELECT id, username, password_hash, role, active, is_approved, failed_attempts
        FROM users
        WHERE username=$1
        LIMIT 1`,
@@ -1455,18 +1455,71 @@ app.post("/api/login", async (req, res) => {
     );
 
     const u = r.rows[0];
-    if (!u || !u.active) return res.status(401).json({ error: "User sau parolă greșită" });
+    
+    // Dacă nu există userul
+    if (!u) {
+      return res.status(401).json({ error: "User sau parolă greșită" });
+    }
 
-    const ok = bcrypt.compareSync(password, u.password_hash);
-    if (!ok) return res.status(401).json({ error: "User sau parolă greșită" });
+    // Verificare blocare (failed_attempts >= 3 și nu e aprobat)
+    if (u.failed_attempts >= 3 && !u.is_approved) {
+      return res.status(403).json({ 
+        error: "Cont blocat", 
+        locked: true,
+        message: "Cont blocat după 3 încercări eșuate. Contactează administratorul pentru deblocare." 
+      });
+    }
 
-    // ✅ NOU: Verificare aprobare
+    if (!u.active) {
+      return res.status(401).json({ error: "User sau parolă greșită" });
+    }
+
+    // Verificare aprobare (pentru conturi noi sau blocate)
     if (!u.is_approved) {
       return res.status(403).json({ 
         error: "Cont în așteptare", 
         pending: true,
-        message: "Contul tău este în așteptarea aprobării. Contactează administratorul." 
+        message: "Contul tău este în așteptarea aprobării." 
       });
+    }
+
+    const ok = bcrypt.compareSync(password, u.password_hash);
+    
+    if (!ok) {
+      // Incrementăm contorul eșecuri
+      const newAttempts = (u.failed_attempts || 0) + 1;
+      
+      if (newAttempts >= 3) {
+        // BLOCAT COMPLET - revine în așteptare (doar admin poate debloca)
+        await db.q(
+          `UPDATE users SET failed_attempts = 3, is_approved = false WHERE id = $1`,
+          [u.id]
+        );
+        
+        return res.status(403).json({ 
+          error: "Cont blocat", 
+          locked: true,
+          message: "Cont blocat după 3 încercări eșuate. Contactează administratorul pentru deblocare." 
+        });
+      } else {
+        await db.q(
+          `UPDATE users SET failed_attempts = $1 WHERE id = $2`,
+          [newAttempts, u.id]
+        );
+      }
+      
+      return res.status(401).json({ 
+        error: "User sau parolă greșită",
+        attemptsLeft: 3 - newAttempts
+      });
+    }
+
+    // Login reușit - resetăm contorul doar dacă era > 0
+    if (u.failed_attempts > 0) {
+      await db.q(
+        `UPDATE users SET failed_attempts = 0 WHERE id = $1`,
+        [u.id]
+      );
     }
 
     req.session.user = { 
@@ -1493,10 +1546,10 @@ app.post("/api/register", async (req, res) => {
 
     const passwordHash = bcrypt.hashSync(password, 10);
 
-    // ✅ NOU: is_approved = false by default (trebuie aprobat de admin)
+    // failed_attempts = 0 by default
     const r = await db.q(
-      `INSERT INTO users (username, password_hash, role, active, is_approved)
-       VALUES ($1,$2,'user',true,false)
+      `INSERT INTO users (username, password_hash, role, active, is_approved, failed_attempts)
+       VALUES ($1,$2,'user',true,false,0)
        RETURNING id, username, role, is_approved`,
       [username.trim(), passwordHash]
     );
@@ -1629,6 +1682,7 @@ app.post("/api/clients", async (req, res) => {
 // ==========================================
 
 // Middleware pentru verificare admin
+// Middleware pentru verificare admin
 function isAdmin(req, res, next) {
   if (req.session?.user?.role !== 'admin') {
     return res.status(403).json({ error: "Acces interzis. Doar admin." });
@@ -1640,10 +1694,12 @@ function isAdmin(req, res, next) {
 app.get("/api/users/pending", isAdmin, async (req, res) => {
   try {
     const r = await db.q(
-      `SELECT id, username, created_at 
+      `SELECT id, username, created_at, failed_attempts 
        FROM users 
        WHERE is_approved = false AND role = 'user'
-       ORDER BY created_at DESC`
+       ORDER BY 
+         CASE WHEN failed_attempts >= 3 THEN 0 ELSE 1 END,
+         created_at DESC`
     );
     res.json(r.rows);
   } catch (e) {
@@ -1655,10 +1711,10 @@ app.get("/api/users/pending", isAdmin, async (req, res) => {
 app.post("/api/users/approve/:id", isAdmin, async (req, res) => {
   try {
     await db.q(
-      `UPDATE users SET is_approved = true WHERE id = $1`,
+      `UPDATE users SET is_approved = true, failed_attempts = 0 WHERE id = $1 AND role = 'user'`,
       [req.params.id]
     );
-    res.json({ ok: true });
+    res.json({ ok: true, message: "Utilizator aprobat și deblocat" });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
