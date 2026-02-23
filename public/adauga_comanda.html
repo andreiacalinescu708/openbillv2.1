@@ -6,7 +6,6 @@
   <title>Clienți - Fast Medical Distribution</title>
   <link rel="stylesheet" href="global.css" />
   <style>
-    /* Ajustări specifice pentru această pagină */
     .page-header {
       display: flex;
       flex-direction: column;
@@ -40,7 +39,8 @@
       font-size: 1.25rem;
     }
 
-    .search-results {
+    /* Container pentru rezultate search - populat dinamic de JS */
+    #clientSearchResults {
       position: absolute;
       top: calc(100% + var(--space-2));
       left: 0;
@@ -52,31 +52,32 @@
       overflow-y: auto;
       z-index: 50;
       box-shadow: var(--shadow-xl);
-      display: none;
+      display: none; /* Ascuns default, JS îl arată când e ceva */
     }
 
-    .search-results.show {
+    #clientSearchResults.show {
       display: block;
     }
 
-    .search-result-item {
+    /* Stil pentru butoanele generate de JS în search */
+    #clientSearchResults .itembtn {
+      width: 100%;
+      text-align: left;
       padding: var(--space-4);
+      border: none;
       border-bottom: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-primary);
       cursor: pointer;
       transition: background var(--transition-fast);
-      text-align: left;
-      width: 100%;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
       font-size: 0.9375rem;
     }
 
-    .search-result-item:hover {
+    #clientSearchResults .itembtn:hover {
       background: rgba(59, 130, 246, 0.1);
     }
 
-    .search-result-item:last-child {
+    #clientSearchResults .itembtn:last-child {
       border-bottom: none;
     }
 
@@ -88,7 +89,8 @@
       min-height: 400px;
     }
 
-    .client-tree h4 {
+    /* Stiluri pentru tree-ul generat de renderTree() */
+    #clientsTree h4 {
       margin: var(--space-4) 0 var(--space-3);
       color: var(--text-secondary);
       font-size: 0.875rem;
@@ -96,7 +98,8 @@
       letter-spacing: 0.05em;
     }
 
-    .client-tree button {
+    /* Butoane clienți din tree */
+    #clientsTree .itembtn {
       width: 100%;
       text-align: left;
       padding: var(--space-3) var(--space-4);
@@ -110,14 +113,15 @@
       font-size: 0.9375rem;
     }
 
-    .client-tree button:hover {
+    #clientsTree .itembtn:hover {
       background: var(--primary-600);
       border-color: var(--primary-600);
       color: white;
       transform: translateX(4px);
     }
 
-    .client-tree .accHead {
+    /* Accordion headers din tree */
+    #clientsTree .accHead {
       width: 100%;
       text-align: left;
       padding: var(--space-3) var(--space-4);
@@ -132,11 +136,11 @@
       font-size: 0.9375rem;
     }
 
-    .client-tree .accHead:hover {
+    #clientsTree .accHead:hover {
       background: rgba(59, 130, 246, 0.2);
     }
 
-    .client-tree .accBody {
+    #clientsTree .accBody {
       padding-left: var(--space-4);
       margin-bottom: var(--space-3);
     }
@@ -147,29 +151,31 @@
       color: var(--text-muted);
     }
 
+    /* Badge pentru coș */
     .cart-indicator {
       position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
     }
 
-    .cart-badge {
-      position: absolute;
-      top: -8px;
-      right: -8px;
+    #cartBadge {
+      display: none; /* Ascuns default, JS îl arată */
       background: var(--danger-500);
       color: white;
-      width: 20px;
-      height: 20px;
+      padding: 2px 8px;
       border-radius: var(--radius-full);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 0.75rem;
       font-weight: 700;
+      margin-left: var(--space-2);
+    }
+
+    #btnViewCurrentOrder {
+      display: none; /* JS îl va face vizibil dacă există items în coș */
     }
   </style>
 </head>
 <body>
-  <!-- Navbar consistent cu restul paginilor -->
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-brand">
@@ -177,27 +183,25 @@
         <span>FMD</span>
       </a>
       <div class="navbar-actions">
-        <div id="userBar"></div>
+        <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
       </div>
     </div>
   </nav>
 
   <main class="container">
-    <!-- Header cu titlu și buton vizualizare comandă -->
     <div class="page-header">
       <div>
         <h1 style="margin-bottom: var(--space-2);">Selectează Client</h1>
         <p style="color: var(--text-muted); margin: 0;">Alege un client pentru a începe o comandă nouă</p>
       </div>
       
-      <button class="btn btn-primary btn-lg" id="btnViewCurrentOrder" style="display: none;">
+      <button class="btn btn-primary btn-lg cart-indicator" id="btnViewCurrentOrder">
         <span>🛒</span>
         <span>Vizualizează comanda actuală</span>
-        <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
+        <span id="cartBadge">0</span>
       </button>
     </div>
 
-    <!-- Search Box -->
     <div class="search-box">
       <span class="search-icon">🔍</span>
       <input 
@@ -207,22 +211,20 @@
         placeholder="Caută client după nume..." 
         autocomplete="off" 
       />
-      <div class="search-results" id="clientSearchResults"></div>
+      <div id="clientSearchResults"></div>
     </div>
 
-    <!-- Lista Clienți -->
     <div class="clients-container">
       <div class="card-header" style="margin-bottom: var(--space-4);">
         <div>
           <h3 style="margin: 0; font-size: 1.125rem;">Lista Clienți</h3>
           <p style="margin: var(--space-1) 0 0; color: var(--text-muted); font-size: 0.875rem;">
-            Grupați pe categorii și locații
+            Selectează un client pentru a continua
           </p>
         </div>
       </div>
       
-      <div id="clientsTree" class="client-tree">
-        <!-- Populat din JS -->
+      <div id="clientsTree">
         <div class="empty-state">
           <div style="font-size: 3rem; margin-bottom: var(--space-4); opacity: 0.3;">👥</div>
           <p>Se încarcă lista de clienți...</p>
@@ -231,6 +233,25 @@
     </div>
   </main>
 
+  <script>
+    // Inițializare vizibilitate buton coș - sincronizat cu logica din script.js
+    document.addEventListener("DOMContentLoaded", function() {
+      const btn = document.getElementById("btnViewCurrentOrder");
+      const badge = document.getElementById("cartBadge");
+      
+      try {
+        const cart = JSON.parse(localStorage.getItem("cart")) || [];
+        if (cart.length > 0) {
+          btn.style.display = "inline-flex";
+          badge.style.display = "inline";
+          badge.textContent = cart.length;
+        }
+      } catch (e) {
+        console.log("Eroare la citirea coșului");
+      }
+    });
+  </script>
+  
   <script src="script.js"></script>
 </body>
 </html>
