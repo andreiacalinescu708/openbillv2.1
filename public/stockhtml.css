@@ -324,3 +324,26 @@ select:-webkit-autofill{
 .card button, .card a{
   color: inherit;
 }
+
+/* =========================
+   FIX dropdown (select) vizibil in stock.html
+   ========================= */
+
+/* select + input text */
+select, .select, #stockProduct, #stockLocation{
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* optiunile din lista (cand se deschide dropdown-ul) */
+select option{
+  color: #0f172a !important;
+  background: #ffffff !important;
+}
+
+/* uneori browserul aplica "color" doar pe wrapper */
+.select-wrap, .select-wrap *{
+  color: inherit !important;
+}
