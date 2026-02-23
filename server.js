@@ -1624,6 +1624,70 @@ app.post("/api/clients", async (req, res) => {
   }
 });
 
+// ==========================================
+// ADMIN ENDPOINTS (User Management)
+// ==========================================
+
+// Middleware pentru verificare admin
+function isAdmin(req, res, next) {
+  if (req.session?.user?.role !== 'admin') {
+    return res.status(403).json({ error: "Acces interzis. Doar admin." });
+  }
+  next();
+}
+
+// Lista utilizatori în așteptare
+app.get("/api/users/pending", isAdmin, async (req, res) => {
+  try {
+    const r = await db.q(
+      `SELECT id, username, created_at 
+       FROM users 
+       WHERE is_approved = false AND role = 'user'
+       ORDER BY created_at DESC`
+    );
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Aprobare utilizator
+app.post("/api/users/approve/:id", isAdmin, async (req, res) => {
+  try {
+    await db.q(
+      `UPDATE users SET is_approved = true WHERE id = $1`,
+      [req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Respingere utilizator
+app.post("/api/users/reject/:id", isAdmin, async (req, res) => {
+  try {
+    await db.q(`DELETE FROM users WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Lista toți utilizatorii
+app.get("/api/users", isAdmin, async (req, res) => {
+  try {
+    const r = await db.q(
+      `SELECT id, username, role, is_approved, active, created_at 
+       FROM users 
+       ORDER BY created_at DESC`
+    );
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 
 

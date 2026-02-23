@@ -18,35 +18,44 @@
   }
 
 
-  async function initLoginPage() {
-    if (!location.pathname.endsWith("login.html")) return;
+ async function initLoginPage() {
+  if (!location.pathname.endsWith("login.html")) return;
 
-    const form = document.getElementById("loginForm");
-    const msg = document.getElementById("loginMsg");
-    if (!form) return;
+  const form = document.getElementById("loginForm");
+  const msg = document.getElementById("loginMsg");
+  if (!form) return;
 
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      msg.textContent = "";
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    msg.textContent = "";
 
-      const username = document.getElementById("loginUser").value.trim();
-      const password = document.getElementById("loginPass").value;
+    const username = document.getElementById("loginUser").value.trim();
+    const password = document.getElementById("loginPass").value;
 
-      const res = await apiFetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      });
+    const res = await apiFetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    
+    if (!res.ok) {
+      // ✅ NOU: Mesaj special pentru cont în așteptare (403)
+      if (res.status === 403 && data.pending) {
+        msg.textContent = "⏳ Cont în așteptare: " + (data.message || "Așteaptă aprobarea adminului.");
+        msg.style.color = "#f59e0b"; // galben
+      } else {
         msg.textContent = data.error || "Eroare la login";
-        return;
+        msg.style.color = "#ef4444"; // roșu
       }
+      msg.classList.add("show");
+      return;
+    }
 
-      location.href = "index.html";
-    };
-  }
+    location.href = "index.html";
+  };
+}
 
   async function initRegister() {
     if (!location.pathname.endsWith("register.html")) return;
