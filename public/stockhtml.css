@@ -1,31 +1,11 @@
-:root{
-  --bg:#f3f5fb;
-  --card:#ffffff;
-  --text:#0f172a;
-  --muted:#6b7280;
-  --line:rgba(15,23,42,.10);
 
-  --blue:#2563eb;
-  --blue-soft:rgba(37,99,235,.10);
 
-  --cta:#f4b233;
-  --cta-shadow:rgba(244,178,51,.35);
 
-  --ok:#16a34a;
-  --warn:#f59e0b;
-
-  --r:18px;
-}
-
-*{ box-sizing:border-box; }
-
-html, body{ height:100%; }
 
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  color:var(--text);
-  background:var(--bg);
+  color:#0f172a; /* text dark pentru elementele cu fundal alb */
 }
 
 /* ===== Appbar (ca în poză) ===== */
