@@ -827,7 +827,7 @@ async function allocateStockFromDB(gtin, neededQty) {
     allocated.push({
       stockId: s.id,
       lot: s.lot,
-      expiresAt: String(s.expires_at).slice(0, 10),
+      expiresAt: s.expires_at ? s.expires_at.toISOString().slice(0, 10) : null,
       location: s.location || "A",
       qty: take
     });
