@@ -3,108 +3,186 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Acasă</title>
+  <title>Fast Medical Distribution - Dashboard</title>
+  <link rel="stylesheet" href="global.css" />
+  <style>
+    /* Stiluri specifice doar pentru dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: var(--space-6);
+      margin-top: var(--space-8);
+    }
 
-  <!-- CSS existent (global) -->
-   
- <link rel="stylesheet" href="global.css">
-<link rel="stylesheet" href="indexhtml.css" />
+    .dashboard-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      transition: all var(--transition-base);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dashboard-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-500), var(--success-500));
+      opacity: 0;
+      transition: opacity var(--transition-base);
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(148, 163, 184, 0.3);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .dashboard-card:hover::before {
+      opacity: 1;
+    }
+
+    .dashboard-card-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: var(--space-4);
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+    }
+
+    .dashboard-card.success .dashboard-card-icon {
+      background: linear-gradient(135deg, var(--success-600), var(--success-700));
+      box-shadow: 0 8px 16px rgba(22, 163, 74, 0.3);
+    }
+
+    .dashboard-card.warning .dashboard-card-icon {
+      background: linear-gradient(135deg, var(--warning-500), var(--warning-600));
+      box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+    }
+
+    .dashboard-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: var(--space-2);
+    }
+
+    .dashboard-card p {
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+      margin-bottom: var(--space-5);
+    }
+
+    .dashboard-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .dashboard-actions .btn {
+      justify-content: flex-start;
+      padding: var(--space-4);
+    }
+
+    .user-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+    }
+  </style>
 </head>
-
 <body>
-  <header class="topbar">
-    <div class="left-actions">
-      <span class="brand-dot" aria-hidden="true"></span>
-
-      <div class="brand">
-        <div class="brand-title">Fast Medical Distribution</div>
-        <div class="brand-sub">Panou principal</div>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon">⚕️</div>
+        <span>Fast Medical Distribution</span>
+      </a>
+      <div class="navbar-actions">
+        <button class="btn btn-ghost btn-icon" id="btnToggleTheme" title="Schimbă tema">🌙</button>
       </div>
     </div>
-
-    <div class="actions">
-      <button id="btnToggleTheme" class="iconbtn" title="Schimbă tema" aria-label="Schimbă tema">
-        🌙
-      </button>
-    </div>
-  </header>
-
-  <!-- User chip + logout (generat din script.js / renderUserBar) -->
-  <div id="userBar" class="user-bar"></div>
+  </nav>
 
   <main class="container">
-    <div class="hub">
-      <!-- DEPOZIT -->
-      <section class="hub-card">
-        <div class="hub-head">
-          <div class="hub-icon" aria-hidden="true">
-            <!-- warehouse icon -->
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M3 10.5L12 5l9 5.5v10.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="M7 22V13h10v9" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="M9 16h2M13 16h2M9 19h2M13 19h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="hub-title">
-            <h2>Depozit</h2>
-            <p>Recepție, stoc, comenzi</p>
-          </div>
+    <!-- User Bar -->
+    <div class="user-bar" id="userBar">
+      <div class="user-info">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <div>
+          <div style="font-weight: 600;" id="userName">Utilizator</div>
+          <div style="font-size: 0.875rem; color: var(--text-muted);" id="userRole">Rol</div>
         </div>
+      </div>
+      <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
+    </div>
 
-        <div class="hub-actions">
-          <a class="hub-btn primary" href="stock.html">Recepție marfă</a>
-          <a class="hub-btn" href="checkstock.html">Inventar stoc</a>
-          <a class="hub-btn" href="orders.html">Comenzi</a>
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Depozit -->
+      <div class="dashboard-card">
+        <div class="dashboard-card-icon">📦</div>
+        <h3>Depozit</h3>
+        <p>Recepție marfă, gestiune stoc și procesare comenzi</p>
+        <div class="dashboard-actions">
+          <a href="stock.html" class="btn btn-primary">➕ Recepție marfă</a>
+          <a href="checkstock.html" class="btn btn-secondary">📋 Inventar stoc</a>
+          <a href="orders.html" class="btn btn-secondary">🧾 Comenzi</a>
         </div>
-      </section>
+      </div>
 
-      <!-- TEREN -->
-      <section class="hub-card">
-        <div class="hub-head">
-          <div class="hub-icon" aria-hidden="true">
-            <!-- route/field icon -->
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M6 20c4-7 8-7 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M4 6h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M6 6l2 8M18 6l-2 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M12 10v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="hub-title">
-            <h2>Teren</h2>
-            <p>Comenzi și prețuri</p>
-          </div>
+      <!-- Teren -->
+      <div class="dashboard-card success">
+        <div class="dashboard-card-icon">🚚</div>
+        <h3>Teren</h3>
+        <p>Clienți, comenzi mobile și verificare prețuri</p>
+        <div class="dashboard-actions">
+          <a href="adauga_comanda.html" class="btn btn-success">👥 Lista Clienți</a>
+          <a href="checkprice.html" class="btn btn-secondary">💰 Produse și Prețuri</a>
         </div>
+      </div>
 
-        <!-- păstrez EXACT denumirea ta "Lista Clienti" -->
-        <div class="hub-actions">
-          <a class="hub-btn primary" href="adauga_comanda.html">Lista Clienti</a>
-          <a class="hub-btn" href="checkprice.html">Produse Si Preturi</a>
+      <!-- Birou -->
+      <div class="dashboard-card warning">
+        <div class="dashboard-card-icon">📊</div>
+        <h3>Birou</h3>
+        <p>Administrare, rapoarte și setări sistem</p>
+        <div class="dashboard-actions">
+          <a href="clienti.html" class="btn btn-secondary">⚙️ Administrare clienți</a>
+          <button class="btn btn-ghost" disabled style="opacity: 0.5;">📈 Rapoarte (în curând)</button>
         </div>
-      </section>
-
-      <!-- BIROU -->
-      <section class="hub-card">
-        <div class="hub-head">
-          <div class="hub-icon" aria-hidden="true">
-            <!-- office/doc icon -->
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="M14 3v4a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="M8 12h8M8 16h8M8 20h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="hub-title">
-            <h2>Birou</h2>
-            <p>Exporturi & administrare</p>
-          </div>
-        </div>
-
-        <div class="hub-actions">
-          <a class="hub-btn disabled" href="#" onclick="return false;">CSV / Import (în curând)</a>
-          <a class="hub-btn" href="clienti.html">Administrare clienți</a>
-        </div>
-      </section>
+      </div>
     </div>
   </main>
 
