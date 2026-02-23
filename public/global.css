@@ -552,3 +552,17 @@ p {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gray-500);
 }
+
+.alloc-tag {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  color: var(--primary-300);
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
