@@ -2,64 +2,331 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Comandă</title>
-  
-  <link rel="stylesheet" href="global.css">
-<link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comandă Nouă - Fast Medical Distribution</title>
+  <link rel="stylesheet" href="global.css" />
+  <style>
+    .order-layout {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: var(--space-6);
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .order-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .client-info {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .client-info h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .client-info .client-meta {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .search-box {
+      position: relative;
+      margin-bottom: var(--space-5);
+    }
+
+    .search-box input {
+      padding-left: var(--space-10);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.25rem;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: var(--space-2);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .search-result-item {
+      padding: var(--space-3) var(--space-4);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-result-item:hover {
+      background: rgba(148, 163, 184, 0.1);
+    }
+
+    .tree-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .tree-category {
+      margin-bottom: var(--space-4);
+    }
+
+    .tree-category-header {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3) var(--space-4);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all var(--transition-fast);
+    }
+
+    .tree-category-header:hover {
+      background: var(--gray-700);
+    }
+
+    .tree-category-header::after {
+      content: '▼';
+      font-size: 0.75rem;
+      transition: transform var(--transition-fast);
+    }
+
+    .tree-category.collapsed .tree-category-header::after {
+      transform: rotate(-90deg);
+    }
+
+    .tree-category-content {
+      padding: var(--space-3) 0 var(--space-3) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .tree-category.collapsed .tree-category-content {
+      display: none;
+    }
+
+    .product-btn {
+      text-align: left;
+      padding: var(--space-3) var(--space-4);
+      background: rgba(148, 163, 184, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-size: 0.9375rem;
+    }
+
+    .product-btn:hover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: var(--primary-500);
+    }
+
+    /* Coș lateral */
+    .cart-panel {
+      position: sticky;
+      top: 100px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cart-panel h3 {
+      margin-bottom: var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4);
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+      border: 1px solid var(--border-color);
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-name {
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+
+    .cart-item-price {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .cart-item-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .qty-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      transition: all var(--transition-fast);
+    }
+
+    .qty-btn:hover {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+    }
+
+    .qty-value {
+      min-width: 40px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .cart-total {
+      margin-top: var(--space-6);
+      padding-top: var(--space-5);
+      border-top: 2px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cart-total-amount {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary-400);
+    }
+
+    .cart-empty {
+      text-align: center;
+      padding: var(--space-10) var(--space-4);
+      color: var(--text-muted);
+    }
+
+    .stock-warning {
+      color: var(--danger-500);
+      font-size: 0.75rem;
+      margin-top: var(--space-1);
+    }
+
+    .stock-ok {
+      color: var(--success-500);
+      font-size: 0.75rem;
+      margin-top: var(--space-1);
+    }
+  </style>
 </head>
 <body>
- <header class="topbar">
-  <div class="topbar-left">
-    <span class="brand">⚕️ Fast Medical Distribution</span>
-  </div>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon">⚕️</div>
+        <span>Fast Medical Distribution</span>
+      </a>
+      <div class="navbar-actions">
+        <a href="client.html" class="btn btn-ghost btn-sm">← Înapoi la client</a>
+      </div>
+    </div>
+  </nav>
 
-  <div class="topbar-center">
-    <!-- opțional: breadcrumb / titlu pagină -->
-  </div>
+  <main class="container">
+    <div class="order-layout">
+      <!-- Stanga: Produse -->
+      <div>
+        <div class="client-info">
+          <div>
+            <h2 id="clientTitle">Client: -</h2>
+            <div class="client-meta" id="clientMeta">Selectează un client pentru a începe comanda</div>
+          </div>
+          <span class="badge badge-primary" id="orderStatus">Comandă nouă</span>
+        </div>
 
-  <div class="topbar-right">
-    <button id="btnToggleTheme" class="icon-btn">🌙</button>
-    <div id="userBar"></div>
-  </div>
-</header>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchProduct" class="form-input" placeholder="Caută produs după nume..." autocomplete="off" />
+          <div class="search-results" id="productSearchResults" style="display: none;"></div>
+        </div>
 
-
-
-  <main class="grid">
-    <section class="panel">
-      <h2 id="clientTitle">Client: (nesetat)</h2>
-      <p class="hint">! Nu uita sa finalizezi comanda !.</p>
-
-      
-      <div class="product-search">
-  <input
-    type="text"
-    id="searchProduct"
-    placeholder="Caută produs..."
-  />
-  <div id="productSearchResults" class="list"></div>
-</div>
-
-
-      <h3>Alege Produse </h3>
-      <div id="productsTree" class="tree"></div>
-    </section>
-
-    <section class="panel">
-      <h2>Revizuire comandă</h2>
-      <div id="cartBox" class="cart"></div>
-      <div id="cartTotal" class="cart-total"></div>
-
-
-      <div class="row row-right">
-        <button id="btnSendOrder">Trimite comanda</button>
+        <div class="tree-container" id="productsTree">
+          <!-- Populat din JS -->
+        </div>
       </div>
 
-      <p class="hint small">
-        Tip: + / - modifică cantitatea. 🗑 șterge produsul.
-      </p>
-    </section>
+      <!-- Dreapta: Coș -->
+      <div class="cart-panel">
+        <h3>
+          🛒 Coș comandă
+          <span class="badge badge-primary" id="cartCount">0</span>
+        </h3>
+        
+        <div id="cartBox">
+          <div class="cart-empty">
+            <div style="font-size: 3rem; margin-bottom: var(--space-3);">🛒</div>
+            <p>Coșul este gol</p>
+            <p style="font-size: 0.875rem;">Adaugă produse din lista din stânga</p>
+          </div>
+        </div>
+
+        <div id="cartTotal" style="display: none;">
+          <div class="cart-total">
+            <span>Total comandă:</span>
+            <span class="cart-total-amount">0.00 RON</span>
+          </div>
+          <button class="btn btn-primary btn-lg w-full" id="btnSendOrder" style="margin-top: var(--space-4);">
+            ✅ Trimite comanda
+          </button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="script.js"></script>
