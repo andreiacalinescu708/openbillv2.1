@@ -2,78 +2,232 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Client</title>
-  
-  <link rel="stylesheet" href="global.css">
-<link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Fișă Client - Fast Medical Distribution</title>
+  <link rel="stylesheet" href="global.css" />
+  <style>
+    .client-header {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 197, 94, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+
+    .client-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: var(--space-2);
+    }
+
+    .client-meta {
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      font-size: 0.9375rem;
+    }
+
+    .client-meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+
+    @media (max-width: 480px) {
+      .quick-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .action-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .action-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(148, 163, 184, 0.3);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .action-card.primary {
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      color: white;
+      border-color: var(--primary-600);
+    }
+
+    .action-card.primary .action-icon {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .action-card.primary .action-title,
+    .action-card.primary .action-desc {
+      color: white;
+    }
+
+    .action-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto var(--space-4);
+    }
+
+    .action-title {
+      font-weight: 700;
+      font-size: 1.125rem;
+      margin-bottom: var(--space-2);
+    }
+
+    .action-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .secondary-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3);
+    }
+
+    @media (min-width: 640px) {
+      .secondary-actions {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .secondary-action {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .secondary-action:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .secondary-action-icon {
+      font-size: 1.75rem;
+      margin-bottom: var(--space-2);
+    }
+
+    .secondary-action-title {
+      font-weight: 600;
+      font-size: 0.9375rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-bottom: var(--space-4);
+      font-size: 0.9375rem;
+    }
+
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-left">
-      <span class="brand">⚕️ Fast Medical Distribution</span>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon">⚕️</div>
+        <span>FMD</span>
+      </a>
+      <div class="navbar-actions" id="userBar">
+        <!-- Populat din JS -->
+      </div>
     </div>
-
-    <div class="topbar-right">
-      <button id="btnToggleTheme" class="icon-btn">🌙</button>
-      <div id="userBar"></div>
-    </div>
-  </header>
+  </nav>
 
   <main class="container">
-    <div class="card">
-      <h2 id="clientName">Client: -</h2>
-      <p id="clientMeta" class="hint">-</p>
+    <a href="adauga_comanda.html" class="back-link">← Înapoi la lista clienți</a>
 
-      <div class="dashboard" style="margin-top:14px;">
-        <button class="dash-btn primary" id="btnNewOrder">
-          <span class="icon">🧾</span>
-          <div>
-            <strong>Comandă nouă</strong>
-            <small>Începe o comandă pentru client</small>
-          </div>
-        </button>
-
-        <button class="dash-btn" id="btnPrices">
-          <span class="icon">💲</span>
-          <div>
-            <strong>Prețuri speciale</strong>
-            <small>Vezi / adaugă / șterge prețuri client</small>
-          </div>
-        </button>
-
-        <button class="dash-btn" id="btnClientSold">
-          <span class="icon">📉</span>
-          <div>
-            <strong>Sold client</strong>
-            <small>(placeholder momentan)</small>
-          </div>
-        </button>
-
-        <button class="dash-btn" id="btnClientInvoices">
-          <span class="icon">🧾</span>
-          <div>
-            <strong>Facturi client</strong>
-            <small>(placeholder momentan)</small>
-          </div>
-        </button>
-
-        <button class="dash-btn" id="btnClientOrders">
-          <span class="icon">📦</span>
-          <div>
-            <strong>Comenzi client</strong>
-            <small>Filtrează orders doar pe clientul acesta</small>
-          </div>
-        </button>
-
-        <a class="dash-btn" href="index.html" style="text-decoration:none;">
-          <span class="icon">🏠</span>
-          <div>
-            <strong>Dashboard</strong>
-            <small>Înapoi</small>
-          </div>
-        </a>
+    <!-- Header Client -->
+    <div class="client-header">
+      <div class="client-name" id="clientName">-</div>
+      <div class="client-meta">
+        <div class="client-meta-item">
+          <span>📁</span>
+          <span id="clientGroup">-</span>
+        </div>
+        <div class="client-meta-item">
+          <span>🏷️</span>
+          <span id="clientCategory">-</span>
+        </div>
+        <div class="client-meta-item">
+          <span>💰</span>
+          <span id="clientPrices">0 prețuri speciale</span>
+        </div>
       </div>
+    </div>
+
+    <!-- Acțiuni Principale -->
+    <div class="quick-actions">
+      <a href="comanda.html" class="action-card primary" id="btnNewOrder">
+        <div class="action-icon">🧾</div>
+        <div class="action-title">Comandă Nouă</div>
+        <div class="action-desc">Începe o comandă nouă pentru acest client</div>
+      </a>
+
+      <a href="client_prices.html" class="action-card" id="btnPrices">
+        <div class="action-icon">💲</div>
+        <div class="action-title">Prețuri Speciale</div>
+        <div class="action-desc">Gestionează prețurile personalizate</div>
+      </a>
+    </div>
+
+    <!-- Acțiuni Secundare -->
+    <div class="secondary-actions">
+      <a href="client_orders.html" class="secondary-action" id="btnClientOrders">
+        <div class="secondary-action-icon">📦</div>
+        <div class="secondary-action-title">Comenzi</div>
+      </a>
+
+      <a href="client_sold.html" class="secondary-action" id="btnClientSold">
+        <div class="secondary-action-icon">📉</div>
+        <div class="secondary-action-title">Sold</div>
+      </a>
+
+      <a href="client_facturi.html" class="secondary-action" id="btnClientInvoices">
+        <div class="secondary-action-icon">🧾</div>
+        <div class="secondary-action-title">Facturi</div>
+      </a>
+
+      <a href="index.html" class="secondary-action">
+        <div class="secondary-action-icon">🏠</div>
+        <div class="secondary-action-title">Dashboard</div>
+      </a>
     </div>
   </main>
 

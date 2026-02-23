@@ -2,120 +2,333 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Recepție marfă</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Recepție Marfă - Fast Medical Distribution</title>
+  <link rel="stylesheet" href="global.css" />
+  <style>
+    .scan-section {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-6);
+    }
 
-  <!-- Dacă vrei să păstrezi și stilurile globale, lasă și style.css -->
-  <!-- <link rel="stylesheet" href="style.css" /> -->
- <link rel="stylesheet" href="global.css">
-<link rel="stylesheet" href="stockhtml.css" />
+    .scan-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-5);
+    }
+
+    .scan-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .scan-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .btn-scan {
+      background: linear-gradient(135deg, var(--success-600), var(--success-700));
+      color: white;
+      border: none;
+      padding: var(--space-4) var(--space-6);
+      font-size: 1rem;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+    }
+
+    .btn-scan:active {
+      transform: scale(0.98);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    @media (min-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .form-group-full {
+      grid-column: 1 / -1;
+    }
+
+    .stock-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .stock-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .stock-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .stock-item-name {
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stock-item-meta {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .stock-item-meta span {
+      background: rgba(148, 163, 184, 0.1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+    }
+
+    .stock-badge {
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 0.9375rem;
+      min-width: 70px;
+      text-align: center;
+    }
+
+    .stock-badge.ok {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success-400);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .stock-badge.low {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning-500);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .stock-badge.critical {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger-500);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Scanner modal */
+    .scanner-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+    }
+
+    .scanner-overlay.active {
+      display: flex;
+    }
+
+    .scanner-header {
+      padding: var(--space-4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .scanner-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .scanner-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scanner-video-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+    }
+
+    #scanVideo {
+      width: 100%;
+      max-width: 500px;
+      border-radius: var(--radius-xl);
+    }
+
+    .scanner-hint {
+      text-align: center;
+      padding: var(--space-5);
+      color: var(--text-muted);
+    }
+
+    .auto-detect-indicator {
+      position: absolute;
+      right: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      background: var(--success-500);
+      border-radius: var(--radius-full);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+    }
+
+    .auto-detect-indicator.show {
+      display: flex;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+  </style>
 </head>
 <body>
-
-  <!-- TOP APP BAR (ca în poză) -->
-  <header class="appbar">
-    <div class="appbar-left">
-      <div class="app-logo">⚕️</div>
-      <div class="app-title">
-        <div class="app-name">Fast Medical Distribution</div>
-        <div class="app-sub">Recepție marfă</div>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon">⚕️</div>
+        <span>FMD</span>
+      </a>
+      <div class="navbar-actions">
+        <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
       </div>
     </div>
+  </nav>
 
-    <div class="appbar-right">
-      <div id="userBar" class="userbar"></div>
-      <!-- buton logout e deja în userBar-ul tău -->
-    </div>
-  </header>
-
-  <main class="screen">
-
-    <!-- CARD: ADAUGĂ STOC -->
-    <section class="card">
-      <div class="card-head">
-        <div>
-          <div class="card-title">Adaugă stoc</div>
+  <main class="container">
+    <!-- Scanare și Adăugare -->
+    <div class="scan-section">
+      <div class="scan-header">
+        <div class="scan-title">
+          <div class="scan-icon">📷</div>
+          <div>
+            <h2 style="margin: 0; font-size: 1.25rem;">Scanare Cod</h2>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Scanează codul de pe produs</p>
+          </div>
         </div>
-
-        <button type="button" class="btn-scan" id="btnScanQR">
-          <span class="btn-scan-ic">📷</span>
-          <span>Scanează</span>
+        <button class="btn btn-scan" id="btnScanQR">
+          📷 Scanează
         </button>
       </div>
 
-      <div class="field">
-        <div class="label">Scanare cod</div>
-        <div class="input-wrap">
-          <input id="qrInput" class="input" placeholder="Scanează / lipește codul aici" />
-        </div>
-      </div>
-
-      <div class="field">
-        <div class="label">Produs</div>
-        <div class="select-wrap">
-          <select id="stockProduct" class="select"></select>
-          <div id="stockAutoOk" class="auto-ok">✓</div>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <div class="label">LOT</div>
-          <input id="stockLot" class="input" placeholder="LOT-XXXX" />
+      <div class="form-grid">
+        <div class="form-group form-group-full">
+          <label class="form-label">Cod scanat</label>
+          <div class="input-wrap">
+            <input type="text" id="qrInput" class="form-input" placeholder="Apropie camera de cod..." />
+            <div class="auto-detect-indicator" id="stockAutoOk">✓</div>
+          </div>
         </div>
 
-        <div class="field">
-          <div class="label">Expiră</div>
-          <input id="stockExpire" class="input" type="date" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <div class="label">Locație</div>
-          <select id="stockLocation" class="select">
-            <option value="A">Locație A</option>
-            <option value="B">Locație B</option>
-            <option value="C">Locație C</option>
-            <option value="R1">Raft R1</option>
-            <option value="R2">Raft R2</option>
-            <option value="R3">Raft R3</option>
+        <div class="form-group form-group-full">
+          <label class="form-label">Produs</label>
+          <select id="stockProduct" class="form-select">
+            <option value="">Selectează produsul...</option>
           </select>
         </div>
 
-        <div class="field">
-          <div class="label">Cantitate</div>
-          <input id="stockQty" class="input" type="number" min="1" placeholder="0" />
+        <div class="form-group">
+          <label class="form-label">LOT</label>
+          <input type="text" id="stockLot" class="form-input" placeholder="Ex: LOT2024001" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Data expirare</label>
+          <input type="date" id="stockExpire" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Locație</label>
+          <select id="stockLocation" class="form-select">
+            <option value="A">📍 Locație A</option>
+            <option value="B">📍 Locație B</option>
+            <option value="C">📍 Locație C</option>
+            <option value="R1">📦 Raft R1</option>
+            <option value="R2">📦 Raft R2</option>
+            <option value="R3">📦 Raft R3</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cantitate</label>
+          <input type="number" id="stockQty" class="form-input" min="1" placeholder="0" />
+        </div>
+
+        <div class="form-group form-group-full">
+          <button class="btn btn-primary btn-lg w-full" id="btnAddStock">
+            ➕ Adaugă în stoc
+          </button>
         </div>
       </div>
+    </div>
 
-      <button id="btnAddStock" class="btn-cta">Adaugă în stoc</button>
-    </section>
-
-    <!-- CARD: STOC EXISTENT -->
-    <section class="card">
-      <div class="card-head simple">
-        <div class="card-title">Stoc existent</div>
+    <!-- Lista Stoc Existent -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Stoc Existent</h3>
+          <div class="card-subtitle">Ultimele intrări în depozit</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btnRefreshStock">🔄 Refresh</button>
       </div>
-
-      <div id="stockList" class="stock-list"></div>
-    </section>
-
+      <div class="stock-list" id="stockList">
+        <!-- Populat din JS -->
+      </div>
+    </div>
   </main>
 
-  <!-- SCANNER MODAL -->
-  <div id="scannerModal" class="modal" style="display:none;">
-    <div class="modal-card">
-      <div class="modal-head">
-        <div class="modal-title">Scanner</div>
-        <button type="button" id="btnCloseScan" class="btn-x">✖</button>
-      </div>
-
-      <video id="scanVideo" autoplay playsinline muted class="modal-video"></video>
-
-      <div class="modal-hint">
-        Țintește codul (DataMatrix/QR). După citire se închide automat.
-      </div>
+  <!-- Scanner Modal -->
+  <div class="scanner-overlay" id="scannerModal">
+    <div class="scanner-header">
+      <span class="scanner-title">Scanare cod</span>
+      <button class="scanner-close" id="btnCloseScan">✕</button>
+    </div>
+    <div class="scanner-video-container">
+      <video id="scanVideo" autoplay playsinline muted></video>
+    </div>
+    <div class="scanner-hint">
+      Apropie camera de codul de bare sau DataMatrix<br>
+      Scanarea se face automat
     </div>
   </div>
 

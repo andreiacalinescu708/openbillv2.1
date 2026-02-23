@@ -2,53 +2,247 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Clienți</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Selectează Client - Fast Medical Distribution</title>
+  <link rel="stylesheet" href="global.css" />
+  <style>
+    .page-header {
+      margin-bottom: var(--space-6);
+    }
 
-  
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: var(--space-2);
+    }
 
-  <!-- CSS nou DOAR pentru pagina asta -->
-   
-  <link rel="stylesheet" href="adauga_comandahtml.css" />
-  <link rel="stylesheet" href="global.css">
+    .page-subtitle {
+      color: var(--text-muted);
+    }
+
+    .search-container {
+      position: relative;
+      margin-bottom: var(--space-6);
+    }
+
+    .search-input-wrap {
+      position: relative;
+    }
+
+    .search-input-wrap input {
+      padding-left: var(--space-12);
+      padding-right: var(--space-12);
+      font-size: 1.0625rem;
+    }
+
+    .search-icon-left {
+      position: absolute;
+      left: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-clear.show {
+      display: flex;
+    }
+
+    .search-results-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: var(--space-2);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: var(--shadow-xl);
+      display: none;
+    }
+
+    .search-results-dropdown.show {
+      display: block;
+    }
+
+    .search-result-item {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-result-item:hover {
+      background: rgba(148, 163, 184, 0.1);
+    }
+
+    .search-result-name {
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+
+    .search-result-meta {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .clients-tree {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .tree-category {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .tree-category-header {
+      padding: var(--space-4) var(--space-5);
+      background: var(--bg-tertiary);
+      font-weight: 700;
+      font-size: 1.0625rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .tree-category-count {
+      background: var(--primary-600);
+      color: white;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: 0.875rem;
+    }
+
+    .tree-category-content {
+      padding: var(--space-3);
+    }
+
+    .client-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-3) var(--space-4);
+      margin: var(--space-1);
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-size: 0.9375rem;
+    }
+
+    .client-chip:hover {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+      color: white;
+    }
+
+    .view-order-btn {
+      position: fixed;
+      bottom: var(--space-6);
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--success-600), var(--success-700));
+      color: white;
+      padding: var(--space-4) var(--space-8);
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(22, 163, 74, 0.4);
+      border: none;
+      cursor: pointer;
+      z-index: 100;
+      display: none;
+    }
+
+    .view-order-btn.show {
+      display: block;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: var(--space-10);
+      color: var(--text-muted);
+    }
+
+    .no-results-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+      opacity: 0.5;
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-left">
-      <span class="brand">⚕️ Fast Medical Distribution</span>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon">⚕️</div>
+        <span>FMD</span>
+      </a>
+      <div class="navbar-actions">
+        <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
+      </div>
     </div>
-
-    <div class="topbar-center"></div>
-
-    <div class="topbar-right">
-      <button id="btnToggleTheme" class="icon-btn" type="button">🌙</button>
-      <div id="userBar"></div>
-    </div>
-  </header>
+  </nav>
 
   <main class="container">
-    <div class="page-head">
-      <a href="index.html" class="btn">
-        ⬅️ Pagina Principală
-      </a>
-
-      <button class="linkbtn" id="btnViewCurrentOrder" type="button">
-        🧾 Vizualizează comanda actuală
-      </button>
+    <div class="page-header">
+      <h1 class="page-title">Selectează Client</h1>
+      <p class="page-subtitle">Alege un client pentru a începe o comandă</p>
     </div>
 
-    <p class="hint">Selectează un client ca să intri în fișa lui.</p>
-
-    <div class="client-search">
-      <input type="text" id="searchClient" placeholder="Caută client..." autocomplete="off" />
-      <div id="clientSearchResults" class="list"></div>
+    <!-- Search -->
+    <div class="search-container">
+      <div class="search-input-wrap">
+        <span class="search-icon-left">🔍</span>
+        <input type="text" id="searchClient" class="form-input" placeholder="Caută client după nume..." autocomplete="off" />
+        <button class="search-clear" id="btnClearSearch">✕</button>
+      </div>
+      <div class="search-results-dropdown" id="clientSearchResults"></div>
     </div>
 
-    <div id="clientsTree" class="tree"></div>
+    <!-- Tree -->
+    <div class="clients-tree" id="clientsTree">
+      <!-- Populat din JS -->
+    </div>
 
-    <!-- păstrăm butonul existent (nu adăugăm altul) -->
-    <a class="linkbtn" href="index.html">Dashboard</a>
+    <div class="no-results" id="noResults" style="display: none;">
+      <div class="no-results-icon">👤</div>
+      <p>Nu am găsit clienți</p>
+    </div>
   </main>
+
+  <!-- Floating button pentru comanda curentă -->
+  <button class="view-order-btn" id="btnViewCurrentOrder">
+    🛒 Vezi comanda curentă
+  </button>
 
   <script src="script.js"></script>
 </body>
