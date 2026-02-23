@@ -1152,8 +1152,8 @@ stock.forEach(s => {
             if (typeof item === "string") {
               productData = flat.find(p => p.name === item || p.id === item);
             } else if (typeof item === "object" && item.id) {
-              productData = item;
-            }
+  productData = flat.find(p => p.id === item.id) || item;  // <- IA din flat
+}
             
             if (productData) {
               const btn = document.createElement("button");
