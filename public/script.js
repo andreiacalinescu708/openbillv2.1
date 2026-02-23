@@ -1093,14 +1093,8 @@ stock.forEach(s => {
 
 // Cu:
 stock.forEach(s => {
-  // După GTIN (normalizat)
   if (s.gtin) {
     stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
-  }
-  // După nume produs (pentru produse fără GTIN în coș)
-  if (s.productName) {
-    const nameKey = String(s.productName).toLowerCase().trim();
-    stockMap[nameKey] = (stockMap[nameKey] || 0) + Number(s.qty);
   }
 });
 
