@@ -322,7 +322,9 @@ function sortCategories(keys) {
   let total = 0;
 
   cart.forEach(i => {
-   const available = stockMap[normalizeGTIN(i.gtin)] || stockMap[String(i.id)] || 0;
+   const normalizedGtin = normalizeGTIN(i.gtin);
+const nameKey = String(i.name).toLowerCase().trim();
+const available = stockMap[normalizedGtin] || stockMap[nameKey] || 0;
     const insufficient = i.qty > available;
     const price = Number(i.price) || 0;
     const lineTotal = price * i.qty;
@@ -1091,14 +1093,14 @@ stock.forEach(s => {
 
 // Cu:
 stock.forEach(s => {
-  // Indexare după GTIN
+  // După GTIN (normalizat)
   if (s.gtin) {
     stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
   }
-  // Indexare și după productId (pentru fallback)
-  if (s.productId || s.product_id) {
-    const pid = s.productId || s.product_id;
-    stockMap[String(pid)] = (stockMap[String(pid)] || 0) + Number(s.qty);
+  // După nume produs (pentru produse fără GTIN în coș)
+  if (s.productName) {
+    const nameKey = String(s.productName).toLowerCase().trim();
+    stockMap[nameKey] = (stockMap[nameKey] || 0) + Number(s.qty);
   }
 });
 
