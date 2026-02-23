@@ -11,6 +11,15 @@ const crypto = require("crypto");
 
 
 const app = express();
+
+// Middleware pentru verificare admin
+function isAdmin(req, res, next) {
+  if (req.session?.user?.role !== 'admin') {
+    return res.status(403).json({ error: "Acces interzis. Doar admin." });
+  }
+  next();
+}
+
 app.get("/api/version", (req, res) => {
   res.json({
     version: "2026-02-22-1",
@@ -1438,7 +1447,7 @@ app.post("/api/login", async (req, res) => {
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
     const r = await db.q(
-      `SELECT id, username, password_hash, role, active
+      `SELECT id, username, password_hash, role, active, is_approved
        FROM users
        WHERE username=$1
        LIMIT 1`,
@@ -1451,7 +1460,22 @@ app.post("/api/login", async (req, res) => {
     const ok = bcrypt.compareSync(password, u.password_hash);
     if (!ok) return res.status(401).json({ error: "User sau parolă greșită" });
 
-    req.session.user = { id: u.id, username: u.username, role: u.role };
+    // ✅ NOU: Verificare aprobare
+    if (!u.is_approved) {
+      return res.status(403).json({ 
+        error: "Cont în așteptare", 
+        pending: true,
+        message: "Contul tău este în așteptarea aprobării. Contactează administratorul." 
+      });
+    }
+
+    req.session.user = { 
+      id: u.id, 
+      username: u.username, 
+      role: u.role,
+      is_approved: u.is_approved 
+    };
+    
     res.json({ ok: true, user: req.session.user });
   } catch (e) {
     console.error("LOGIN error:", e);
@@ -1469,14 +1493,19 @@ app.post("/api/register", async (req, res) => {
 
     const passwordHash = bcrypt.hashSync(password, 10);
 
+    // ✅ NOU: is_approved = false by default (trebuie aprobat de admin)
     const r = await db.q(
-      `INSERT INTO users (username, password_hash, role, active)
-       VALUES ($1,$2,'user',true)
-       RETURNING id, username, role`,
+      `INSERT INTO users (username, password_hash, role, active, is_approved)
+       VALUES ($1,$2,'user',true,false)
+       RETURNING id, username, role, is_approved`,
       [username.trim(), passwordHash]
     );
 
-    res.json({ ok: true, user: r.rows[0] });
+    res.json({ 
+      ok: true, 
+      message: "Cont creat. Așteaptă aprobarea administratorului.",
+      user: r.rows[0] 
+    });
   } catch (e) {
     if (String(e.message || "").includes("duplicate key")) {
       return res.status(400).json({ error: "Utilizator existent" });
@@ -1610,26 +1639,27 @@ const PORT = process.env.PORT || 3000;
 async function ensureDefaultAdmin() {
   if (!db.hasDb()) return;
 
+  // Dacă nu există niciun user, creăm adminul implicit
+  const r = await db.q("SELECT COUNT(*)::int AS n FROM users");
+  const n = r.rows?.[0]?.n ?? 0;
+  
+  if (n > 0) return; // Există deja useri, nu creăm nimic automat
+
   const username = String(process.env.ADMIN_USER || "admin").trim();
   const password = String(process.env.ADMIN_PASS || "admin").trim();
 
-  // Nu vrem să creăm user cu parolă goală
   if (!username || !password) {
     console.warn("⚠️ ADMIN_USER/ADMIN_PASS lipsesc -> sar peste crearea adminului implicit.");
     return;
   }
 
-  const r = await db.q("SELECT COUNT(*)::int AS n FROM users");
-  const n = r.rows?.[0]?.n ?? 0;
-  if (n > 0) return;
-
   const hash = await bcrypt.hash(password, 10);
   await db.q(
-    "INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)",
+    "INSERT INTO users (username, password_hash, role, is_approved, active) VALUES ($1, $2, $3, true, true)",
     [username, hash, "admin"]
   );
 
-  console.log(`✅ Admin implicit creat: ${username}`);
+  console.log(`✅ Admin implicit creat: ${username} (aprobat automat)`);
 }
 
 (async () => {

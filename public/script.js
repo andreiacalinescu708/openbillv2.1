@@ -134,6 +134,21 @@
         <button id="btnLogout" class="logout-btn" type="button">Logout</button>
       </div>
     `;
+    // Link admin dacă e admin
+const adminLink = me.user.role === 'admin' 
+  ? `<a href="admin.html" style="color:#fbbf24; margin-right:1rem; text-decoration:none; font-weight:600;">🔧 Admin</a>` 
+  : '';
+
+bar.innerHTML = `
+  <div class="userbar-inner">
+    ${adminLink}
+    <div class="user-pill">
+      <span class="user-ico">👤</span>
+      <span class="user-txt">${escapeHtml(me.user.username)} (${escapeHtml(me.user.role)})</span>
+    </div>
+    <button id="btnLogout" class="logout-btn" type="button">Logout</button>
+  </div>
+`;
 
     document.getElementById("btnLogout").onclick = async () => {
       await apiFetch("/api/logout", { method: "POST" });
@@ -3537,9 +3552,16 @@ o.items.forEach(i => {
         })
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        alert(data.error || "Eroare la actualizare LOT");
+     const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // ✅ NOU: Mesaj special pentru cont în așteptare
+        if (res.status === 403 && data.pending) {
+          msg.textContent = "⏳ Contul tău este în așteptarea aprobării. Contactează administratorul.";
+          msg.style.color = "#f59e0b"; // galben
+          return;
+        }
+        msg.textContent = data.error || "Eroare la login";
+        msg.style.color = "#ef4444"; // roșu
         return;
       }
 

@@ -122,6 +122,13 @@ async function ensureTables() {
   await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS prices JSONB NOT NULL DEFAULT '{}'::jsonb`);
   await q(`ALTER TABLE users   ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`);
 
+  // Coloană pentru aprobare admin (NOU)
+await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT false`);
+
+// Asigură-te că adminul existent rămâne aprobat (pentru compatibilitate)
+await q(`UPDATE users SET is_approved = true WHERE role = 'admin'`);
+await q(`UPDATE users SET is_approved = false WHERE is_approved IS NULL`);
+
   // indexuri
   await q(`CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC)`);
   await q(`CREATE INDEX IF NOT EXISTS stock_gtin_idx ON stock (gtin)`);

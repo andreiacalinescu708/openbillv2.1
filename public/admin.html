@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panou Administrare - Aprobări</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="global.css">
+  <style>
+    body { background: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; }
+    .topbar { background: #0284c7; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #1e293b; border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; border: 1px solid #334155; }
+    
+    .tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid #334155; }
+    .tab { padding: 1rem 2rem; cursor: pointer; border-bottom: 2px solid transparent; opacity: 0.7; }
+    .tab.active { border-bottom-color: #0284c7; opacity: 1; font-weight: 600; }
+    
+    .user-card { 
+      background: #0f172a; 
+      border: 1px solid #334155; 
+      border-radius: 0.75rem; 
+      padding: 1.5rem; 
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info { flex: 1; }
+    .user-name { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .user-meta { color: #94a3b8; font-size: 0.9rem; }
+    
+    .btn-approve { 
+      background: #10b981; 
+      color: white; 
+      border: none; 
+      padding: 0.75rem 1.5rem; 
+      border-radius: 0.5rem; 
+      cursor: pointer; 
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .btn-approve:hover { background: #059669; }
+    
+    .btn-reject { 
+      background: #ef4444; 
+      color: white; 
+      border: none; 
+      padding: 0.75rem 1.5rem; 
+      border-radius: 0.5rem; 
+      cursor: pointer; 
+      font-weight: 600;
+    }
+    .btn-reject:hover { background: #dc2626; }
+    
+    .empty-state { 
+      text-align: center; 
+      padding: 3rem; 
+      color: #64748b; 
+      font-style: italic; 
+    }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #334155; }
+    th { color: #94a3b8; font-weight: 600; }
+    
+    .badge { 
+      padding: 0.25rem 0.75rem; 
+      border-radius: 9999px; 
+      font-size: 0.875rem; 
+      font-weight: 600; 
+      display: inline-block;
+    }
+    .badge-admin { background: #f59e0b; color: #1e293b; }
+    .badge-user { background: #3b82f6; color: white; }
+    .badge-pending { background: #ef4444; color: white; }
+    .badge-approved { background: #10b981; color: white; }
+    
+    @media (max-width: 768px) {
+      .user-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .tabs { flex-wrap: wrap; }
+      .tab { padding: 0.75rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h2>🔧 Panou Administrare Utilizatori</h2>
+    <div>
+      <a href="index.html" style="color: white; text-decoration: none; font-weight: 500;">← Înapoi la aplicație</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('pending')">⏳ În Așteptare</div>
+      <div class="tab" onclick="showTab('all')">👥 Toți Utilizatorii</div>
+    </div>
+
+    <!-- Secțiunea În Așteptare -->
+    <div id="pending-section" class="card">
+      <h3>Utilizatori în așteptare de aprobare</h3>
+      <div id="pendingList">
+        <p class="empty-state">Se încarcă...</p>
+      </div>
+    </div>
+
+    <!-- Secțiunea Toți Utilizatorii -->
+    <div id="all-section" class="card" style="display: none;">
+      <h3>Toți utilizatorii din sistem</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Rol</th>
+            <th>Status</th>
+            <th>Data înregistrării</th>
+          </tr>
+        </thead>
+        <tbody id="allUsersList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Verificare admin și încărcare date
+    async function init() {
+      try {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        
+        if (!data.loggedIn || data.user.role !== 'admin') {
+          alert('Acces interzis! Doar administratorii pot vedea această pagină.');
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        loadPending();
+        loadAllUsers();
+      } catch (err) {
+        console.error(err);
+        alert('Eroare la verificare sesiune');
+      }
+    }
+
+    async function loadPending() {
+      try {
+        const res = await fetch('/api/users/pending');
+        const users = await res.json();
+        
+        const container = document.getElementById('pendingList');
+        
+        if (users.length === 0) {
+          container.innerHTML = '<p class="empty-state">Nu sunt utilizatori în așteptare. Toate conturile sunt aprobate! 🎉</p>';
+          return;
+        }
+        
+        container.innerHTML = users.map(user => `
+          <div class="user-card">
+            <div class="user-info">
+              <div class="user-name">${user.username}</div>
+              <div class="user-meta">
+                ID: ${user.id} • Înregistrat: ${new Date(user.created_at).toLocaleDateString('ro-RO')}
+              </div>
+            </div>
+            <div>
+              <button class="btn-approve" onclick="approveUser(${user.id}, '${user.username}')">✓ Aprobă</button>
+              <button class="btn-reject" onclick="rejectUser(${user.id}, '${user.username}')">✗ Respinge</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+        document.getElementById('pendingList').innerHTML = '<p class="empty-state">Eroare la încărcare</p>';
+      }
+    }
+
+    async function loadAllUsers() {
+      try {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        
+        const tbody = document.getElementById('allUsersList');
+        tbody.innerHTML = users.map(user => `
+          <tr>
+            <td>${user.id}</td>
+            <td><strong>${user.username}</strong></td>
+            <td>
+              <span class="badge badge-${user.role}">${user.role}</span>
+            </td>
+            <td>
+              <span class="badge badge-${user.is_approved ? 'approved' : 'pending'}">
+                ${user.is_approved ? '✓ Aprobat' : '⏳ În așteptare'}
+              </span>
+            </td>
+            <td>${new Date(user.created_at).toLocaleDateString('ro-RO')}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function approveUser(userId, username) {
+      if (!confirm(`Ești sigur că vrei să aprobi utilizatorul "${username}"?`)) return;
+      
+      try {
+        const res = await fetch(`/api/users/approve/${userId}`, { method: 'POST' });
+        if (res.ok) {
+          alert(`Utilizatorul "${username}" a fost aprobat cu succes!`);
+          loadPending();
+          loadAllUsers();
+        } else {
+          alert('Eroare la aprobare');
+        }
+      } catch (err) {
+        alert('Eroare de rețea');
+      }
+    }
+
+    async function rejectUser(userId, username) {
+      if (!confirm(`Ești sigur că vrei să respingi și să ștergi utilizatorul "${username}"? Această acțiune este ireversibilă!`)) return;
+      
+      try {
+        const res = await fetch(`/api/users/reject/${userId}`, { method: 'POST' });
+        if (res.ok) {
+          alert(`Utilizatorul "${username}" a fost șters.`);
+          loadPending();
+          loadAllUsers();
+        } else {
+          alert('Eroare la respingere');
+        }
+      } catch (err) {
+        alert('Eroare de rețea');
+      }
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      if (tab === 'pending') {
+        document.getElementById('pending-section').style.display = 'block';
+        document.getElementById('all-section').style.display = 'none';
+      } else {
+        document.getElementById('pending-section').style.display = 'none';
+        document.getElementById('all-section').style.display = 'block';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
