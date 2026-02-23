@@ -3,308 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Selectează Client - Fast Medical Distribution</title>
+  <title>Clienți - Fast Medical Distribution</title>
   <link rel="stylesheet" href="global.css" />
   <style>
-    .page-header {
-      margin-bottom: var(--space-6);
-    }
+    /* PĂSTRĂM clasele vechi pentru JS: topbar, topbar-left, brand, topbar-center, topbar-right, icon-btn, container, page-head, btn, linkbtn, hint, client-search, tree */
 
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 800;
-      margin-bottom: var(--space-2);
-    }
-
-    .page-subtitle {
-      color: var(--text-muted);
-      font-size: 1rem;
-    }
-
-    .search-container {
-      position: relative;
-      margin-bottom: var(--space-6);
-    }
-
-    .search-input-wrap {
-      position: relative;
-    }
-
-    .search-input-wrap input {
-      padding-left: var(--space-12);
-      padding-right: var(--space-12);
-      font-size: 1rem;
-      height: 56px;
-    }
-
-    .search-icon-left {
-      position: absolute;
-      left: var(--space-4);
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.5rem;
-      color: var(--text-muted);
-    }
-
-    .search-clear {
-      position: absolute;
-      right: var(--space-4);
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.125rem;
-    }
-
-    .search-clear.show {
-      display: flex;
-    }
-
-    .search-clear:hover {
-      background: var(--danger-500);
-      color: white;
-      border-color: var(--danger-500);
-    }
-
-    .search-results-dropdown {
-      position: absolute;
-      top: calc(100% + var(--space-2));
-      left: 0;
-      right: 0;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xl);
-      max-height: 400px;
-      overflow-y: auto;
+    .topbar {
+      position: sticky;
+      top: 0;
       z-index: 50;
-      box-shadow: var(--shadow-xl);
-      display: none;
-    }
-
-    .search-results-dropdown.show {
-      display: block;
-    }
-
-    .search-result-item {
-      padding: var(--space-4) var(--space-5);
-      border-bottom: 1px solid var(--border-color);
-      cursor: pointer;
-      transition: background var(--transition-fast);
-    }
-
-    .search-result-item:last-child {
-      border-bottom: none;
-    }
-
-    .search-result-item:hover {
-      background: rgba(59, 130, 246, 0.1);
-    }
-
-    .search-result-name {
-      font-weight: 600;
-      margin-bottom: var(--space-1);
-      color: var(--text-primary);
-    }
-
-    .search-result-meta {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-    }
-
-    .clients-tree {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-5);
-    }
-
-    .tree-category {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xl);
-      overflow: hidden;
-    }
-
-    .tree-category-header {
-      padding: var(--space-5);
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.05));
-      font-weight: 700;
-      font-size: 1.125rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      cursor: pointer;
-      border-bottom: 1px solid transparent;
-      transition: all var(--transition-fast);
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(10, 16, 28, .72);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
 
-    .tree-category-header:hover {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 197, 94, 0.1));
-    }
-
-    .tree-category.expanded .tree-category-header {
-      border-bottom-color: var(--border-color);
-    }
-
-    .tree-category-count {
-      background: var(--primary-600);
-      color: white;
-      padding: var(--space-1) var(--space-4);
-      border-radius: var(--radius-full);
-      font-size: 0.9375rem;
-      font-weight: 700;
-    }
-
-    .tree-category-toggle {
-      transition: transform var(--transition-fast);
-      color: var(--text-muted);
-      font-size: 1.25rem;
-    }
-
-    .tree-category.expanded .tree-category-toggle {
-      transform: rotate(180deg);
-    }
-
-    .tree-category-content {
-      padding: var(--space-4);
-      display: none;
-    }
-
-    .tree-category.expanded .tree-category-content {
-      display: block;
-    }
-
-    .clients-grid {
+    .topbar-left {
       display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
     }
 
-    .client-chip {
-      display: inline-flex;
-      align-items: center;
-      padding: var(--space-3) var(--space-5);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      font-size: 0.9375rem;
+    .brand {
+      font-weight: 800;
+      letter-spacing: .2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 55vw;
       color: var(--text-primary);
-      font-weight: 500;
     }
 
-    .client-chip:hover {
-      background: var(--primary-600);
-      border-color: var(--primary-600);
-      color: white;
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
+    .topbar-center {
+      flex: 1;
     }
 
-    .view-order-fab {
-      position: fixed;
-      bottom: var(--space-6);
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, var(--success-600), var(--success-700));
-      color: white;
-      padding: var(--space-4) var(--space-8);
-      border-radius: var(--radius-full);
-      font-weight: 700;
-      font-size: 1rem;
-      box-shadow: 0 8px 32px rgba(22, 163, 74, 0.4);
-      border: none;
-      cursor: pointer;
-      z-index: 100;
-      display: none;
-      align-items: center;
-      gap: var(--space-3);
-      animation: slideUp 0.3s ease;
-    }
-
-    @keyframes slideUp {
-      from {
-        transform: translateX(-50%) translateY(100px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-      }
-    }
-
-    .view-order-fab.show {
+    .topbar-right {
       display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .no-results {
-      text-align: center;
-      padding: var(--space-16) var(--space-4);
-      color: var(--text-muted);
-    }
-
-    .no-results-icon {
-      font-size: 5rem;
-      margin-bottom: var(--space-4);
-      opacity: 0.3;
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar">
-    <div class="navbar-inner">
-      <a href="index.html" class="navbar-brand">
-        <div class="navbar-brand-icon">⚕️</div>
-        <span>FMD</span>
-      </a>
-      <div class="navbar-actions">
-        <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
-      </div>
-    </div>
-  </nav>
-
-  <main class="container">
-    <div class="page-header">
-      <h1 class="page-title">Selectează Client</h1>
-      <p class="page-subtitle">Alege un client pentru a începe o comandă nouă</p>
-    </div>
-
-    <!-- Search -->
-    <div class="search-container">
-      <div class="search-input-wrap">
-        <span class="search-icon-left">🔍</span>
-        <input type="text" id="searchClient" class="form-input" placeholder="Caută client după nume..." autocomplete="off" />
-        <button class="search-clear" id="btnClearSearch">✕</button>
-      </div>
-      <div class="search-results-dropdown" id="clientSearchResults"></div>
-    </div>
-
-    <!-- Tree -->
-    <div class="clients-tree" id="clientsTree">
-      <!-- Populat din JS -->
-    </div>
-
-    <div class="no-results" id="noResults" style="display: none;">
-      <div class="no-results-icon">👤</div>
-      <h3>Nu am găsit clienți</h3>
-      <p>Încearcă alt termen de căutare</p>
-    </div>
-  </main>
-
-  <!-- Floating button pentru comanda curentă -->
-  <button class="view-order-fab" id="btnViewCurrentOrder">
-    <span>🛒</span>
-    <span>Vezi comanda curentă</span>
-  </button>
-
-  <script src="script.js"></script>
-</body>
-</html>
+    .icon-btn {
+      height: 40px;
+      min-width: 40px;
+      padding: 

@@ -27,12 +27,7 @@
       height: 4px;
     }
 
-    .status-tabs::-webkit-scrollbar-thumb {
-      background: var(--gray-600);
-      border-radius: var(--radius-full);
-    }
-
-    .status-tab {
+    .mTab {
       flex-shrink: 0;
       padding: var(--space-3) var(--space-5);
       border-radius: var(--radius-full);
@@ -48,18 +43,18 @@
       gap: var(--space-2);
     }
 
-    .status-tab:hover {
+    .mTab:hover {
       border-color: var(--primary-500);
       color: var(--text-primary);
     }
 
-    .status-tab.active {
+    .mTab.active {
       background: var(--primary-600);
       color: white;
       border-color: var(--primary-600);
     }
 
-    .status-tab .count {
+    .badge {
       background: rgba(255, 255, 255, 0.2);
       padding: 2px 10px;
       border-radius: var(--radius-full);
@@ -80,11 +75,15 @@
       }
     }
 
-    .search-box {
+    #filterStatus {
+      display: none;
+    }
+
+    .mSearchRow {
       position: relative;
     }
 
-    .search-box input {
+    .mSearchRow input {
       padding-left: var(--space-10);
     }
 
@@ -97,13 +96,52 @@
       font-size: 1.25rem;
     }
 
-    .orders-list {
+    .mSuggest {
+      position: absolute;
+      top: calc(100% + var(--space-2));
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: var(--shadow-xl);
+      display: none;
+    }
+
+    .mSuggest.show {
+      display: block;
+    }
+
+    .mSuggest button {
+      width: 100%;
+      padding: var(--space-4);
+      text-align: left;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.9375rem;
+    }
+
+    .mSuggest button:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .mSuggest button:last-child {
+      border-bottom: none;
+    }
+
+    .mOrders {
       display: flex;
       flex-direction: column;
       gap: var(--space-4);
     }
 
-    .order-card {
+    .orderCard {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
@@ -111,12 +149,12 @@
       transition: all var(--transition-base);
     }
 
-    .order-card:hover {
+    .orderCard:hover {
       border-color: rgba(148, 163, 184, 0.3);
       box-shadow: var(--shadow-lg);
     }
 
-    .order-header {
+    .orderHeader {
       padding: var(--space-5);
       display: flex;
       flex-direction: column;
@@ -126,47 +164,20 @@
     }
 
     @media (min-width: 640px) {
-      .order-header {
+      .orderHeader {
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
       }
     }
 
-    .order-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .order-client {
+    .orderHeader span {
       font-weight: 700;
-      font-size: 1.125rem;
-      margin-bottom: var(--space-2);
+      font-size: 1.0625rem;
       color: var(--text-primary);
     }
 
-    .order-meta {
-      font-size: 0.9375rem;
-      color: var(--text-muted);
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      align-items: center;
-    }
-
-    .order-meta span {
-      display: flex;
-      align-items: center;
-      gap: var(--space-1);
-    }
-
-    .order-actions-top {
-      display: flex;
-      gap: var(--space-2);
-      flex-wrap: wrap;
-    }
-
-    .order-status-btn {
+    .order-status {
       padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-md);
       border: none;
@@ -178,27 +189,27 @@
       letter-spacing: 0.03em;
     }
 
-    .order-status-btn.in_procesare {
+    .order-status.in_procesare {
       background: rgba(245, 158, 11, 0.15);
       color: var(--warning-500);
     }
 
-    .order-status-btn.facturata {
+    .order-status.facturata {
       background: rgba(59, 130, 246, 0.15);
       color: var(--primary-400);
     }
 
-    .order-status-btn.gata_de_livrare {
+    .order-status.gata_de_livrare {
       background: rgba(34, 197, 94, 0.15);
       color: var(--success-400);
     }
 
-    .order-status-btn.livrata {
+    .order-status.livrata {
       background: rgba(100, 116, 139, 0.15);
       color: var(--text-muted);
     }
 
-    .btn-modifica, .btn-pregateste {
+    .btnEdit, .btnPick {
       padding: var(--space-2) var(--space-3);
       border-radius: var(--radius-md);
       border: 1px solid var(--border-color);
@@ -208,36 +219,37 @@
       font-weight: 600;
       cursor: pointer;
       transition: all var(--transition-fast);
+      margin-left: var(--space-2);
     }
 
-    .btn-modifica:hover {
+    .btnEdit:hover {
       background: var(--primary-600);
       color: white;
       border-color: var(--primary-600);
     }
 
-    .btn-pregateste {
+    .btnPick {
       background: rgba(34, 197, 94, 0.1);
       color: var(--success-400);
       border-color: rgba(34, 197, 94, 0.3);
     }
 
-    .btn-pregateste:hover {
+    .btnPick:hover {
       background: var(--success-600);
       color: white;
     }
 
-    .order-body {
+    .orderBody {
       padding: var(--space-5);
       border-top: 1px solid var(--border-color);
       display: none;
     }
 
-    .order-card.expanded .order-body {
+    .orderCard.expanded .orderBody {
       display: block;
     }
 
-    .order-item {
+    .orderItem {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -247,44 +259,44 @@
       margin-bottom: var(--space-3);
     }
 
-    .order-item:last-child {
+    .orderItem:last-child {
       margin-bottom: 0;
     }
 
-    .order-item-info {
-      flex: 1;
-    }
-
-    .order-item-name {
+    .orderItem strong {
+      display: block;
       font-weight: 600;
       margin-bottom: var(--space-2);
       color: var(--text-primary);
     }
 
-    .order-item-details {
+    .muted {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .small {
+      font-size: 0.8125rem;
+    }
+
+    .lots {
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .lot {
+      padding: var(--space-2) 0;
       font-size: 0.875rem;
       color: var(--text-muted);
-      line-height: 1.5;
     }
 
-    .order-item-price {
-      text-align: right;
-      font-weight: 700;
-      color: var(--primary-400);
-    }
-
-    .order-item-qty {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      margin-top: var(--space-1);
-    }
-
-    .reset-btn {
+    .mResetBtn {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-2);
-      margin-top: var(--space-6);
+      margin: var(--space-6) auto;
       padding: var(--space-4) var(--space-8);
       background: transparent;
       border: 1px solid var(--border-color);
@@ -294,30 +306,15 @@
       transition: all var(--transition-fast);
     }
 
-    .reset-btn:hover {
+    .mResetBtn:hover {
       border-color: var(--primary-500);
       color: var(--text-primary);
     }
 
-    .empty-state {
+    .hint {
       text-align: center;
-      padding: var(--space-16) var(--space-4);
+      padding: var(--space-10);
       color: var(--text-muted);
-    }
-
-    .empty-icon {
-      font-size: 5rem;
-      margin-bottom: var(--space-4);
-      opacity: 0.3;
-    }
-
-    .expand-icon {
-      transition: transform var(--transition-fast);
-      color: var(--text-muted);
-    }
-
-    .order-card.expanded .expand-icon {
-      transform: rotate(180deg);
     }
   </style>
 </head>
@@ -335,30 +332,30 @@
   </nav>
 
   <main class="container">
-    <h1 style="margin-bottom: var(--space-6); font-size: 1.875rem;">Comenzi</h1>
+    <h1 style="margin-bottom: var(--space-6);">Comenzi</h1>
 
     <!-- Filtre -->
     <div class="filters-container">
       <!-- Status Tabs -->
       <div class="status-tabs" id="statusTabs">
-        <button class="status-tab active" data-status="">
-          Toate <span class="count" id="countAll">0</span>
+        <button class="mTab active" data-status="">
+          Toate <span class="badge" id="countAll">0</span>
         </button>
-        <button class="status-tab" data-status="gata_de_livrare">
-          Gata de livrare <span class="count" id="countGata">0</span>
+        <button class="mTab" data-status="gata_de_livrare">
+          Gata de livrare <span class="badge" id="countGata">0</span>
         </button>
-        <button class="status-tab" data-status="in_procesare">
-          În procesare <span class="count" id="countProcesare">0</span>
+        <button class="mTab" data-status="in_procesare">
+          În procesare <span class="badge" id="countProcesare">0</span>
         </button>
-        <button class="status-tab" data-status="facturata">
-          Facturate <span class="count" id="countFacturate">0</span>
+        <button class="mTab" data-status="facturata">
+          Facturate <span class="badge" id="countFacturate">0</span>
         </button>
-        <button class="status-tab" data-status="livrata">
-          Livrate <span class="count" id="countLivrate">0</span>
+        <button class="mTab" data-status="livrata">
+          Livrate <span class="badge" id="countLivrate">0</span>
         </button>
       </div>
 
-      <!-- Selects și Search -->
+      <!-- Selects -->
       <div class="filters-row">
         <select id="filterGroup" class="form-select">
           <option value="">Toate grupurile</option>
@@ -366,26 +363,29 @@
         <select id="filterCategory" class="form-select">
           <option value="">Toate categoriile</option>
         </select>
-        <div class="search-box">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="orderSearch" class="form-input" placeholder="Caută client..." />
-        </div>
+        <select id="filterStatus">
+          <option value="">Toate</option>
+          <option value="gata_de_livrare">Gata de livrare</option>
+          <option value="in_procesare">În procesare</option>
+          <option value="facturata">Facturată</option>
+          <option value="livrata">Livrată</option>
+        </select>
+      </div>
+
+      <!-- Search -->
+      <div class="mSearchRow" style="position: relative;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="orderSearch" class="form-input" placeholder="Caută client..." />
+        <div class="mSuggest" id="orderSearchResults"></div>
       </div>
     </div>
 
     <!-- Lista Comenzi -->
-    <div class="orders-list" id="ordersList">
+    <div class="mOrders" id="ordersList">
       <!-- Populat din JS -->
     </div>
 
-    <!-- Empty State -->
-    <div class="empty-state" id="emptyState" style="display: none;">
-      <div class="empty-icon">📋</div>
-      <h3>Nu există comenzi</h3>
-      <p>Începe prin a adăuga o comandă nouă</p>
-    </div>
-
-    <button class="reset-btn" id="btnResetFilters">
+    <button class="mResetBtn" id="btnResetFilters">
       ↺ Resetează filtrele
     </button>
   </main>
