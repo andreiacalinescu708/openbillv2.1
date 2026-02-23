@@ -2706,6 +2706,7 @@ o.items.forEach(i => {
 
   if (btnClose) btnClose.onclick = closeScanner;
 
+
   if (btnScan && qrInput) {
     btnScan.onclick = async () => {
       try {
@@ -3154,6 +3155,92 @@ o.items.forEach(i => {
     if (!list || !info) return;
 
     if (btnClose) btnClose.onclick = closeScanner;
+      // 🔵 SCANNER 2D ANDROID - Mod tastatură
+  const scannerInput = document.getElementById("scanner2DInput");
+  const scannerFeedback = document.getElementById("scannerFeedback");
+  
+  if (scannerInput) {
+    let scanBuffer = "";
+    let lastKeyTime = 0;
+    
+    // Focus automat pe input când se încarcă pagina
+    scannerInput.focus();
+    
+    // Refocus dacă utilizatorul click în altă parte
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("button") && !e.target.closest("input")) {
+        scannerInput.focus();
+      }
+    });
+    
+    scannerInput.addEventListener("keydown", async (e) => {
+      const now = Date.now();
+      
+      // Dacă a trecut mai mult de 100ms între taste, reset buffer (e om, nu scanner)
+      if (now - lastKeyTime > 100) {
+        scanBuffer = "";
+      }
+      lastKeyTime = now;
+      
+      // Enter = sfârșit scanare
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const code = scannerInput.value.trim() || scanBuffer;
+        
+        if (code.length > 5) { // Minim 5 caractere pentru validitate
+          scannerFeedback.style.display = "block";
+          scannerFeedback.textContent = "⌛ Procesez scanare...";
+          
+          try {
+            // Procesăm codul exact ca la camera
+            const clean = sanitizeGS1(code);
+            const parsed = parseGS1(clean);
+            
+            if (!parsed.gtin || !parsed.lot) {
+              scannerFeedback.style.color = "#ef4444";
+              scannerFeedback.textContent = "❌ Cod invalid (lipsește GTIN sau LOT)";
+              setTimeout(() => {
+                scannerFeedback.style.display = "none";
+                scannerFeedback.style.color = "#10b981";
+              }, 2000);
+            } else {
+              // Folosim aceeași logică ca pentru camera
+              await handlePickingScan(order, parsed, gtinToPrimary, stockLotInfo);
+              scannerFeedback.textContent = "✅ Cod procesat cu succes";
+              setTimeout(() => {
+                scannerFeedback.style.display = "none";
+              }, 1500);
+            }
+          } catch (err) {
+            console.error("Scanner error:", err);
+            scannerFeedback.style.color = "#ef4444";
+            scannerFeedback.textContent = "❌ Eroare procesare cod";
+            setTimeout(() => {
+              scannerFeedback.style.display = "none";
+              scannerFeedback.style.color = "#10b981";
+            }, 2000);
+          }
+        }
+        
+        // Reset pentru următoarea scanare
+        scannerInput.value = "";
+        scanBuffer = "";
+      } else {
+        // Acumulăm în buffer pentru siguranță
+        scanBuffer += e.key;
+      }
+    });
+    
+    // Suport pentru paste (unele scanere pastează)
+    scannerInput.addEventListener("paste", async (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').trim();
+      if (text) {
+        scannerInput.value = text;
+        scannerInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      }
+    });
+  }
 
     // încarcă progresul
     if (!pickState) pickState = loadPickState();
