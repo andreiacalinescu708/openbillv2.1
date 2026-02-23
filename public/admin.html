@@ -60,6 +60,16 @@
       font-style: italic; 
     }
     
+    .error-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
     th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #334155; }
     th { color: #94a3b8; font-weight: 600; }
@@ -93,13 +103,14 @@
 
   <div class="container">
     <div class="tabs">
-      <div class="tab active" onclick="showTab('pending')">⏳ În Așteptare</div>
-      <div class="tab" onclick="showTab('all')">👥 Toți Utilizatorii</div>
+      <div class="tab active" data-tab="pending">⏳ În Așteptare</div>
+      <div class="tab" data-tab="all">👥 Toți Utilizatorii</div>
     </div>
 
     <!-- Secțiunea În Așteptare -->
     <div id="pending-section" class="card">
       <h3>Utilizatori în așteptare de aprobare</h3>
+      <div id="errorPending" class="error-box"></div>
       <div id="pendingList">
         <p class="empty-state">Se încarcă...</p>
       </div>
@@ -108,6 +119,7 @@
     <!-- Secțiunea Toți Utilizatorii -->
     <div id="all-section" class="card" style="display: none;">
       <h3>Toți utilizatorii din sistem</h3>
+      <div id="errorAll" class="error-box"></div>
       <table>
         <thead>
           <tr>
@@ -124,7 +136,10 @@
   </div>
 
   <script>
-    // Verificare admin și încărcare date
+    // Stocăm datele global ca să le accesăm la click
+    let pendingUsers = [];
+    let allUsers = [];
+
     async function init() {
       try {
         const res = await fetch('/api/me');
@@ -136,109 +151,25 @@
           return;
         }
         
-        loadPending();
-        loadAllUsers();
+        // Setup tab-uri
+        document.querySelectorAll('.tab').forEach(tab => {
+          tab.addEventListener('click', (e) => {
+            const tabName = e.target.dataset.tab;
+            showTab(tabName);
+          });
+        });
+        
+        await loadPending();
+        await loadAllUsers();
       } catch (err) {
         console.error(err);
-        alert('Eroare la verificare sesiune');
-      }
-    }
-
-    async function loadPending() {
-      try {
-        const res = await fetch('/api/users/pending');
-        const users = await res.json();
-        
-        const container = document.getElementById('pendingList');
-        
-        if (users.length === 0) {
-          container.innerHTML = '<p class="empty-state">Nu sunt utilizatori în așteptare. Toate conturile sunt aprobate! 🎉</p>';
-          return;
-        }
-        
-        container.innerHTML = users.map(user => `
-          <div class="user-card">
-            <div class="user-info">
-              <div class="user-name">${user.username}</div>
-              <div class="user-meta">
-                ID: ${user.id} • Înregistrat: ${new Date(user.created_at).toLocaleDateString('ro-RO')}
-              </div>
-            </div>
-            <div>
-              <button class="btn-approve" onclick="approveUser(${user.id}, '${user.username}')">✓ Aprobă</button>
-              <button class="btn-reject" onclick="rejectUser(${user.id}, '${user.username}')">✗ Respinge</button>
-            </div>
-          </div>
-        `).join('');
-      } catch (err) {
-        console.error(err);
-        document.getElementById('pendingList').innerHTML = '<p class="empty-state">Eroare la încărcare</p>';
-      }
-    }
-
-    async function loadAllUsers() {
-      try {
-        const res = await fetch('/api/users');
-        const users = await res.json();
-        
-        const tbody = document.getElementById('allUsersList');
-        tbody.innerHTML = users.map(user => `
-          <tr>
-            <td>${user.id}</td>
-            <td><strong>${user.username}</strong></td>
-            <td>
-              <span class="badge badge-${user.role}">${user.role}</span>
-            </td>
-            <td>
-              <span class="badge badge-${user.is_approved ? 'approved' : 'pending'}">
-                ${user.is_approved ? '✓ Aprobat' : '⏳ În așteptare'}
-              </span>
-            </td>
-            <td>${new Date(user.created_at).toLocaleDateString('ro-RO')}</td>
-          </tr>
-        `).join('');
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    async function approveUser(userId, username) {
-      if (!confirm(`Ești sigur că vrei să aprobi utilizatorul "${username}"?`)) return;
-      
-      try {
-        const res = await fetch(`/api/users/approve/${userId}`, { method: 'POST' });
-        if (res.ok) {
-          alert(`Utilizatorul "${username}" a fost aprobat cu succes!`);
-          loadPending();
-          loadAllUsers();
-        } else {
-          alert('Eroare la aprobare');
-        }
-      } catch (err) {
-        alert('Eroare de rețea');
-      }
-    }
-
-    async function rejectUser(userId, username) {
-      if (!confirm(`Ești sigur că vrei să respingi și să ștergi utilizatorul "${username}"? Această acțiune este ireversibilă!`)) return;
-      
-      try {
-        const res = await fetch(`/api/users/reject/${userId}`, { method: 'POST' });
-        if (res.ok) {
-          alert(`Utilizatorul "${username}" a fost șters.`);
-          loadPending();
-          loadAllUsers();
-        } else {
-          alert('Eroare la respingere');
-        }
-      } catch (err) {
-        alert('Eroare de rețea');
+        alert('Eroare la inițializare: ' + err.message);
       }
     }
 
     function showTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
+      document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
       
       if (tab === 'pending') {
         document.getElementById('pending-section').style.display = 'block';
@@ -249,6 +180,151 @@
       }
     }
 
+    function showError(section, message) {
+      const el = document.getElementById(section === 'pending' ? 'errorPending' : 'errorAll');
+      el.textContent = message;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    async function loadPending() {
+      const container = document.getElementById('pendingList');
+      try {
+        const res = await fetch('/api/users/pending');
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Eroare server');
+        }
+        
+        pendingUsers = data;
+        
+        if (pendingUsers.length === 0) {
+          container.innerHTML = '<p class="empty-state">Nu sunt utilizatori în așteptare. Toate conturile sunt aprobate! 🎉</p>';
+          return;
+        }
+        
+        container.innerHTML = '';
+        pendingUsers.forEach((user, index) => {
+          const div = document.createElement('div');
+          div.className = 'user-card';
+          div.innerHTML = `
+            <div class="user-info">
+              <div class="user-name">${escapeHtml(user.username)}</div>
+              <div class="user-meta">
+                ID: ${user.id} • Înregistrat: ${new Date(user.created_at).toLocaleDateString('ro-RO')}
+              </div>
+            </div>
+            <div>
+              <button class="btn-approve" data-id="${user.id}" data-username="${escapeHtml(user.username)}" data-action="approve">✓ Aprobă</button>
+              <button class="btn-reject" data-id="${user.id}" data-username="${escapeHtml(user.username)}" data-action="reject">✗ Respinge</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+        
+        // Adăugăm event listeners pe butoane
+        container.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', handleAction);
+        });
+        
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="empty-state" style="color:#ef4444">Eroare: ${err.message}</p>`;
+      }
+    }
+
+    async function loadAllUsers() {
+      const tbody = document.getElementById('allUsersList');
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Eroare server');
+        }
+        
+        allUsers = data;
+        
+        if (allUsers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">Nu există utilizatori</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = allUsers.map(user => `
+          <tr>
+            <td>${user.id}</td>
+            <td><strong>${escapeHtml(user.username)}</strong></td>
+            <td><span class="badge badge-${user.role}">${user.role}</span></td>
+            <td><span class="badge badge-${user.is_approved ? 'approved' : 'pending'}">${user.is_approved ? '✓ Aprobat' : '⏳ În așteptare'}</span></td>
+            <td>${new Date(user.created_at).toLocaleDateString('ro-RO')}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444">Eroare: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function handleAction(e) {
+      const btn = e.target;
+      const userId = btn.dataset.id;
+      const username = btn.dataset.username;
+      const action = btn.dataset.action;
+      
+      if (!userId) {
+        alert('Eroare: ID lipsă');
+        return;
+      }
+      
+      const confirmMsg = action === 'approve' 
+        ? `Aprobi utilizatorul "${username}"?` 
+        : `Ștergi definitiv utilizatorul "${username}"?`;
+        
+      if (!confirm(confirmMsg)) return;
+      
+      btn.disabled = true;
+      btn.textContent = '⏳...';
+      
+      try {
+        const url = action === 'approve' 
+          ? `/api/users/approve/${userId}` 
+          : `/api/users/reject/${userId}`;
+          
+        const res = await fetch(url, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || `Eroare ${res.status}`);
+        }
+        
+        alert(action === 'approve' ? '✅ Utilizator aprobat!' : '🗑️ Utilizator șters!');
+        await loadPending();
+        await loadAllUsers();
+        
+      } catch (err) {
+        console.error(err);
+        showError('pending', 'Eroare: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = action === 'approve' ? '✓ Aprobă' : '✗ Respinge';
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Pornim
     init();
   </script>
 </body>
