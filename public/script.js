@@ -324,7 +324,7 @@ function sortCategories(keys) {
   cart.forEach(i => {
    const normalizedGtin = normalizeGTIN(i.gtin);
 const nameKey = String(i.name).toLowerCase().trim();
-const available = stockMap[normalizedGtin] || stockMap[nameKey] || 0;
+const available = stockMap[normalizedGtin] || 0;
     const insufficient = i.qty > available;
     const price = Number(i.price) || 0;
     const lineTotal = price * i.qty;
@@ -1091,12 +1091,7 @@ stock.forEach(s => {
   stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
 });
 
-// Cu:
-stock.forEach(s => {
-  if (s.gtin) {
-    stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
-  }
-});
+
 
   const treeBox = document.getElementById("productsTree");
   const searchInput = document.getElementById("searchProduct");
