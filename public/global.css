@@ -136,3 +136,17 @@ strong {
   color: rgba(255,255,255,.92) !important;
   border-color: rgba(255,255,255,.16) !important;
 }
+
+/* ===== HARD FIX: text vizibil pe elemente cu fundal alb ===== */
+.appbar, .card, .stock-item, .modal-card{
+  color: #0f172a;
+}
+
+.appbar *, .card *, .stock-item *, .modal-card *{
+  color: inherit;
+}
+
+/* meta rămâne gri */
+.stock-meta, .app-sub, .label, .modal-hint{
+  color: #6b7280 !important;
+}
