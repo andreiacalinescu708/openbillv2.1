@@ -6,35 +6,40 @@
   <title>Comenzi - Fast Medical Distribution</title>
   <link rel="stylesheet" href="global.css" />
   <style>
-    .filters-bar {
+    .filters-container {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
-      padding: var(--space-4);
-      margin-bottom: var(--space-5);
+      padding: var(--space-5);
+      margin-bottom: var(--space-6);
     }
 
-    .filter-tabs {
+    .status-tabs {
       display: flex;
-      gap: var(--space-2);
+      gap: var(--space-3);
       overflow-x: auto;
-      padding-bottom: var(--space-2);
+      padding-bottom: var(--space-3);
       margin-bottom: var(--space-4);
       -webkit-overflow-scrolling: touch;
     }
 
-    .filter-tabs::-webkit-scrollbar {
-      display: none;
+    .status-tabs::-webkit-scrollbar {
+      height: 4px;
     }
 
-    .filter-tab {
+    .status-tabs::-webkit-scrollbar-thumb {
+      background: var(--gray-600);
+      border-radius: var(--radius-full);
+    }
+
+    .status-tab {
       flex-shrink: 0;
-      padding: var(--space-2) var(--space-4);
+      padding: var(--space-3) var(--space-5);
       border-radius: var(--radius-full);
       border: 1px solid var(--border-color);
       background: var(--bg-tertiary);
       color: var(--text-secondary);
-      font-size: 0.875rem;
+      font-size: 0.9375rem;
       font-weight: 600;
       cursor: pointer;
       transition: all var(--transition-fast);
@@ -43,46 +48,53 @@
       gap: var(--space-2);
     }
 
-    .filter-tab.active {
+    .status-tab:hover {
+      border-color: var(--primary-500);
+      color: var(--text-primary);
+    }
+
+    .status-tab.active {
       background: var(--primary-600);
       color: white;
       border-color: var(--primary-600);
     }
 
-    .filter-tab .badge-count {
+    .status-tab .count {
       background: rgba(255, 255, 255, 0.2);
-      padding: 2px 8px;
+      padding: 2px 10px;
       border-radius: var(--radius-full);
-      font-size: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 700;
     }
 
-    .filter-selects {
+    .filters-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--space-3);
+      margin-bottom: var(--space-4);
     }
 
     @media (min-width: 640px) {
-      .filter-selects {
-        grid-template-columns: 1fr 1fr 1fr;
+      .filters-row {
+        grid-template-columns: repeat(3, 1fr);
       }
     }
 
-    .search-box-orders {
+    .search-box {
       position: relative;
-      margin-top: var(--space-3);
     }
 
-    .search-box-orders input {
+    .search-box input {
       padding-left: var(--space-10);
     }
 
-    .search-icon-orders {
+    .search-icon {
       position: absolute;
       left: var(--space-4);
       top: 50%;
       transform: translateY(-50%);
       color: var(--text-muted);
+      font-size: 1.25rem;
     }
 
     .orders-list {
@@ -101,42 +113,61 @@
 
     .order-card:hover {
       border-color: rgba(148, 163, 184, 0.3);
+      box-shadow: var(--shadow-lg);
     }
 
     .order-header {
-      padding: var(--space-4);
+      padding: var(--space-5);
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
       gap: var(--space-3);
       cursor: pointer;
       background: rgba(148, 163, 184, 0.03);
     }
 
-    .order-main-info {
+    @media (min-width: 640px) {
+      .order-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .order-info {
       flex: 1;
       min-width: 0;
     }
 
     .order-client {
       font-weight: 700;
-      font-size: 1.0625rem;
-      margin-bottom: var(--space-1);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 1.125rem;
+      margin-bottom: var(--space-2);
+      color: var(--text-primary);
     }
 
     .order-meta {
-      font-size: 0.875rem;
+      font-size: 0.9375rem;
       color: var(--text-muted);
       display: flex;
       flex-wrap: wrap;
+      gap: var(--space-3);
+      align-items: center;
+    }
+
+    .order-meta span {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .order-actions-top {
+      display: flex;
       gap: var(--space-2);
+      flex-wrap: wrap;
     }
 
     .order-status-btn {
-      padding: var(--space-2) var(--space-3);
+      padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-md);
       border: none;
       font-size: 0.8125rem;
@@ -167,8 +198,37 @@
       color: var(--text-muted);
     }
 
+    .btn-modifica, .btn-pregateste {
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-modifica:hover {
+      background: var(--primary-600);
+      color: white;
+      border-color: var(--primary-600);
+    }
+
+    .btn-pregateste {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success-400);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-pregateste:hover {
+      background: var(--success-600);
+      color: white;
+    }
+
     .order-body {
-      padding: var(--space-4);
+      padding: var(--space-5);
       border-top: 1px solid var(--border-color);
       display: none;
     }
@@ -180,59 +240,84 @@
     .order-item {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: var(--space-3);
+      align-items: flex-start;
+      padding: var(--space-4);
       background: var(--bg-tertiary);
       border-radius: var(--radius-lg);
-      margin-bottom: var(--space-2);
+      margin-bottom: var(--space-3);
     }
 
     .order-item:last-child {
       margin-bottom: 0;
     }
 
+    .order-item-info {
+      flex: 1;
+    }
+
     .order-item-name {
       font-weight: 600;
+      margin-bottom: var(--space-2);
+      color: var(--text-primary);
     }
 
     .order-item-details {
       font-size: 0.875rem;
       color: var(--text-muted);
-      margin-top: var(--space-1);
+      line-height: 1.5;
     }
 
-    .order-item-qty {
+    .order-item-price {
+      text-align: right;
       font-weight: 700;
       color: var(--primary-400);
     }
 
-    .order-actions {
-      display: flex;
-      gap: var(--space-2);
-      margin-top: var(--space-4);
-      flex-wrap: wrap;
+    .order-item-qty {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: var(--space-1);
     }
 
-    .order-actions .btn {
-      flex: 1;
-      min-width: 140px;
+    .reset-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      margin-top: var(--space-6);
+      padding: var(--space-4) var(--space-8);
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .reset-btn:hover {
+      border-color: var(--primary-500);
+      color: var(--text-primary);
     }
 
     .empty-state {
       text-align: center;
-      padding: var(--space-10) var(--space-4);
+      padding: var(--space-16) var(--space-4);
       color: var(--text-muted);
     }
 
-    .empty-state-icon {
-      font-size: 4rem;
+    .empty-icon {
+      font-size: 5rem;
       margin-bottom: var(--space-4);
-      opacity: 0.5;
+      opacity: 0.3;
     }
 
-    .reset-filters {
-      text-align: center;
-      margin-top: var(--space-4);
+    .expand-icon {
+      transition: transform var(--transition-fast);
+      color: var(--text-muted);
+    }
+
+    .order-card.expanded .expand-icon {
+      transform: rotate(180deg);
     }
   </style>
 </head>
@@ -250,46 +335,41 @@
   </nav>
 
   <main class="container">
-    <h1 style="margin-bottom: var(--space-5);">Comenzi</h1>
+    <h1 style="margin-bottom: var(--space-6); font-size: 1.875rem;">Comenzi</h1>
 
     <!-- Filtre -->
-    <div class="filters-bar">
-      <!-- Tabs Status -->
-      <div class="filter-tabs" id="statusTabs">
-        <button class="filter-tab active" data-status="">
-          Toate <span class="badge-count" id="countAll">0</span>
+    <div class="filters-container">
+      <!-- Status Tabs -->
+      <div class="status-tabs" id="statusTabs">
+        <button class="status-tab active" data-status="">
+          Toate <span class="count" id="countAll">0</span>
         </button>
-        <button class="filter-tab" data-status="gata_de_livrare">
-          Gata de livrare <span class="badge-count" id="countGata">0</span>
+        <button class="status-tab" data-status="gata_de_livrare">
+          Gata de livrare <span class="count" id="countGata">0</span>
         </button>
-        <button class="filter-tab" data-status="in_procesare">
-          În procesare <span class="badge-count" id="countProcesare">0</span>
+        <button class="status-tab" data-status="in_procesare">
+          În procesare <span class="count" id="countProcesare">0</span>
         </button>
-        <button class="filter-tab" data-status="facturata">
-          Facturate <span class="badge-count" id="countFacturate">0</span>
+        <button class="status-tab" data-status="facturata">
+          Facturate <span class="count" id="countFacturate">0</span>
         </button>
-        <button class="filter-tab" data-status="livrata">
-          Livrate <span class="badge-count" id="countLivrate">0</span>
+        <button class="status-tab" data-status="livrata">
+          Livrate <span class="count" id="countLivrate">0</span>
         </button>
       </div>
 
-      <!-- Selects -->
-      <div class="filter-selects">
+      <!-- Selects și Search -->
+      <div class="filters-row">
         <select id="filterGroup" class="form-select">
           <option value="">Toate grupurile</option>
         </select>
         <select id="filterCategory" class="form-select">
           <option value="">Toate categoriile</option>
         </select>
-        <select id="filterStatus" class="form-select" style="display: none;">
-          <option value="">Toate statusurile</option>
-        </select>
-      </div>
-
-      <!-- Search -->
-      <div class="search-box-orders">
-        <span class="search-icon-orders">🔍</span>
-        <input type="text" id="orderSearch" class="form-input" placeholder="Caută după nume client..." />
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="orderSearch" class="form-input" placeholder="Caută client..." />
+        </div>
       </div>
     </div>
 
@@ -298,9 +378,16 @@
       <!-- Populat din JS -->
     </div>
 
-    <div class="reset-filters">
-      <button class="btn btn-ghost" id="btnResetFilters">↺ Resetează filtrele</button>
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon">📋</div>
+      <h3>Nu există comenzi</h3>
+      <p>Începe prin a adăuga o comandă nouă</p>
     </div>
+
+    <button class="reset-btn" id="btnResetFilters">
+      ↺ Resetează filtrele
+    </button>
   </main>
 
   <script src="script.js"></script>

@@ -18,6 +18,7 @@
 
     .page-subtitle {
       color: var(--text-muted);
+      font-size: 1rem;
     }
 
     .search-container {
@@ -32,7 +33,8 @@
     .search-input-wrap input {
       padding-left: var(--space-12);
       padding-right: var(--space-12);
-      font-size: 1.0625rem;
+      font-size: 1rem;
+      height: 56px;
     }
 
     .search-icon-left {
@@ -50,27 +52,33 @@
       top: 50%;
       transform: translateY(-50%);
       background: var(--bg-tertiary);
-      border: none;
+      border: 1px solid var(--border-color);
       color: var(--text-muted);
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: var(--radius-full);
       cursor: pointer;
       display: none;
       align-items: center;
       justify-content: center;
+      font-size: 1.125rem;
     }
 
     .search-clear.show {
       display: flex;
     }
 
+    .search-clear:hover {
+      background: var(--danger-500);
+      color: white;
+      border-color: var(--danger-500);
+    }
+
     .search-results-dropdown {
       position: absolute;
-      top: 100%;
+      top: calc(100% + var(--space-2));
       left: 0;
       right: 0;
-      margin-top: var(--space-2);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
@@ -86,7 +94,7 @@
     }
 
     .search-result-item {
-      padding: var(--space-4);
+      padding: var(--space-4) var(--space-5);
       border-bottom: 1px solid var(--border-color);
       cursor: pointer;
       transition: background var(--transition-fast);
@@ -97,12 +105,13 @@
     }
 
     .search-result-item:hover {
-      background: rgba(148, 163, 184, 0.1);
+      background: rgba(59, 130, 246, 0.1);
     }
 
     .search-result-name {
       font-weight: 600;
       margin-bottom: var(--space-1);
+      color: var(--text-primary);
     }
 
     .search-result-meta {
@@ -113,7 +122,7 @@
     .clients-tree {
       display: flex;
       flex-direction: column;
-      gap: var(--space-4);
+      gap: var(--space-5);
     }
 
     .tree-category {
@@ -124,48 +133,83 @@
     }
 
     .tree-category-header {
-      padding: var(--space-4) var(--space-5);
-      background: var(--bg-tertiary);
+      padding: var(--space-5);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.05));
       font-weight: 700;
-      font-size: 1.0625rem;
+      font-size: 1.125rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
+      border-bottom: 1px solid transparent;
+      transition: all var(--transition-fast);
+    }
+
+    .tree-category-header:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 197, 94, 0.1));
+    }
+
+    .tree-category.expanded .tree-category-header {
+      border-bottom-color: var(--border-color);
     }
 
     .tree-category-count {
       background: var(--primary-600);
       color: white;
-      padding: var(--space-1) var(--space-3);
+      padding: var(--space-1) var(--space-4);
       border-radius: var(--radius-full);
-      font-size: 0.875rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+    }
+
+    .tree-category-toggle {
+      transition: transform var(--transition-fast);
+      color: var(--text-muted);
+      font-size: 1.25rem;
+    }
+
+    .tree-category.expanded .tree-category-toggle {
+      transform: rotate(180deg);
     }
 
     .tree-category-content {
-      padding: var(--space-3);
+      padding: var(--space-4);
+      display: none;
+    }
+
+    .tree-category.expanded .tree-category-content {
+      display: block;
+    }
+
+    .clients-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
     }
 
     .client-chip {
       display: inline-flex;
       align-items: center;
-      padding: var(--space-3) var(--space-4);
-      margin: var(--space-1);
-      background: rgba(148, 163, 184, 0.1);
+      padding: var(--space-3) var(--space-5);
+      background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-full);
       cursor: pointer;
       transition: all var(--transition-fast);
       font-size: 0.9375rem;
+      color: var(--text-primary);
+      font-weight: 500;
     }
 
     .client-chip:hover {
       background: var(--primary-600);
       border-color: var(--primary-600);
       color: white;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
-    .view-order-btn {
+    .view-order-fab {
       position: fixed;
       bottom: var(--space-6);
       left: 50%;
@@ -175,27 +219,42 @@
       padding: var(--space-4) var(--space-8);
       border-radius: var(--radius-full);
       font-weight: 700;
-      box-shadow: 0 8px 24px rgba(22, 163, 74, 0.4);
+      font-size: 1rem;
+      box-shadow: 0 8px 32px rgba(22, 163, 74, 0.4);
       border: none;
       cursor: pointer;
       z-index: 100;
       display: none;
+      align-items: center;
+      gap: var(--space-3);
+      animation: slideUp 0.3s ease;
     }
 
-    .view-order-btn.show {
-      display: block;
+    @keyframes slideUp {
+      from {
+        transform: translateX(-50%) translateY(100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .view-order-fab.show {
+      display: flex;
     }
 
     .no-results {
       text-align: center;
-      padding: var(--space-10);
+      padding: var(--space-16) var(--space-4);
       color: var(--text-muted);
     }
 
     .no-results-icon {
-      font-size: 4rem;
+      font-size: 5rem;
       margin-bottom: var(--space-4);
-      opacity: 0.5;
+      opacity: 0.3;
     }
   </style>
 </head>
@@ -215,7 +274,7 @@
   <main class="container">
     <div class="page-header">
       <h1 class="page-title">Selectează Client</h1>
-      <p class="page-subtitle">Alege un client pentru a începe o comandă</p>
+      <p class="page-subtitle">Alege un client pentru a începe o comandă nouă</p>
     </div>
 
     <!-- Search -->
@@ -235,13 +294,15 @@
 
     <div class="no-results" id="noResults" style="display: none;">
       <div class="no-results-icon">👤</div>
-      <p>Nu am găsit clienți</p>
+      <h3>Nu am găsit clienți</h3>
+      <p>Încearcă alt termen de căutare</p>
     </div>
   </main>
 
   <!-- Floating button pentru comanda curentă -->
-  <button class="view-order-btn" id="btnViewCurrentOrder">
-    🛒 Vezi comanda curentă
+  <button class="view-order-fab" id="btnViewCurrentOrder">
+    <span>🛒</span>
+    <span>Vezi comanda curentă</span>
   </button>
 
   <script src="script.js"></script>
