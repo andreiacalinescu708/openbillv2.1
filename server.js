@@ -360,6 +360,8 @@ function allocateStockByLocation(stock, gtin, neededQty) {
   return allocated;
 }
 
+
+
 function allocateFromSpecificLot(stock, gtin, lot, neededQty) {
   const g = normalizeGTIN(gtin);
   const lotStr = String(lot || "").trim();
@@ -710,57 +712,135 @@ app.get("/api/orders", async (req, res) => {
 app.post("/api/orders", async (req, res) => {
   try {
     const { client, items } = req.body;
-    const normalizedItems = (items || []).map(it => {
-  const qty = Number(it.qty || 0);
-  const unitPrice = (it.price != null) ? Number(it.price) : 0; // preț client (deja calculat în frontend)
-  const lineTotal = unitPrice * qty;
-
-  return {
-    id: it.id,
-    name: it.name,
-    gtin: it.gtin,
-    qty,
-    unitPrice,
-    lineTotal,
-    allocations: it.allocations || [] // dacă există
-  };
-});
-
+    
     if (!items || !items.length) {
       return res.status(400).json({ error: "Comandă goală" });
     }
 
-    // păstrăm exact structura existentă (cu allocations deja făcute în frontend sau server)
-    // momentan NU atingem stocul aici (îl mutăm în DB imediat după ce confirmi că orders persistă)
+    // Pentru fiecare item, alocăm stoc automat din locațiile A, B, C...
+    const itemsWithAllocations = [];
+    
+    for (const it of items) {
+      const qty = Number(it.qty || 0);
+      if (qty <= 0) continue;
+      
+      const unitPrice = Number(it.price || 0);
+      const lineTotal = unitPrice * qty;
+      
+      let allocations = [];
+      
+      try {
+        // Încercăm să alocăm stoc automat
+        if (db.hasDb()) {
+          // Alocare din DB
+          allocations = await allocateStockFromDB(it.gtin, qty);
+        } else {
+          // Fallback JSON
+          const stock = readJson(STOCK_FILE, []);
+          allocations = allocateStockByLocation(stock, it.gtin, qty);
+          writeJson(STOCK_FILE, stock); // Salvăm stocul modificat
+        }
+      } catch (e) {
+        // Dacă nu e stoc suficient, returnăm eroare
+        return res.status(400).json({ 
+          error: `Stoc insuficient pentru ${it.name}. Disponibil: ${e.message}` 
+        });
+      }
+      
+      itemsWithAllocations.push({
+        id: it.id,
+        name: it.name,
+        gtin: it.gtin,
+        qty: qty,
+        unitPrice: unitPrice,
+        lineTotal: lineTotal,
+        allocations: allocations // Aici salvăm locațiile alocate
+      });
+    }
 
-   const newOrder = {
-  id: Date.now().toString(),
-  client,
-  items: normalizedItems,
-  status: "in_procesare",
-  createdAt: new Date().toISOString()
-};
+    const newOrder = {
+      id: Date.now().toString(),
+      client,
+      items: itemsWithAllocations,
+      status: "in_procesare",
+      createdAt: new Date().toISOString()
+    };
 
     if (!db.hasDb()) {
-      // fallback JSON (local)
+      // Fallback JSON
       const orders = readJson(ORDERS_FILE, []);
       orders.push(newOrder);
       writeJson(ORDERS_FILE, orders);
-      return res.json({ ok: true });
+      return res.json({ ok: true, order: newOrder });
     }
 
+    // Salvare în DB
     await db.q(
       `INSERT INTO orders (id, client, items, status, created_at)
        VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz)`,
-      [newOrder.id, JSON.stringify(client), JSON.stringify(items), newOrder.status, newOrder.createdAt]
+      [newOrder.id, JSON.stringify(client), JSON.stringify(itemsWithAllocations), newOrder.status, newOrder.createdAt]
     );
 
-    res.json({ ok: true });
+    await logAudit(req, "ORDER_CREATE", "order", newOrder.id, {
+      clientName: client?.name,
+      itemsCount: itemsWithAllocations.length,
+      totalValue: itemsWithAllocations.reduce((sum, i) => sum + i.lineTotal, 0)
+    });
+
+    res.json({ ok: true, order: newOrder });
   } catch (e) {
     console.error("POST /api/orders error:", e);
     res.status(500).json({ error: "Eroare DB la salvare comandă" });
   }
 });
+
+// Funcție nouă pentru alocare stoc din DB
+async function allocateStockFromDB(gtin, neededQty) {
+  const g = normalizeGTIN(gtin);
+  if (!g) throw new Error("GTIN invalid");
+
+  // Luăm stocul disponibil ordonat după locație (A, B, C...) și data expirării
+  const locCase = sqlLocOrderCase("location");
+  const r = await db.q(
+    `SELECT id, gtin, lot, expires_at, qty, location
+     FROM stock
+     WHERE gtin=$1 AND qty > 0
+     ORDER BY ${locCase} ASC, expires_at ASC
+     FOR UPDATE`,
+    [g]
+  );
+
+  let remaining = Number(neededQty);
+  const allocated = [];
+
+  for (const s of r.rows) {
+    if (remaining <= 0) break;
+    
+    const avail = Number(s.qty || 0);
+    if (avail <= 0) continue;
+    
+    const take = Math.min(avail, remaining);
+    
+    // Scădem din stoc
+    await db.q(`UPDATE stock SET qty = qty - $1 WHERE id=$2`, [take, s.id]);
+    
+    allocated.push({
+      stockId: s.id,
+      lot: s.lot,
+      expiresAt: String(s.expires_at).slice(0, 10),
+      location: s.location || "A",
+      qty: take
+    });
+    
+    remaining -= take;
+  }
+
+  if (remaining > 0) {
+    throw new Error(`Stoc insuficient (lipsă ${remaining} buc)`);
+  }
+
+  return allocated;
+}
 
 
 
