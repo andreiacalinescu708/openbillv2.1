@@ -2126,10 +2126,10 @@ o.items.forEach(i => {
       if (lotEl) lotEl.value = data.lot;
     }
 
-    if (data.expiresAt) {
-      const expEl = document.getElementById("stockExpire");
-      if (expEl) expEl.value = data.expiresAt;
-    }
+   if (data.expiresAt) {
+  const expEl = document.getElementById("stockExpire");
+  if (expEl) expEl.value = toDisplayDate(data.expiresAt);
+}
 
     if (data.gtin) {
       selectProductByGTIN(data.gtin);
@@ -2145,6 +2145,22 @@ o.items.forEach(i => {
       .replace(/[\r\n\t ]+/g, "")      // whitespace
       .trim();
   }
+
+  // Converteste yyyy-mm-dd (ISO) → dd.mm.yyyy (pentru afișare în input)
+function toDisplayDate(isoDate) {
+  if (!isoDate) return "";
+  const parts = String(isoDate).split("-");
+  if (parts.length !== 3) return isoDate;
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
+// Converteste dd.mm.yyyy → yyyy-mm-dd (pentru trimis la server)
+function fromDisplayDate(displayDate) {
+  if (!displayDate) return "";
+  const parts = String(displayDate).split(".");
+  if (parts.length !== 3) return displayDate;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
 
 
 
@@ -2869,7 +2885,7 @@ o.items.forEach(i => {
       const gtins = selectedProduct ? (selectedProduct.gtins || []) : JSON.parse(hiddenInput.dataset.gtins || "[]");
       
       const lot = document.getElementById("stockLot").value.trim();
-      const expiresAt = document.getElementById("stockExpire").value;
+      const expiresAt = fromDisplayDate(document.getElementById("stockExpire").value);
       const qty = document.getElementById("stockQty").value;
       const stockLocation = document.getElementById("stockLocation").value;
 
