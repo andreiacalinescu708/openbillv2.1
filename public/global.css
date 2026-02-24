@@ -698,24 +698,3 @@ p {
     min-width: 180px;
   }
 }
-#loginMsg {
-  margin-top: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  display: none;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-#loginMsg.show {
-  display: block;
-  animation: shake 0.5s ease-in-out;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}

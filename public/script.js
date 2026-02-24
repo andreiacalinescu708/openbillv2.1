@@ -23,62 +23,93 @@ async function initLoginPage() {
 
   const form = document.getElementById("loginForm");
   const msg = document.getElementById("loginMsg");
+  
   if (!form) return;
+  
+  // Dacă nu există msg în HTML, creează-l automat ca să nu dea eroare
+  if (!msg) {
+    console.warn("Lipseste #loginMsg din HTML, creez elementul automat");
+    const newMsg = document.createElement('div');
+    newMsg.id = 'loginMsg';
+    newMsg.style.cssText = 'display:none;margin:15px 0;padding:12px;border-radius:8px;font-size:0.95rem;line-height:1.5;';
+    form.insertBefore(newMsg, form.querySelector('button') || null);
+    msg = newMsg;
+  }
 
   form.onsubmit = async (e) => {
     e.preventDefault();
     msg.textContent = "";
+    msg.style.display = "none";
 
     const username = document.getElementById("loginUser").value.trim();
     const password = document.getElementById("loginPass").value;
 
-    const res = await apiFetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
-    });
+    try {
+      const res = await apiFetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
 
-    const data = await res.json().catch(() => ({}));
-    
-    if (!res.ok) {
-      // ✅ Cont în așteptare (neaprobat)
-      if (res.status === 403 && data.pending) {
-        msg.textContent = "⏳ Cont în așteptare: " + (data.message || "Așteaptă aprobarea adminului.");
-        msg.style.color = "#f59e0b"; // galben
-      } 
-      // ✅ Cont blocat după 3 încercări
-      else if (res.status === 403 && data.locked) {
-        msg.innerHTML = "🔒 <strong>Cont blocat!</strong><br>" + 
-                       (data.message || "Ai depășit 3 încercări. Contactează administratorul.");
-        msg.style.color = "#dc2626"; // roșu intens
-      }
-      // ✅ User sau parolă greșită (401)
-      else if (res.status === 401) {
-        let errorMsg = "❌ <strong>User sau parolă greșită!</strong><br>";
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        msg.style.display = "block";
         
-        // Afișează câte încercări mai are
-        if (data.attemptsLeft !== undefined && data.attemptsLeft > 0) {
-          errorMsg += `⚠️ Mai ai <strong>${data.attemptsLeft}</strong> încercări rămase.<br>`;
+        // ✅ Cont în așteptare
+        if (res.status === 403 && data.pending) {
+          msg.innerHTML = "⏳ <strong>Cont în așteptare!</strong><br>" + 
+                         (data.message || "Așteaptă aprobarea administratorului.");
+          msg.style.background = "#fef3c7";
+          msg.style.color = "#92400e";
+          msg.style.border = "1px solid #f59e0b";
+        } 
+        // ✅ Cont blocat
+        else if (res.status === 403 && data.locked) {
+          msg.innerHTML = "🔒 <strong>Cont blocat!</strong><br>" + 
+                         (data.message || "Ai depășit 3 încercări. Contactează administratorul.");
+          msg.style.background = "#fee2e2";
+          msg.style.color = "#991b1b";
+          msg.style.border = "1px solid #dc2626";
+        }
+        // ✅ User/Parolă greșită
+        else if (res.status === 401) {
+          let html = "❌ <strong>User sau parolă greșită!</strong><br>";
+          
+          if (data.attemptsLeft > 0) {
+            html += `⚠️ Mai ai <strong>${data.attemptsLeft}</strong> încercări rămase.<br>`;
+          }
+          
+          html += "<small style='opacity:0.8'>La 3 încercări greșite, contul se va bloca automat.</small>";
+          
+          msg.innerHTML = html;
+          msg.style.background = "#fee2e2";
+          msg.style.color = "#991b1b";
+          msg.style.border = "1px solid #dc2626";
+        }
+        // Alte erori
+        else {
+          msg.textContent = data.error || "Eroare la login";
+          msg.style.background = "#fee2e2";
+          msg.style.color = "#991b1b";
+          msg.style.border = "1px solid #dc2626";
         }
         
-        errorMsg += "<small>La 3 încercări greșite, contul se va bloca automat.</small>";
-        
-        msg.innerHTML = errorMsg;
-        msg.style.color = "#dc2626"; // roșu
+        return;
       }
-      // Alte erori
-      else {
-        msg.textContent = data.error || "Eroare la login";
-        msg.style.color = "#dc2626";
-      }
-      
-      msg.classList.add("show");
-      return;
-    }
 
-    // ✅ Login reușit - salvăm username pentru schimbare parolă
-    localStorage.setItem('username', username);
-    location.href = "index.html";
+      // ✅ Login reușit
+      localStorage.setItem('username', username);
+      location.href = "index.html";
+      
+    } catch (err) {
+      console.error("Login error:", err);
+      msg.style.display = "block";
+      msg.textContent = "Eroare de conexiune. Încearcă din nou.";
+      msg.style.background = "#fee2e2";
+      msg.style.color = "#991b1b";
+      msg.style.border = "1px solid #dc2626";
+    }
   };
 }
 
