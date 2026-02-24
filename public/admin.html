@@ -13,8 +13,22 @@
     .card { background: #1e293b; border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; border: 1px solid #334155; }
     
     .tabs { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid #334155; }
-    .tab { padding: 1rem 2rem; cursor: pointer; border-bottom: 2px solid transparent; opacity: 0.7; }
-    .tab.active { border-bottom-color: #0284c7; opacity: 1; font-weight: 600; }
+    .tab { 
+      padding: 1rem 2rem; 
+      cursor: pointer; 
+      border-bottom: 2px solid transparent; 
+      opacity: 0.7;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .tab.active { 
+      border-bottom-color: #0284c7; 
+      opacity: 1; 
+      font-weight: 600; 
+    }
     
     .user-card { 
       background: #0f172a; 
@@ -25,6 +39,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+    .user-card.blocked {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.1);
     }
     .user-info { flex: 1; }
     .user-name { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; }
@@ -53,6 +71,17 @@
     }
     .btn-reject:hover { background: #dc2626; }
     
+    .btn-unlock {
+      background: #f59e0b;
+      color: #1e293b;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-unlock:hover { background: #d97706; }
+    
     .empty-state { 
       text-align: center; 
       padding: 3rem; 
@@ -70,36 +99,33 @@
       display: none;
     }
     
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #334155; }
-    th { color: #94a3b8; font-weight: 600; }
-    
     .badge { 
       padding: 0.25rem 0.75rem; 
       border-radius: 9999px; 
       font-size: 0.875rem; 
       font-weight: 600; 
       display: inline-block;
+      margin-left: 0.5rem;
     }
+    .badge-danger { background: #dc2626; color: white; }
     .badge-admin { background: #f59e0b; color: #1e293b; }
     .badge-user { background: #3b82f6; color: white; }
     .badge-pending { background: #ef4444; color: white; }
     .badge-approved { background: #10b981; color: white; }
     
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #334155; }
+    th { color: #94a3b8; font-weight: 600; }
+    
     @media (max-width: 768px) {
       .user-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
       .tabs { flex-wrap: wrap; }
-      .tab { padding: 0.75rem 1rem; }
+      .tab { padding: 0.75rem 1rem; font-size: 0.9rem; }
     }
 
-    /* ===== STILURI USERBAR/DROPDOWN (adăugate aici dacă nu sunt în global.css) ===== */
+    /* Userbar styles */
     .user-bar { display: inline-block; }
-    
-    .user-dropdown-container {
-      position: relative;
-      display: inline-block;
-    }
-
+    .user-dropdown-container { position: relative; display: inline-block; }
     .user-profile-btn {
       display: flex;
       align-items: center;
@@ -112,107 +138,29 @@
       font-size: 0.9375rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
-
-    .user-profile-btn:hover {
-      background: rgba(255,255,255,0.25);
-    }
-
-    .user-profile-btn.active {
-      background: rgba(255,255,255,0.3);
-    }
-
-    .dropdown-arrow {
-      font-size: 0.7rem;
-      transition: transform 0.2s ease;
-    }
-
-    .user-profile-btn.active .dropdown-arrow {
-      transform: rotate(180deg);
-    }
-
-    .user-dropdown-menu {
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      min-width: 200px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      overflow: hidden;
-      animation: dropdownFadeIn 0.2s ease;
-    }
-
-    @keyframes dropdownFadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      color: #f1f5f9;
-      text-decoration: none;
-      font-size: 0.9375rem;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-    }
-
-    .dropdown-item:hover {
-      background: #334155;
-      color: #60a5fa;
-    }
-
-    .dropdown-item.logout {
-      color: #f87171;
-    }
-
-    .dropdown-item.logout:hover {
-      background: #ef4444;
-      color: white;
-    }
-
-    .dropdown-icon {
-      font-size: 1.1rem;
-      width: 20px;
-      text-align: center;
-    }
-
-    .dropdown-divider {
-      height: 1px;
-      background: #334155;
-      margin: 8px 0;
-    }
+    .user-profile-btn:hover { background: rgba(255,255,255,0.25); }
   </style>
 </head>
 <body>
   <div class="topbar">
     <h2>🔧 Panou Administrare Utilizatori</h2>
     <div style="display: flex; align-items: center; gap: 1rem;">
-      <!-- AICI ESTE USERBAR-UL -->
       <div class="user-bar" id="userBar"></div>
       <a href="index.html" style="color: white; text-decoration: none; font-weight: 500;">← Înapoi la aplicație</a>
     </div>
   </div>
 
   <div class="container">
-    <!-- restul containerului rămâne la fel... -->
+    <!-- TAB-URI UNICE (nu duplicate) -->
     <div class="tabs">
-      <div class="tab active" data-tab="pending">⏳ În Așteptare</div>
-      <div class="tab" data-tab="all">👥 Toți Utilizatorii</div>
+      <button class="tab active" onclick="showTab('pending')">⏳ În Așteptare</button>
+      <button class="tab" onclick="showTab('locked')">🔒 Blocați</button>
+      <button class="tab" onclick="showTab('all')">👥 Toți Utilizatorii</button>
     </div>
 
     <!-- Secțiunea În Așteptare -->
-    <div id="pending-section" class="card">
+    <div id="tab-pending" class="card">
       <h3>Utilizatori în așteptare de aprobare</h3>
       <div id="errorPending" class="error-box"></div>
       <div id="pendingList">
@@ -220,8 +168,17 @@
       </div>
     </div>
 
+    <!-- Secțiunea Blocați (NOUĂ) -->
+    <div id="tab-locked" class="card" style="display: none;">
+      <h3>🔒 Utilizatori blocați temporar</h3>
+      <div id="errorLocked" class="error-box"></div>
+      <div id="lockedList">
+        <p class="empty-state">Se încarcă...</p>
+      </div>
+    </div>
+
     <!-- Secțiunea Toți Utilizatorii -->
-    <div id="all-section" class="card" style="display: none;">
+    <div id="tab-all" class="card" style="display: none;">
       <h3>Toți utilizatorii din sistem</h3>
       <div id="errorAll" class="error-box"></div>
       <table>
@@ -237,23 +194,222 @@
         <tbody id="allUsersList"></tbody>
       </table>
     </div>
-
-    <div class="tabs">
-  <button class="tab-btn active" onclick="showTab('pending')">⏳ În Așteptare</button>
-  <button class="tab-btn" onclick="showTab('locked')">🔒 Blocați</button>
-  <button class="tab-btn" onclick="showTab('all')">👥 Toți Utilizatorii</button>
-</div>
   </div>
 
-  <!-- IMPORTANT: Adaugă script.js pentru renderUserBar() -->
   <script src="script.js"></script>
   
   <script>
-    // Scriptul tău existent rămâne aici...
-    // Stocăm datele global ca să le accesăm la click
-    let pendingUsers = [];
-    let allUsers = [];
+    // Tab switching
+    function showTab(tabName) {
+      // Ascunde toate secțiunile
+      document.querySelectorAll('.card').forEach(el => el.style.display = 'none');
+      // Dezactivează toate tab-urile
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      
+      // Activează tab-ul selectat
+      event.target.classList.add('active');
+      // Afișează secțiunea corespunzătoare
+      document.getElementById(`tab-${tabName}`).style.display = 'block';
+      
+      // Încarcă datele specifice
+      if (tabName === 'pending') loadPending();
+      if (tabName === 'locked') loadLocked();
+      if (tabName === 'all') loadAllUsers();
+    }
 
+    // Utilitar pentru erori
+    function showError(section, message) {
+      const el = document.getElementById(`error${section.charAt(0).toUpperCase() + section.slice(1)}`);
+      if (el) {
+        el.textContent = message;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 5000);
+      }
+    }
+
+    // Încarcă utilizatori în așteptare
+    async function loadPending() {
+      const container = document.getElementById('pendingList');
+      container.innerHTML = '<p class="empty-state">Se încarcă...</p>';
+      
+      try {
+        const res = await fetch('/api/users/pending');
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Eroare server');
+        
+        if (data.length === 0) {
+          container.innerHTML = '<p class="empty-state">Nu sunt utilizatori în așteptare. Toate conturile sunt aprobate! 🎉</p>';
+          return;
+        }
+        
+        container.innerHTML = '';
+        data.forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'user-card';
+          div.innerHTML = `
+            <div class="user-info">
+              <div class="user-name">${escapeHtml(user.username)}</div>
+              <div class="user-meta">
+                ID: ${user.id} • Înregistrat: ${new Date(user.created_at).toLocaleDateString('ro-RO')}
+                ${user.failed_attempts > 0 ? `<br>⚠️ Încercări eșuate: ${user.failed_attempts}` : ''}
+              </div>
+            </div>
+            <div>
+              <button class="btn-approve" onclick="handleUserAction(${user.id}, '${escapeHtml(user.username)}', 'approve')">✓ Aprobă</button>
+              <button class="btn-reject" onclick="handleUserAction(${user.id}, '${escapeHtml(user.username)}', 'reject')">✗ Respinge</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="empty-state" style="color:#ef4444">Eroare: ${err.message}</p>`;
+      }
+    }
+
+    // Încarcă utilizatori blocați (NOU)
+    async function loadLocked() {
+      const container = document.getElementById('lockedList');
+      container.innerHTML = '<p class="empty-state">Se încarcă...</p>';
+      
+      try {
+        const res = await fetch('/api/users/locked');
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Eroare server');
+        
+        if (data.length === 0) {
+          container.innerHTML = '<p class="empty-state">Nu sunt utilizatori blocați momentan. ✅</p>';
+          return;
+        }
+        
+        container.innerHTML = '';
+        data.forEach(user => {
+          const div = document.createElement('div');
+          div.className = 'user-card blocked';
+          
+          const minutes = Math.ceil(user.minutes_left || 0);
+          const timeText = minutes > 0 ? `(${minutes} min rămase)` : '(se deblochează automat)';
+          
+          div.innerHTML = `
+            <div class="user-info">
+              <div class="user-name">
+                ${escapeHtml(user.username)}
+                <span class="badge badge-danger">BLOCAT ${timeText}</span>
+              </div>
+              <div class="user-meta">
+                ID: ${user.id} • Încercări eșuate: ${user.failed_attempts}
+              </div>
+            </div>
+            <button class="btn-unlock" onclick="unlockUser(${user.id})">
+              🔓 Deblochează acum
+            </button>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="empty-state" style="color:#ef4444">Eroare: ${err.message}</p>`;
+      }
+    }
+
+    // Încarcă toți utilizatorii
+    async function loadAllUsers() {
+      const tbody = document.getElementById('allUsersList');
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">Se încarcă...</td></tr>';
+      
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Eroare server');
+        
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">Nu există utilizatori</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = data.map(user => `
+          <tr>
+            <td>${user.id}</td>
+            <td><strong>${escapeHtml(user.username)}</strong></td>
+            <td><span class="badge badge-${user.role}">${user.role}</span></td>
+            <td>
+              <span class="badge badge-${user.is_approved ? 'approved' : 'pending'}">
+                ${user.is_approved ? '✓ Aprobat' : '⏳ În așteptare'}
+                ${user.failed_attempts >= 3 ? ' + 🔒 Blocat' : ''}
+              </span>
+            </td>
+            <td>${new Date(user.created_at).toLocaleDateString('ro-RO')}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444">Eroare: ${err.message}</td></tr>`;
+      }
+    }
+
+    // Handler pentru aprobare/respingere
+    async function handleUserAction(userId, username, action) {
+      const confirmMsg = action === 'approve' 
+        ? `Aprobi utilizatorul "${username}"?` 
+        : `Ștergi definitiv utilizatorul "${username}"?`;
+        
+      if (!confirm(confirmMsg)) return;
+      
+      try {
+        const url = action === 'approve' 
+          ? `/api/users/approve/${userId}` 
+          : `/api/users/reject/${userId}`;
+          
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || `Eroare ${res.status}`);
+        
+        alert(action === 'approve' ? '✅ Utilizator aprobat!' : '🗑️ Utilizator șters!');
+        loadPending();
+        loadAllUsers();
+        
+      } catch (err) {
+        console.error(err);
+        showError('pending', 'Eroare: ' + err.message);
+      }
+    }
+
+    // Deblocare utilizator (NOU)
+    async function unlockUser(userId) {
+      if (!confirm("Deblochezi acest utilizator?")) return;
+      
+      try {
+        const res = await fetch(`/api/users/unlock/${userId}`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Eroare la deblocare');
+        
+        alert('✅ Utilizator deblocat!');
+        loadLocked(); // Reîncarcă lista de blocați
+        loadAllUsers(); // Reîncarcă lista generală
+        
+      } catch (err) {
+        console.error(err);
+        showError('locked', 'Eroare: ' + err.message);
+      }
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Inițializare
     async function init() {
       try {
         const res = await fetch('/api/me');
@@ -265,180 +421,15 @@
           return;
         }
         
-        // Setup tab-uri
-        document.querySelectorAll('.tab').forEach(tab => {
-          tab.addEventListener('click', (e) => {
-            const tabName = e.target.dataset.tab;
-            showTab(tabName);
-          });
-        });
+        // Încarcă datele inițiale (doar pentru tab-ul activ)
+        loadPending();
         
-        await loadPending();
-        await loadAllUsers();
       } catch (err) {
         console.error(err);
         alert('Eroare la inițializare: ' + err.message);
       }
     }
 
-    function showTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-      
-      if (tab === 'pending') {
-        document.getElementById('pending-section').style.display = 'block';
-        document.getElementById('all-section').style.display = 'none';
-      } else {
-        document.getElementById('pending-section').style.display = 'none';
-        document.getElementById('all-section').style.display = 'block';
-      }
-    }
-
-    function showError(section, message) {
-      const el = document.getElementById(section === 'pending' ? 'errorPending' : 'errorAll');
-      el.textContent = message;
-      el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 5000);
-    }
-
-    async function loadPending() {
-      const container = document.getElementById('pendingList');
-      try {
-        const res = await fetch('/api/users/pending');
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || 'Eroare server');
-        }
-        
-        pendingUsers = data;
-        
-        if (pendingUsers.length === 0) {
-          container.innerHTML = '<p class="empty-state">Nu sunt utilizatori în așteptare. Toate conturile sunt aprobate! 🎉</p>';
-          return;
-        }
-        
-        container.innerHTML = '';
-        pendingUsers.forEach((user, index) => {
-          const div = document.createElement('div');
-          div.className = 'user-card';
-          div.innerHTML = `
-            <div class="user-info">
-              <div class="user-name">${escapeHtml(user.username)}</div>
-              <div class="user-meta">
-                ID: ${user.id} • Înregistrat: ${new Date(user.created_at).toLocaleDateString('ro-RO')}
-              </div>
-            </div>
-            <div>
-              <button class="btn-approve" data-id="${user.id}" data-username="${escapeHtml(user.username)}" data-action="approve">✓ Aprobă</button>
-              <button class="btn-reject" data-id="${user.id}" data-username="${escapeHtml(user.username)}" data-action="reject">✗ Respinge</button>
-            </div>
-          `;
-          container.appendChild(div);
-        });
-        
-        // Adăugăm event listeners pe butoane
-        container.querySelectorAll('button').forEach(btn => {
-          btn.addEventListener('click', handleAction);
-        });
-        
-      } catch (err) {
-        console.error(err);
-        container.innerHTML = `<p class="empty-state" style="color:#ef4444">Eroare: ${err.message}</p>`;
-      }
-    }
-
-    async function loadAllUsers() {
-      const tbody = document.getElementById('allUsersList');
-      try {
-        const res = await fetch('/api/users');
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || 'Eroare server');
-        }
-        
-        allUsers = data;
-        
-        if (allUsers.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;">Nu există utilizatori</td></tr>';
-          return;
-        }
-        
-        tbody.innerHTML = allUsers.map(user => `
-          <tr>
-            <td>${user.id}</td>
-            <td><strong>${escapeHtml(user.username)}</strong></td>
-            <td><span class="badge badge-${user.role}">${user.role}</span></td>
-            <td><span class="badge badge-${user.is_approved ? 'approved' : 'pending'}">${user.is_approved ? '✓ Aprobat' : '⏳ În așteptare'}</span></td>
-            <td>${new Date(user.created_at).toLocaleDateString('ro-RO')}</td>
-          </tr>
-        `).join('');
-      } catch (err) {
-        console.error(err);
-        tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444">Eroare: ${err.message}</td></tr>`;
-      }
-    }
-
-    async function handleAction(e) {
-      const btn = e.target;
-      const userId = btn.dataset.id;
-      const username = btn.dataset.username;
-      const action = btn.dataset.action;
-      
-      if (!userId) {
-        alert('Eroare: ID lipsă');
-        return;
-      }
-      
-      const confirmMsg = action === 'approve' 
-        ? `Aprobi utilizatorul "${username}"?` 
-        : `Ștergi definitiv utilizatorul "${username}"?`;
-        
-      if (!confirm(confirmMsg)) return;
-      
-      btn.disabled = true;
-      btn.textContent = '⏳...';
-      
-      try {
-        const url = action === 'approve' 
-          ? `/api/users/approve/${userId}` 
-          : `/api/users/reject/${userId}`;
-          
-        const res = await fetch(url, { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || `Eroare ${res.status}`);
-        }
-        
-        alert(action === 'approve' ? '✅ Utilizator aprobat!' : '🗑️ Utilizator șters!');
-        await loadPending();
-        await loadAllUsers();
-        
-      } catch (err) {
-        console.error(err);
-        showError('pending', 'Eroare: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = action === 'approve' ? '✓ Aprobă' : '✗ Respinge';
-      }
-    }
-
-    function escapeHtml(text) {
-      if (!text) return '';
-      return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    // Pornim
     init();
   </script>
 </body>
