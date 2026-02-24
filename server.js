@@ -1443,110 +1443,101 @@ app.delete("/api/stock/:id", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
     const r = await db.q(
-      `SELECT id, username, password_hash, role, active, is_approved, failed_attempts, unlock_at
-       FROM users
-       WHERE username=$1
-       LIMIT 1`,
+      `SELECT id, username, password_hash, role, active, is_approved, failed_attempts, unlock_at, last_failed_at
+       FROM users WHERE username=$1 LIMIT 1`,
       [username]
     );
 
     const u = r.rows[0];
-    
-    // Dacă nu există userul
-    if (!u) {
-      return res.status(401).json({ error: "User sau parolă greșită" });
-    }
+    if (!u) return res.status(401).json({ error: "User sau parolă greșită" });
 
-    // ✅ VERIFICARE BLOCARE TEMPORARĂ (30 minute)
-    if (u.failed_attempts >= 3) {
-      const now = new Date();
-      const unlockAt = u.unlock_at ? new Date(u.unlock_at) : null;
+    const now = new Date();
+
+    // ✅ SCENARIUL 2: Dacă au trecut 30 min de la ultima încercare → reset counter
+    if (u.failed_attempts > 0 && u.last_failed_at) {
+      const lastFail = new Date(u.last_failed_at);
+      const thirtyMinAgo = new Date(now.getTime() - 30 * 60000);
       
-      // Dacă încă e în perioada de blocare
-      if (unlockAt && unlockAt > now) {
-        const minutesLeft = Math.ceil((unlockAt - now) / 60000);
-        return res.status(403).json({ 
-          error: "Cont blocat temporar", 
-          locked: true,
-          minutesLeft: minutesLeft,
-          message: `Cont blocat. Mai așteaptă ${minutesLeft} minute.` 
-        });
-      } else {
-        // Au trecut 30 minute, deblocăm automat
+      if (lastFail < thirtyMinAgo) {
+        // Reset complet după 30 min de inactivitate
         await db.q(
-          `UPDATE users SET failed_attempts = 0, unlock_at = null WHERE id = $1`,
+          `UPDATE users SET failed_attempts = 0, unlock_at = null, last_failed_at = null WHERE id = $1`,
           [u.id]
         );
-        u.failed_attempts = 0; // reset pentru continuare
+        u.failed_attempts = 0;
+        u.unlock_at = null;
       }
     }
 
-    if (!u.active) {
-      return res.status(401).json({ error: "User sau parolă greșită" });
+    // ✅ SCENARIUL 1: Verifică dacă e încă blocat (în cele 30 min)
+    if (u.failed_attempts >= 3 && u.unlock_at) {
+      const unlockTime = new Date(u.unlock_at);
+      if (unlockTime > now) {
+        const minutesLeft = Math.ceil((unlockTime - now) / 60000);
+        return res.status(403).json({ 
+          locked: true,
+          minutesLeft: minutesLeft,
+          message: `Cont blocat. Mai așteaptă ${minutesLeft} minute sau contactează administratorul.` 
+        });
+      } else {
+        // Au trecut cele 30 min de blocare → deblocare automată
+        await db.q(
+          `UPDATE users SET failed_attempts = 0, unlock_at = null, last_failed_at = null WHERE id = $1`,
+          [u.id]
+        );
+        u.failed_attempts = 0;
+      }
     }
 
-    // Verificare aprobare admin (pentru conturi noi)
+    if (!u.active) return res.status(401).json({ error: "User sau parolă greșită" });
     if (!u.is_approved) {
-      return res.status(403).json({ 
-        error: "Cont în așteptare", 
-        pending: true,
-        message: "Contul tău este în așteptarea aprobării administratorului." 
-      });
+      return res.status(403).json({ pending: true, message: "Cont în așteptare" });
     }
 
     const ok = bcrypt.compareSync(password, u.password_hash);
     
     if (!ok) {
-      // Incrementăm contorul eșecuri
       const newAttempts = (u.failed_attempts || 0) + 1;
       
       if (newAttempts >= 3) {
-        // ✅ BLOCARE TEMPORARĂ 30 MINUTE
-        const unlockAt = new Date(Date.now() + 30 * 60000); // 30 min
+        // Blochează pentru 30 minute
+        const unlockAt = new Date(now.getTime() + 30 * 60000);
         await db.q(
-          `UPDATE users SET failed_attempts = 3, unlock_at = $1 WHERE id = $2`,
-          [unlockAt, u.id]
+          `UPDATE users SET failed_attempts = $1, last_failed_at = NOW(), unlock_at = $2 WHERE id = $3`,
+          [newAttempts, unlockAt, u.id]
         );
         
         return res.status(403).json({ 
-          error: "Cont blocat temporar", 
-          locked: true,
+          locked: true, 
           minutesLeft: 30,
           message: "Cont blocat pentru 30 minute după 3 încercări eșuate." 
         });
       } else {
+        // Doar incrementezi
         await db.q(
-          `UPDATE users SET failed_attempts = $1 WHERE id = $2`,
+          `UPDATE users SET failed_attempts = $1, last_failed_at = NOW() WHERE id = $2`,
           [newAttempts, u.id]
         );
+        
+        return res.status(401).json({ 
+          error: "User sau parolă greșită",
+          attemptsLeft: 3 - newAttempts 
+        });
       }
-      
-      return res.status(401).json({ 
-        error: "User sau parolă greșită",
-        attemptsLeft: 3 - newAttempts
-      });
     }
 
-    // Login reușit - resetăm contorul
-    if (u.failed_attempts > 0 || u.unlock_at) {
-      await db.q(
-        `UPDATE users SET failed_attempts = 0, unlock_at = null WHERE id = $1`,
-        [u.id]
-      );
-    }
+    // Login reușit → curăță tot
+    await db.q(
+      `UPDATE users SET failed_attempts = 0, unlock_at = null, last_failed_at = null WHERE id = $1`,
+      [u.id]
+    );
 
-    req.session.user = { 
-      id: u.id, 
-      username: u.username, 
-      role: u.role,
-      is_approved: u.is_approved 
-    };
-    
+    req.session.user = { id: u.id, username: u.username, role: u.role, is_approved: u.is_approved };
     res.json({ ok: true, user: req.session.user });
+    
   } catch (e) {
     console.error("LOGIN error:", e);
     res.status(500).json({ error: "Eroare login" });
@@ -1719,6 +1710,22 @@ app.get("/api/users/pending", isAdmin, async (req, res) => {
          created_at DESC`
     );
     res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/users/unlock/:id", isAdmin, async (req, res) => {
+  try {
+    await db.q(
+      `UPDATE users 
+       SET failed_attempts = 0, 
+           unlock_at = null,
+           last_failed_at = null
+       WHERE id = $1`,
+      [req.params.id]
+    );
+    res.json({ ok: true, message: "Utilizator deblocat" });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
