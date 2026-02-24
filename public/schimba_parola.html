@@ -202,9 +202,6 @@
   </style>
 </head>
 <body>
-  <!-- User Bar -->
-  <div id="userBar"></div>
-
   <div class="container">
     <a href="index.html" class="back-btn">
       <i class="fas fa-arrow-left"></i>
@@ -287,6 +284,7 @@
       try {
         const response = await fetch('/api/schimba-parola', {
           method: 'POST',
+          credentials: 'same-origin',  // ✅ TRIMITE COOKIE-URILE DE SESIUNE
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: username,
