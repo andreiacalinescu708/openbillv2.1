@@ -566,3 +566,52 @@ p {
   align-items: center;
   gap: 4px;
 }
+
+/* FIX pentru rezultate căutare în Modifică Comandă */
+#editProductResults {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+.resultBtn {
+  width: 100%;
+  text-align: left;
+  background: rgba(30, 41, 59, 0.6); /* fundal închis */
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resultBtn:last-child {
+  border-bottom: none;
+}
+
+.resultBtn:hover {
+  background: rgba(59, 130, 246, 0.25); /* albastru închis, nu alb */
+  border-left: 3px solid #3b82f6;
+  color: white;
+  transform: translateX(4px);
+}
+
+.resultBtn .resultTitle {
+  font-weight: 500;
+  color: inherit;
+  margin-bottom: 4px;
+}
+
+.resultBtn .muted {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.resultBtn:hover .muted {
+  color: rgba(255,255,255,0.8);
+}
