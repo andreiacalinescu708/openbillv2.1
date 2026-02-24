@@ -41,20 +41,43 @@ async function initLoginPage() {
     const data = await res.json().catch(() => ({}));
     
     if (!res.ok) {
+      // ✅ Cont în așteptare (neaprobat)
       if (res.status === 403 && data.pending) {
         msg.textContent = "⏳ Cont în așteptare: " + (data.message || "Așteaptă aprobarea adminului.");
-        msg.style.color = "#f59e0b";
-      } else {
-        msg.textContent = data.error || "Eroare la login";
-        msg.style.color = "#ef4444";
+        msg.style.color = "#f59e0b"; // galben
+      } 
+      // ✅ Cont blocat după 3 încercări
+      else if (res.status === 403 && data.locked) {
+        msg.innerHTML = "🔒 <strong>Cont blocat!</strong><br>" + 
+                       (data.message || "Ai depășit 3 încercări. Contactează administratorul.");
+        msg.style.color = "#dc2626"; // roșu intens
       }
+      // ✅ User sau parolă greșită (401)
+      else if (res.status === 401) {
+        let errorMsg = "❌ <strong>User sau parolă greșită!</strong><br>";
+        
+        // Afișează câte încercări mai are
+        if (data.attemptsLeft !== undefined && data.attemptsLeft > 0) {
+          errorMsg += `⚠️ Mai ai <strong>${data.attemptsLeft}</strong> încercări rămase.<br>`;
+        }
+        
+        errorMsg += "<small>La 3 încercări greșite, contul se va bloca automat.</small>";
+        
+        msg.innerHTML = errorMsg;
+        msg.style.color = "#dc2626"; // roșu
+      }
+      // Alte erori
+      else {
+        msg.textContent = data.error || "Eroare la login";
+        msg.style.color = "#dc2626";
+      }
+      
       msg.classList.add("show");
       return;
     }
 
-    // ✅ ADUAGĂ ASTA:
+    // ✅ Login reușit - salvăm username pentru schimbare parolă
     localStorage.setItem('username', username);
-    
     location.href = "index.html";
   };
 }
