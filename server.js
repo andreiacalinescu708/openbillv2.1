@@ -1745,6 +1745,7 @@ app.get("/api/users", isAdmin, async (req, res) => {
 });
 
 // Endpoint pentru schimbarea parolei
+// Endpoint pentru schimbarea parolei
 app.post('/api/schimba-parola', async (req, res) => {
   const { username, parolaVeche, parolaNoua } = req.body;
   
@@ -1757,9 +1758,9 @@ app.post('/api/schimba-parola', async (req, res) => {
   }
 
   try {
-    // Verifică parola veche
-    const userResult = await db.query(
-      'SELECT password FROM users WHERE username = $1',
+    // Verifică parola veche - FOLOSEȘTE db.q și password_hash
+    const userResult = await db.q(
+      'SELECT password_hash FROM users WHERE username = $1',
       [username]
     );
 
@@ -1767,7 +1768,7 @@ app.post('/api/schimba-parola', async (req, res) => {
       return res.status(404).json({ error: 'Utilizator negăsit' });
     }
 
-    const validPassword = await bcrypt.compare(parolaVeche, userResult.rows[0].password);
+    const validPassword = await bcrypt.compare(parolaVeche, userResult.rows[0].password_hash);
     
     if (!validPassword) {
       return res.status(401).json({ error: 'Parola veche este incorectă' });
@@ -1777,9 +1778,9 @@ app.post('/api/schimba-parola', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(parolaNoua, saltRounds);
 
-    // Update în baza de date
-    await db.query(
-      'UPDATE users SET password = $1 WHERE username = $2',
+    // Update în baza de date - FOLOSEȘTE db.q
+    await db.q(
+      'UPDATE users SET password_hash = $1 WHERE username = $2',
       [hashedPassword, username]
     );
 

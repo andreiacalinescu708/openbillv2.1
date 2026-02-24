@@ -18,7 +18,7 @@
   }
 
 
- async function initLoginPage() {
+async function initLoginPage() {
   if (!location.pathname.endsWith("login.html")) return;
 
   const form = document.getElementById("loginForm");
@@ -41,18 +41,20 @@
     const data = await res.json().catch(() => ({}));
     
     if (!res.ok) {
-      // ✅ NOU: Mesaj special pentru cont în așteptare (403)
       if (res.status === 403 && data.pending) {
         msg.textContent = "⏳ Cont în așteptare: " + (data.message || "Așteaptă aprobarea adminului.");
-        msg.style.color = "#f59e0b"; // galben
+        msg.style.color = "#f59e0b";
       } else {
         msg.textContent = data.error || "Eroare la login";
-        msg.style.color = "#ef4444"; // roșu
+        msg.style.color = "#ef4444";
       }
       msg.classList.add("show");
       return;
     }
 
+    // ✅ ADUAGĂ ASTA:
+    localStorage.setItem('username', username);
+    
     location.href = "index.html";
   };
 }
@@ -132,6 +134,7 @@
     bar.innerHTML = "";
     return;
   }
+  localStorage.setItem('username', me.user.username);
 
   const isAdmin = me.user.role === 'admin';
   
