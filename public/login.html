@@ -77,18 +77,37 @@
       text-decoration: underline;
     }
 
-    .error-message {
+    /* Mesaje de eroare/succes */
+    #loginMsg {
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-lg);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      display: none;
+      animation: shake 0.4s ease-in-out;
+    }
+
+    #loginMsg.show {
+      display: block;
+    }
+
+    /* Tipuri de mesaje */
+    .msg-error {
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid rgba(239, 68, 68, 0.3);
       color: var(--danger-500);
-      padding: var(--space-3) var(--space-4);
-      border-radius: var(--radius-lg);
-      font-size: 0.875rem;
-      display: none;
     }
 
-    .error-message.show {
-      display: block;
+    .msg-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
     }
   </style>
 </head>
@@ -101,6 +120,7 @@
         <p>Autentificare în sistem</p>
       </div>
 
+      <!-- FORMULAR UNIC -->
       <form class="auth-form" id="loginForm">
         <div class="form-group">
           <label class="form-label" for="loginUser">Username</label>
@@ -112,17 +132,8 @@
           <input type="password" id="loginPass" class="form-input" placeholder="Introdu parola" required autocomplete="current-password" />
         </div>
 
-        <div class="error-message" id="loginMsg"></div>
-        <form id="loginForm">
-  <!-- câmpurile tale existente -->
-  <input type="text" id="loginUser" placeholder="Username" required>
-  <input type="password" id="loginPass" placeholder="Parolă" required>
-  
-  <!-- ADAUGĂ ASTA (mesajul de eroare): -->
-  <div id="loginMsg" style="display: none; margin: 15px 0; padding: 12px; border-radius: 8px; font-size: 0.95rem; line-height: 1.5;"></div>
-  
-  <button type="submit">Login</button>
-</form>
+        <!-- AICI APAR ERORILE -->
+        <div id="loginMsg"></div>
 
         <button type="submit" class="btn btn-primary btn-lg" id="btnLogin">
           Autentificare

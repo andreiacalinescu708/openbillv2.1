@@ -24,21 +24,12 @@ async function initLoginPage() {
   const form = document.getElementById("loginForm");
   const msg = document.getElementById("loginMsg");
   
-  if (!form) return;
-  
-  // Dacă nu există msg în HTML, creează-l automat ca să nu dea eroare
-  if (!msg) {
-    console.warn("Lipseste #loginMsg din HTML, creez elementul automat");
-    const newMsg = document.createElement('div');
-    newMsg.id = 'loginMsg';
-    newMsg.style.cssText = 'display:none;margin:15px 0;padding:12px;border-radius:8px;font-size:0.95rem;line-height:1.5;';
-    form.insertBefore(newMsg, form.querySelector('button') || null);
-    msg = newMsg;
-  }
+  if (!form || !msg) return;
 
   form.onsubmit = async (e) => {
     e.preventDefault();
     msg.textContent = "";
+    msg.className = ""; // reset classes
     msg.style.display = "none";
 
     const username = document.getElementById("loginUser").value.trim();
@@ -56,23 +47,19 @@ async function initLoginPage() {
       if (!res.ok) {
         msg.style.display = "block";
         
-        // ✅ Cont în așteptare
+        // Cont în așteptare
         if (res.status === 403 && data.pending) {
           msg.innerHTML = "⏳ <strong>Cont în așteptare!</strong><br>" + 
                          (data.message || "Așteaptă aprobarea administratorului.");
-          msg.style.background = "#fef3c7";
-          msg.style.color = "#92400e";
-          msg.style.border = "1px solid #f59e0b";
+          msg.className = "msg-warning show";
         } 
-        // ✅ Cont blocat
+        // Cont blocat
         else if (res.status === 403 && data.locked) {
           msg.innerHTML = "🔒 <strong>Cont blocat!</strong><br>" + 
                          (data.message || "Ai depășit 3 încercări. Contactează administratorul.");
-          msg.style.background = "#fee2e2";
-          msg.style.color = "#991b1b";
-          msg.style.border = "1px solid #dc2626";
+          msg.className = "msg-error show";
         }
-        // ✅ User/Parolă greșită
+        // User/Parolă greșită
         else if (res.status === 401) {
           let html = "❌ <strong>User sau parolă greșită!</strong><br>";
           
@@ -80,35 +67,27 @@ async function initLoginPage() {
             html += `⚠️ Mai ai <strong>${data.attemptsLeft}</strong> încercări rămase.<br>`;
           }
           
-          html += "<small style='opacity:0.8'>La 3 încercări greșite, contul se va bloca automat.</small>";
+          html += "<small>La 3 încercări greșite, contul se va bloca automat.</small>";
           
           msg.innerHTML = html;
-          msg.style.background = "#fee2e2";
-          msg.style.color = "#991b1b";
-          msg.style.border = "1px solid #dc2626";
+          msg.className = "msg-error show";
         }
-        // Alte erori
         else {
           msg.textContent = data.error || "Eroare la login";
-          msg.style.background = "#fee2e2";
-          msg.style.color = "#991b1b";
-          msg.style.border = "1px solid #dc2626";
+          msg.className = "msg-error show";
         }
         
         return;
       }
 
-      // ✅ Login reușit
+      // Login reușit
       localStorage.setItem('username', username);
       location.href = "index.html";
       
     } catch (err) {
-      console.error("Login error:", err);
       msg.style.display = "block";
       msg.textContent = "Eroare de conexiune. Încearcă din nou.";
-      msg.style.background = "#fee2e2";
-      msg.style.color = "#991b1b";
-      msg.style.border = "1px solid #dc2626";
+      msg.className = "msg-error show";
     }
   };
 }
