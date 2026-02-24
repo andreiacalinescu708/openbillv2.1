@@ -1744,6 +1744,52 @@ app.get("/api/users", isAdmin, async (req, res) => {
   }
 });
 
+// Endpoint pentru schimbarea parolei
+app.post('/api/schimba-parola', async (req, res) => {
+  const { username, parolaVeche, parolaNoua } = req.body;
+  
+  if (!username || !parolaVeche || !parolaNoua) {
+    return res.status(400).json({ error: 'Toate câmpurile sunt obligatorii' });
+  }
+
+  if (parolaNoua.length < 6) {
+    return res.status(400).json({ error: 'Parola nouă trebuie să aibă minim 6 caractere' });
+  }
+
+  try {
+    // Verifică parola veche
+    const userResult = await db.query(
+      'SELECT password FROM users WHERE username = $1',
+      [username]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Utilizator negăsit' });
+    }
+
+    const validPassword = await bcrypt.compare(parolaVeche, userResult.rows[0].password);
+    
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Parola veche este incorectă' });
+    }
+
+    // Hash parola nouă
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(parolaNoua, saltRounds);
+
+    // Update în baza de date
+    await db.query(
+      'UPDATE users SET password = $1 WHERE username = $2',
+      [hashedPassword, username]
+    );
+
+    res.json({ message: 'Parola a fost schimbată cu succes' });
+  } catch (error) {
+    console.error('Eroare schimbare parolă:', error);
+    res.status(500).json({ error: 'Eroare server' });
+  }
+});
+
 
 
 

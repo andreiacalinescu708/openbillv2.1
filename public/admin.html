@@ -91,17 +91,121 @@
       .tabs { flex-wrap: wrap; }
       .tab { padding: 0.75rem 1rem; }
     }
+
+    /* ===== STILURI USERBAR/DROPDOWN (adăugate aici dacă nu sunt în global.css) ===== */
+    .user-bar { display: inline-block; }
+    
+    .user-dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .user-profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .user-profile-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+
+    .user-profile-btn.active {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .dropdown-arrow {
+      font-size: 0.7rem;
+      transition: transform 0.2s ease;
+    }
+
+    .user-profile-btn.active .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .user-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 200px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      overflow: hidden;
+      animation: dropdownFadeIn 0.2s ease;
+    }
+
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #f1f5f9;
+      text-decoration: none;
+      font-size: 0.9375rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .dropdown-item:hover {
+      background: #334155;
+      color: #60a5fa;
+    }
+
+    .dropdown-item.logout {
+      color: #f87171;
+    }
+
+    .dropdown-item.logout:hover {
+      background: #ef4444;
+      color: white;
+    }
+
+    .dropdown-icon {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: #334155;
+      margin: 8px 0;
+    }
   </style>
 </head>
 <body>
   <div class="topbar">
     <h2>🔧 Panou Administrare Utilizatori</h2>
-    <div>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <!-- AICI ESTE USERBAR-UL -->
+      <div class="user-bar" id="userBar"></div>
       <a href="index.html" style="color: white; text-decoration: none; font-weight: 500;">← Înapoi la aplicație</a>
     </div>
   </div>
 
   <div class="container">
+    <!-- restul containerului rămâne la fel... -->
     <div class="tabs">
       <div class="tab active" data-tab="pending">⏳ În Așteptare</div>
       <div class="tab" data-tab="all">👥 Toți Utilizatorii</div>
@@ -135,7 +239,11 @@
     </div>
   </div>
 
+  <!-- IMPORTANT: Adaugă script.js pentru renderUserBar() -->
+  <script src="script.js"></script>
+  
   <script>
+    // Scriptul tău existent rămâne aici...
     // Stocăm datele global ca să le accesăm la click
     let pendingUsers = [];
     let allUsers = [];

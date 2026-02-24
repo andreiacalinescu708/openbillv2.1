@@ -121,49 +121,82 @@
     }
   }
 
-  async function renderUserBar() {
-    const bar = document.getElementById("userBar");
-    if (!bar) return;
+ async function renderUserBar() {
+  const bar = document.getElementById("userBar");
+  if (!bar) return;
 
-    const res = await apiFetch("/api/me");
-    const me = await res.json();
+  const res = await apiFetch("/api/me");
+  const me = await res.json();
 
-    if (!me.loggedIn) {
-      bar.innerHTML = "";
-      return;
-    }
+  if (!me.loggedIn) {
+    bar.innerHTML = "";
+    return;
+  }
 
-    bar.innerHTML = `
-      <div class="userbar-inner">
-        <div class="user-pill">
+  const isAdmin = me.user.role === 'admin';
+  
+  // HTML pentru dropdown
+  bar.innerHTML = `
+    <div class="userbar-inner">
+      <div class="user-dropdown-container" id="userDropdownContainer">
+        <button class="user-profile-btn" id="userProfileBtn">
           <span class="user-ico">👤</span>
           <span class="user-txt">${escapeHtml(me.user.username)} (${escapeHtml(me.user.role)})</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        
+        <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
+          ${isAdmin ? `
+            <a href="admin.html" class="dropdown-item">
+              <span class="dropdown-icon">🔧</span>
+              <span>Admin</span>
+            </a>
+          ` : ''}
+          
+          <a href="schimba_parola.html" class="dropdown-item">
+            <span class="dropdown-icon">🔑</span>
+            <span>Schimbă parola</span>
+          </a>
+          
+          <div class="dropdown-divider"></div>
+          
+          <button class="dropdown-item logout" id="btnLogoutDropdown">
+            <span class="dropdown-icon">🚪</span>
+            <span>Logout</span>
+          </button>
         </div>
-
-        <button id="btnLogout" class="logout-btn" type="button">Logout</button>
       </div>
-    `;
-    // Link admin dacă e admin
-const adminLink = me.user.role === 'admin' 
-  ? `<a href="admin.html" style="color:#fbbf24; margin-right:1rem; text-decoration:none; font-weight:600;">🔧 Admin</a>` 
-  : '';
-
-bar.innerHTML = `
-  <div class="userbar-inner">
-    ${adminLink}
-    <div class="user-pill">
-      <span class="user-ico">👤</span>
-      <span class="user-txt">${escapeHtml(me.user.username)} (${escapeHtml(me.user.role)})</span>
     </div>
-    <button id="btnLogout" class="logout-btn" type="button">Logout</button>
-  </div>
-`;
+  `;
 
-    document.getElementById("btnLogout").onclick = async () => {
-      await apiFetch("/api/logout", { method: "POST" });
-      location.href = "login.html";
-    };
-  }
+  // Event listeners pentru dropdown
+  const container = document.getElementById("userDropdownContainer");
+  const btn = document.getElementById("userProfileBtn");
+  const menu = document.getElementById("userDropdownMenu");
+  const logoutBtn = document.getElementById("btnLogoutDropdown");
+
+  // Toggle dropdown
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = menu.style.display === "block";
+    menu.style.display = isOpen ? "none" : "block";
+    btn.classList.toggle("active", !isOpen);
+  };
+
+  // Logout
+  logoutBtn.onclick = async () => {
+    await apiFetch("/api/logout", { method: "POST" });
+    location.href = "login.html";
+  };
+
+  // Închide dropdown când click în afară
+  document.addEventListener("click", (e) => {
+    if (!container.contains(e.target)) {
+      menu.style.display = "none";
+      btn.classList.remove("active");
+    }
+  });
+}
 
 
 
