@@ -1744,6 +1744,25 @@ app.post("/api/users/approve/:id", isAdmin, async (req, res) => {
   }
 });
 
+// Lista utilizatori blocați (failed_attempts >= 3 sau unlock_at există)
+app.get("/api/users/locked", isAdmin, async (req, res) => {
+  try {
+    const r = await db.q(
+      `SELECT id, username, failed_attempts, unlock_at, 
+              CASE 
+                WHEN unlock_at > NOW() THEN EXTRACT(EPOCH FROM (unlock_at - NOW()))/60
+                ELSE 0 
+              END as minutes_left
+       FROM users 
+       WHERE failed_attempts >= 3 OR unlock_at IS NOT NULL
+       ORDER BY unlock_at DESC`
+    );
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Respingere utilizator
 app.post("/api/users/reject/:id", isAdmin, async (req, res) => {
   try {
