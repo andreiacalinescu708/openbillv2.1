@@ -125,6 +125,9 @@ async function ensureTables() {
   // Coloană pentru aprobare admin (NOU)
 await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT false`);
 
+// Coloană pentru deblocare automată după 30 minute
+await q(`ALTER TABLE users ADD COLUMN IF NOT EXISTS unlock_at TIMESTAMPTZ`);
+
 // Asigură-te că adminul existent rămâne aprobat (pentru compatibilitate)
 await q(`UPDATE users SET is_approved = true WHERE role = 'admin'`);
 await q(`UPDATE users SET is_approved = false WHERE is_approved IS NULL`);

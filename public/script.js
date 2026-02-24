@@ -36,7 +36,7 @@ async function initLoginPage() {
     const password = document.getElementById("loginPass").value;
 
     try {
-      // ⚠️ IMPORTANT: Folosim fetch direct, NU apiFetch, pentru că apiFetch aruncă eroare la 401
+      // Folosim fetch direct, NU apiFetch
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,29 +49,28 @@ async function initLoginPage() {
       if (!res.ok) {
         msg.style.display = "block";
         
-        // Cont în așteptare (403)
+        // ✅ Cont în așteptare (403 + pending)
         if (res.status === 403 && data.pending) {
           msg.innerHTML = "⏳ <strong>Cont în așteptare!</strong><br>" + 
                          (data.message || "Așteaptă aprobarea administratorului.");
           msg.className = "msg-warning show";
         } 
-        // Cont blocat (403 + locked)
+        // ✅ ADAUGĂ AICI: Cont blocat temporar (403 + locked)
         else if (res.status === 403 && data.locked) {
-          msg.innerHTML = "🔒 <strong>Cont blocat!</strong><br>" + 
-                         (data.message || "Ai depășit 3 încercări. Contactează administratorul.");
+          const minutes = data.minutesLeft || 30;
+          msg.innerHTML = `🔒 <strong>Cont blocat temporar!</strong><br>` + 
+                         (data.message || `Mai așteaptă ${minutes} minute.`);
           msg.className = "msg-error show";
         }
-        // User/Parolă greșită (401)
+        // ✅ User/Parolă greșită (401)
         else if (res.status === 401) {
           let html = "❌ <strong>User sau parolă greșită!</strong><br>";
           
           if (data.attemptsLeft > 0) {
             html += `⚠️ Mai ai <strong>${data.attemptsLeft}</strong> încercări rămase.<br>`;
-          } else if (data.attemptsLeft === 0) {
-            html += "⚠️ <strong>Atenție!</strong> Aceasta este ultima încercare.<br>";
           }
           
-          html += "<small>La 3 încercări greșite, contul se va bloca automat.</small>";
+          html += "<small>La 3 încercări greșite, contul se va bloca automat pentru 30 minute.</small>";
           
           msg.innerHTML = html;
           msg.className = "msg-error show";
@@ -85,12 +84,11 @@ async function initLoginPage() {
         return;
       }
 
-      // ✅ Login reușit - salvăm username
+      // Login reușit
       localStorage.setItem('username', username);
       location.href = "index.html";
       
     } catch (err) {
-      // Aici intră doar la erori de rețea/conexiune, NU la 401
       console.error("Login error:", err);
       msg.style.display = "block";
       msg.textContent = "Eroare de conexiune. Verifică internetul și încearcă din nou.";

@@ -1447,7 +1447,7 @@ app.post("/api/login", async (req, res) => {
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
     const r = await db.q(
-      `SELECT id, username, password_hash, role, active, is_approved, failed_attempts
+      `SELECT id, username, password_hash, role, active, is_approved, failed_attempts, unlock_at
        FROM users
        WHERE username=$1
        LIMIT 1`,
@@ -1461,25 +1461,40 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "User sau parolă greșită" });
     }
 
-    // Verificare blocare (failed_attempts >= 3 și nu e aprobat)
-    if (u.failed_attempts >= 3 && !u.is_approved) {
-      return res.status(403).json({ 
-        error: "Cont blocat", 
-        locked: true,
-        message: "Cont blocat după 3 încercări eșuate. Contactează administratorul pentru deblocare." 
-      });
+    // ✅ VERIFICARE BLOCARE TEMPORARĂ (30 minute)
+    if (u.failed_attempts >= 3) {
+      const now = new Date();
+      const unlockAt = u.unlock_at ? new Date(u.unlock_at) : null;
+      
+      // Dacă încă e în perioada de blocare
+      if (unlockAt && unlockAt > now) {
+        const minutesLeft = Math.ceil((unlockAt - now) / 60000);
+        return res.status(403).json({ 
+          error: "Cont blocat temporar", 
+          locked: true,
+          minutesLeft: minutesLeft,
+          message: `Cont blocat. Mai așteaptă ${minutesLeft} minute.` 
+        });
+      } else {
+        // Au trecut 30 minute, deblocăm automat
+        await db.q(
+          `UPDATE users SET failed_attempts = 0, unlock_at = null WHERE id = $1`,
+          [u.id]
+        );
+        u.failed_attempts = 0; // reset pentru continuare
+      }
     }
 
     if (!u.active) {
       return res.status(401).json({ error: "User sau parolă greșită" });
     }
 
-    // Verificare aprobare (pentru conturi noi sau blocate)
+    // Verificare aprobare admin (pentru conturi noi)
     if (!u.is_approved) {
       return res.status(403).json({ 
         error: "Cont în așteptare", 
         pending: true,
-        message: "Contul tău este în așteptarea aprobării." 
+        message: "Contul tău este în așteptarea aprobării administratorului." 
       });
     }
 
@@ -1490,16 +1505,18 @@ app.post("/api/login", async (req, res) => {
       const newAttempts = (u.failed_attempts || 0) + 1;
       
       if (newAttempts >= 3) {
-        // BLOCAT COMPLET - revine în așteptare (doar admin poate debloca)
+        // ✅ BLOCARE TEMPORARĂ 30 MINUTE
+        const unlockAt = new Date(Date.now() + 30 * 60000); // 30 min
         await db.q(
-          `UPDATE users SET failed_attempts = 3, is_approved = false WHERE id = $1`,
-          [u.id]
+          `UPDATE users SET failed_attempts = 3, unlock_at = $1 WHERE id = $2`,
+          [unlockAt, u.id]
         );
         
         return res.status(403).json({ 
-          error: "Cont blocat", 
+          error: "Cont blocat temporar", 
           locked: true,
-          message: "Cont blocat după 3 încercări eșuate. Contactează administratorul pentru deblocare." 
+          minutesLeft: 30,
+          message: "Cont blocat pentru 30 minute după 3 încercări eșuate." 
         });
       } else {
         await db.q(
@@ -1514,10 +1531,10 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Login reușit - resetăm contorul doar dacă era > 0
-    if (u.failed_attempts > 0) {
+    // Login reușit - resetăm contorul
+    if (u.failed_attempts > 0 || u.unlock_at) {
       await db.q(
-        `UPDATE users SET failed_attempts = 0 WHERE id = $1`,
+        `UPDATE users SET failed_attempts = 0, unlock_at = null WHERE id = $1`,
         [u.id]
       );
     }
