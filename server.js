@@ -1,4 +1,7 @@
-
+require('dotenv').config();
+require('dotenv').config();
+console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+console.log("DATABASE_URL value:", process.env.DATABASE_URL?.substring(0, 30) + "...");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
 const express = require("express");
@@ -1834,7 +1837,69 @@ app.post('/api/schimba-parola', async (req, res) => {
   }
 });
 
+// ==========================================
+// SMARTBILL TEST - de activat mâine cu token
+// ==========================================
 
+const SMARTBILL_TOKEN = process.env.SMARTBILL_TOKEN || ''; // Pune tokenul aici mâine
+const SMARTBILL_CIF_TEST = 'RO12345678'; // CUI Al Shefa (completezi mâine)
+
+// Test endpoint: http://localhost:3000/test-smartbill
+app.get('/test-smartbill', async (req, res) => {
+  if (!SMARTBILL_TOKEN) {
+    return res.status(500).json({ error: 'Token SmartBill lipsă. Setează SMARTBILL_TOKEN în .env' });
+  }
+
+  try {
+    console.log('=== TEST SMARTBILL ===');
+    
+    // 1. Facturi
+    const facturiRes = await fetch(
+      `https://api.smartbill.ro/invoice?cifClient=${SMARTBILL_CIF_TEST}`, 
+      {
+        headers: {
+          'Authorization': SMARTBILL_TOKEN,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    if (!facturiRes.ok) throw new Error(`HTTP ${facturiRes.status}`);
+    const facturiData = await facturiRes.json();
+    
+    // 2. Plăți
+    const platiRes = await fetch(
+      `https://api.smartbill.ro/payment?clientCif=${SMARTBILL_CIF_TEST}`,
+      {
+        headers: {
+          'Authorization': SMARTBILL_TOKEN,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    const platiData = await platiRes.json();
+    
+    // 3. Calcul sold
+    const totalFacturi = (facturiData.list || []).reduce((sum, f) => sum + (f.totalValue || 0), 0);
+    const totalPlati = (platiData.list || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+    
+    res.json({
+      success: true,
+      client: SMARTBILL_CIF_TEST,
+      sold: totalFacturi - totalPlati,
+      totalFacturi,
+      totalPlati,
+      numarFacturi: facturiData.list?.length || 0,
+      facturi: facturiData.list?.slice(0, 3), // Primele 3 facturi
+      raw: { facturi: facturiData, plati: platiData } // Tot răspunsul brut
+    });
+    
+  } catch (error) {
+    console.error('Eroare SmartBill:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 
 

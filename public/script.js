@@ -2143,30 +2143,41 @@ o.items.forEach(i => {
     return `20${v.slice(0,2)}-${v.slice(2,4)}-${v.slice(4,6)}`;
   }
 
-  function parseGS1(qr) {
+   function parseGS1(qr) {
     const out = {};
-    const s0 = sanitizeGS1(qr);
+    let s0 = sanitizeGS1(qr);
     if (!s0) return out;
 
-    // dacă are paranteze
+    // === CAZ 1: Format cu paranteze (AI)valoare ===
     if (s0.includes("(")) {
       const regex = /\((\d{2})\)([^()]*)/g;
       let m;
+      
       while ((m = regex.exec(s0)) !== null) {
         const ai = m[1];
         const val = (m[2] || "").trim();
+        
         if (ai === "01") out.gtin = val;
         else if (ai === "17") out.expiresAt = yymmddToISO(val);
         else if (ai === "10") out.lot = val;
-        // 11 ignorăm
+        // 11 ignorăm (data fabricației)
       }
+      
+      // Dacă nu am găsit GTIN cu (01), verificăm dacă începe cu cifre (GTIN fără prefix)
+      if (!out.gtin) {
+        const leadingMatch = s0.match(/^(\d{8,14})/);
+        if (leadingMatch) {
+          out.gtin = leadingMatch[1];
+          console.log("GTIN extras din început (fără prefix 01):", out.gtin);
+        }
+      }
+      
       return out;
     }
 
-    // fără paranteze: 01 + 14, 17 + 6, 11 + 6 optional, 10 + LOT (rest)
+    // === CAZ 2: Format fără paranteze, cu prefixe AI ===
     let i = 0;
     const s = s0;
-
     const take = (n) => {
       const part = s.slice(i, i + n);
       i += n;
@@ -2176,49 +2187,87 @@ o.items.forEach(i => {
     while (i + 2 <= s.length) {
       const ai = take(2);
 
-      if (ai === "01") { out.gtin = take(14); continue; }
-      if (ai === "17") { out.expiresAt = yymmddToISO(take(6)); continue; }
-      if (ai === "11") { take(6); continue; } // ignoră fabricație
-      if (ai === "10") { out.lot = s.slice(i).trim(); break; }
+      if (ai === "01") { 
+        out.gtin = take(14); 
+        continue; 
+      }
+      if (ai === "17") { 
+        out.expiresAt = yymmddToISO(take(6)); 
+        continue; 
+      }
+      if (ai === "11") { 
+        take(6); 
+        continue; 
+      } // ignoră fabricație
+      if (ai === "10") { 
+        out.lot = s.slice(i).trim(); 
+        break; 
+      }
 
       break;
+    }
+    
+    // === CAZ 3: Dacă tot nu am găsit GTIN, verificăm dacă e doar un GTIN simplu ===
+    if (!out.gtin && /^\d{8,14}$/.test(s0)) {
+      out.gtin = s0;
     }
 
     return out;
   }
 
-  function applyParsedGS1(qr) {
-    const clean = sanitizeGS1(qr);
-    const data = parseGS1(clean);
+  function parseGS1(qr) {
+    const out = {};
+    const s0 = sanitizeGS1(qr);
+    if (!s0) return out;
 
-    console.log("RAW:", qr);
-    console.log("CLEAN:", clean);
-    console.log("PARSED:", data);
+    console.log("parseGS1 input:", s0);
 
-    if (data.lot) {
-      const lotEl = document.getElementById("stockLot");
-      if (lotEl) lotEl.value = data.lot;
+    // Extrage toate câmpurile (AI)valoare într-un obiect
+    const regex = /\((\d{2})\)([^()]*)/g;
+    let match;
+    const fields = {};
+    
+    while ((match = regex.exec(s0)) !== null) {
+      const ai = match[1];
+      const value = match[2].trim();
+      fields[ai] = value;
+      console.log(`Găsit (AI)${ai}: ${value}`);
     }
 
-   if (data.expiresAt) {
-  const expEl = document.getElementById("stockExpire");
-  if (expEl) expEl.value = toDisplayDate(data.expiresAt);
+    // Găsește GTIN
+    if (fields['01']) {
+      out.gtin = fields['01'];
+    } else {
+      // Dacă nu avem (01), ia primele cifre (GTIN fără prefix)
+      const leadingDigits = s0.match(/^(\d{8,14})/);
+      if (leadingDigits) {
+        out.gtin = leadingDigits[1];
+      }
+    }
+
+    // Găsește LOT (10)
+    if (fields['10']) {
+      out.lot = fields['10'];
+    }
+
+    // Găsește Expirare (17) - ignoră (11) data fabricației
+    if (fields['17']) {
+      out.expiresAt = yymmddToISO(fields['17']);
+    }
+
+    console.log("parseGS1 output:", out);
+    return out;
+  }
+
+ function sanitizeGS1(raw) {
+  const GS = String.fromCharCode(29); // FNC1 / Group Separator
+  return String(raw || "")
+    .replace(/\u0000/g, "")          // NULL
+    .replace(/\u200B/g, "")          // zero-width space
+    .replace(new RegExp(GS, "g"), "")// scoate GS
+    .replace(/[\r\n\t ]+/g, "")      // whitespace - NU elimina parantezele!
+    .trim();
 }
-
-    if (data.gtin) {
-      selectProductByGTIN(data.gtin);
-    }
-  }
-
-  function sanitizeGS1(raw) {
-    const GS = String.fromCharCode(29); // FNC1 / Group Separator
-    return String(raw || "")
-      .replace(/\u0000/g, "")          // NULL
-      .replace(/\u200B/g, "")          // zero-width space
-      .replace(new RegExp(GS, "g"), "")// scoate GS (sau îl poți păstra dacă vrei)
-      .replace(/[\r\n\t ]+/g, "")      // whitespace
-      .trim();
-  }
 
   // Converteste yyyy-mm-dd (ISO) → dd.mm.yyyy (pentru afișare în input)
 function toDisplayDate(isoDate) {
@@ -2247,37 +2296,47 @@ function fromDisplayDate(displayDate) {
     return g;
   }
 
-  function selectProductByGTIN(gtin) {
-    const sel = document.getElementById("stockProduct");
-    if (!sel) return;
+function selectProductByGTIN(gtin) {
+  const scanned = normalizeGTIN(gtin);
+  console.log("Caut produs pentru GTIN:", scanned);
+  
+  // Verificăm dacă avem produsele încărcate în variabila globală
+  if (!window.stockPageProducts || !Array.isArray(window.stockPageProducts)) {
+    console.warn("Produsele nu sunt încărcate încă în window.stockPageProducts");
+    return;
+  }
 
-    const scanned = normalizeGTIN(gtin);
-    let found = false;
+  // Caută produsul după GTIN (principal sau în lista gtins)
+  const found = window.stockPageProducts.find(p => {
+    const mainGtin = normalizeGTIN(p.gtin);
+    if (mainGtin === scanned) return true;
+    
+    if (Array.isArray(p.gtins)) {
+      return p.gtins.some(g => normalizeGTIN(g) === scanned);
+    }
+    return false;
+  });
 
+  console.log("Produs găsit:", found);
+
+  if (found && typeof window.selectStockProduct === 'function') {
+    window.selectStockProduct(found);
+    
+    // Afișează indicatorul verde
+    const okEl = document.getElementById("stockAutoOk");
+    if (okEl) okEl.style.display = "flex";
+    
+    console.log("Produs selectat cu succes:", found.name);
+  } else {
+    // Dacă nu găsim produsul, afișăm warning
     const okEl = document.getElementById("stockAutoOk");
     if (okEl) okEl.style.display = "none";
-
-    [...sel.options].forEach(o => {
-      let arr = [];
-      try {
-        arr = JSON.parse(o.dataset.gtins || "[]");
-      } catch {
-        arr = [];
-      }
-
-      const match = arr.map(normalizeGTIN).includes(scanned);
-
-      if (match && !found) {
-        sel.value = o.value;
-        found = true;
-        if (okEl) okEl.style.display = "flex";
-      }
-    });
-
-    if (found) {
-      sel.dispatchEvent(new Event("change", { bubbles: true }));
-    }
+    
+    console.warn("GTIN negăsit în lista de produse:", scanned);
+    // Opțional: alertă utilizatorului
+    // alert("Produsul cu GTIN " + scanned + " nu a fost găsit în baza de date. Adaugă produsul mai întâi în pagina de produse.");
   }
+}
 
 
 
@@ -2841,11 +2900,15 @@ function fromDisplayDate(displayDate) {
   // Încărcăm datele
   const products = await fetch("/api/products-flat").then(r => r.json());
   const stock = await fetch("/api/stock").then(r => r.json());
+    // Expunem imediat produsele pentru ca selectProductByGTIN să funcționeze
+  window.stockPageProducts = products;
+  console.log("Produse încărcate:", products.length);
   
   // Variabilă pentru produsul selectat
   let selectedProduct = null;
 
   // Funcție pentru selectarea unui produs
+   // Funcție pentru selectarea unui produs
   function selectProduct(product) {
     selectedProduct = product;
     
@@ -2863,10 +2926,8 @@ function fromDisplayDate(displayDate) {
     if (searchInput) searchInput.value = "";
     if (resultsBox) resultsBox.classList.remove("show");
     
-    // Dacă produsul are GTIN, îl punem în câmpul QR (opțional, util pentru scanare)
-    if (qrInput && product.gtin) {
-      qrInput.value = product.gtin;
-    }
+    // NU mai modificăm qrInput.value aici pentru a nu declanșa din nou parsing-ul
+    // și a nu pierde lotul și data expirării extrase anterior
   }
 
   // Căutare live în produse
@@ -2922,22 +2983,57 @@ function fromDisplayDate(displayDate) {
     });
   }
 
-  // Handler pentru scanare QR (selectează automat produsul)
+    // Handler pentru scanare QR sau introducere GTIN
   if (qrInput) {
     qrInput.addEventListener("input", () => {
       const clean = sanitizeGS1(qrInput.value);
-      if (!clean) return;
+      if (!clean || clean.length < 8) return;
       
-      // Caută produsul după GTIN
+      console.log("QR Input:", clean);
+      
+      // Parsăm codul (GS1 sau GTIN simplu)
+      const parsed = parseGS1(clean);
+      
+      if (!parsed.gtin) {
+        console.log("Nu am găsit GTIN valid");
+        return;
+      }
+      
+      console.log("GTIN extras:", parsed.gtin);
+      console.log("LOT extras:", parsed.lot);
+      console.log("Expirare extras:", parsed.expiresAt);
+
+      // Căutăm produsul
       const found = products.find(p => {
-        if (p.gtin && normalizeGTIN(p.gtin) === normalizeGTIN(clean)) return true;
-        if (p.gtins && p.gtins.some(g => normalizeGTIN(g) === normalizeGTIN(clean))) return true;
+        const scannedNorm = normalizeGTIN(parsed.gtin);
+        if (p.gtin && normalizeGTIN(p.gtin) === scannedNorm) return true;
+        if (Array.isArray(p.gtins) && p.gtins.some(g => normalizeGTIN(g) === scannedNorm)) return true;
         return false;
       });
       
       if (found) {
+        console.log("Produs găsit:", found.name);
         selectProduct(found);
-        applyParsedGS1(clean);
+        
+        // Completăm LOT (doar dacă avem valoare și câmpul este gol sau diferit)
+        if (parsed.lot) {
+          const lotEl = document.getElementById("stockLot");
+          if (lotEl) {
+            lotEl.value = parsed.lot;
+            console.log("✅ LOT populat:", parsed.lot);
+          }
+        }
+        
+        // Completăm Expirare (doar dacă avem valoare)
+        if (parsed.expiresAt) {
+          const expEl = document.getElementById("stockExpire");
+          if (expEl) {
+            expEl.value = toDisplayDate(parsed.expiresAt);
+            console.log("✅ Expirare populată:", toDisplayDate(parsed.expiresAt));
+          }
+        }
+      } else {
+        console.warn("Produs negăsit pentru GTIN:", parsed.gtin);
       }
     });
   }
@@ -2986,9 +3082,14 @@ function fromDisplayDate(displayDate) {
       window.location.reload();
     };
   }
+    // Expunem variabilele globale pentru ca selectProductByGTIN să funcționeze
+    window.stockPageProducts = products;
+    window.selectStockProduct = selectProduct;
   
   // Fix pentru selecturi pe mobil
   document.querySelectorAll('select').forEach(s => { s.size = 1; });
+
+  
 }
   const grouped = {};
   async function initInventoryPage() {
