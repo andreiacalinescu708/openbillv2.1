@@ -216,6 +216,33 @@ await q(`CREATE INDEX IF NOT EXISTS idx_trip_sheets_driver ON trip_sheets(driver
 await q(`CREATE INDEX IF NOT EXISTS idx_fuel_receipts_sheet ON fuel_receipts(trip_sheet_id)`);
 
 
+// Adaugă coloana warehouse în stock (dacă nu există)
+await q(`ALTER TABLE stock ADD COLUMN IF NOT EXISTS warehouse TEXT NOT NULL DEFAULT 'depozit'`);
+
+// Update stock existent să fie depozit (păstrăm compatibilitate)
+await q(`UPDATE stock SET warehouse = 'depozit' WHERE warehouse IS NULL`);
+
+// Index pentru performanță
+await q(`CREATE INDEX IF NOT EXISTS stock_warehouse_idx ON stock (warehouse)`);
+
+// Tabel pentru transferuri (istoric)
+await q(`
+  CREATE TABLE IF NOT EXISTS stock_transfers (
+    id TEXT PRIMARY KEY,
+    gtin TEXT NOT NULL,
+    product_name TEXT NOT NULL,
+    lot TEXT NOT NULL,
+    expires_at DATE,
+    qty INT NOT NULL,
+    from_warehouse TEXT NOT NULL,
+    to_warehouse TEXT NOT NULL,
+    from_location TEXT,
+    to_location TEXT,
+    created_by TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )
+`);
+
 }
 
 // ================= AUDIT LOG (DB) =================

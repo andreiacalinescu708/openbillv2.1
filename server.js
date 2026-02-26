@@ -423,9 +423,33 @@ function allocateFromSpecificLot(stock, gtin, lot, neededQty) {
 
 
 // ----- API CLIENTS -----
-app.get("/api/clients-tree", (req, res) => {
-  const flat = readJson(CLIENTS_FILE, []);
-  res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
+app.get("/api/clients-tree", async (req, res) => {
+  try {
+    if (db.hasDb()) {
+      // Citește din PostgreSQL
+      const r = await db.q(
+        `SELECT name, group_name as "group", category 
+         FROM clients 
+         ORDER BY name ASC`
+      );
+      
+      // Transformă în format flat pentru funcția existentă
+      const flat = r.rows.map(row => ({
+        name: row.name,
+        group: row.group || "",      // group_name mapat la group
+        category: row.category || ""
+      }));
+      
+      res.json(buildClientsTreeFromFlat(flat));
+    } else {
+      // Fallback pe fișier dacă nu e DB
+      const flat = readJson(CLIENTS_FILE, []);
+      res.json(buildClientsTreeFromFlat(Array.isArray(flat) ? flat : []));
+    }
+  } catch (e) {
+    console.error("clients-tree error:", e);
+    res.status(500).json({ error: "Eroare la clienți" });
+  }
 });
 
 app.get("/api/clients-flat", async (req, res) => {
@@ -437,13 +461,15 @@ app.get("/api/clients-flat", async (req, res) => {
          ORDER BY name ASC`
       );
 
-      const out = r.rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        group: row.group_name || "",
-        category: row.category || "",
-        prices: row.prices || {}
-      }));
+     // În app.get("/api/clients-flat", ...)
+const out = r.rows.map(row => ({
+  id: row.id,
+  name: row.name,
+  group: row.group_name || "",
+  category: row.category || "",
+  cui: row.cui || "", // Adăugat
+  prices: row.prices || {}
+}));
 
       return res.json(out);
     }
@@ -885,23 +911,37 @@ app.put("/api/orders/:id", async (req, res) => {
 });
 
 // Funcție nouă pentru alocare stoc din DB
-async function allocateStockFromDB(gtin, neededQty) {
+// Funcție modificată pentru alocare cu fallback pe locații
+async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozit') {
   const g = normalizeGTIN(gtin);
   if (!g) throw new Error("GTIN invalid");
 
-  // Luăm stocul disponibil ordonat după locație (A, B, C...) și data expirării
   const locCase = sqlLocOrderCase("location");
-  const r = await db.q(
-    `SELECT id, gtin, lot, expires_at, qty, location
+  
+  // Întâi încercăm din depozit, locațiile în ordinea A,B,C,R1,R2,R3
+  let r = await db.q(
+    `SELECT id, gtin, lot, expires_at, qty, location, warehouse
      FROM stock
-     WHERE gtin=$1 AND qty > 0
+     WHERE gtin=$1 AND warehouse=$2 AND qty > 0
      ORDER BY ${locCase} ASC, expires_at ASC
      FOR UPDATE`,
-    [g]
+    [g, preferredWarehouse]
   );
 
   let remaining = Number(neededQty);
   const allocated = [];
+
+  // Dacă nu găsim în depozit, încercăm în magazin (fallback)
+  if (r.rows.length === 0 && preferredWarehouse === 'depozit') {
+    r = await db.q(
+      `SELECT id, gtin, lot, expires_at, qty, location, warehouse
+       FROM stock
+       WHERE gtin=$1 AND warehouse='magazin' AND qty > 0
+       ORDER BY expires_at ASC
+       FOR UPDATE`,
+      [g]
+    );
+  }
 
   for (const s of r.rows) {
     if (remaining <= 0) break;
@@ -911,14 +951,14 @@ async function allocateStockFromDB(gtin, neededQty) {
     
     const take = Math.min(avail, remaining);
     
-    // Scădem din stoc
     await db.q(`UPDATE stock SET qty = qty - $1 WHERE id=$2`, [take, s.id]);
     
     allocated.push({
       stockId: s.id,
       lot: s.lot,
       expiresAt: s.expires_at ? s.expires_at.toISOString().slice(0, 10) : null,
-      location: s.location || "A",
+      location: s.location || (s.warehouse === 'magazin' ? 'MAGAZIN' : 'A'),
+      warehouse: s.warehouse,
       qty: take
     });
     
@@ -926,7 +966,7 @@ async function allocateStockFromDB(gtin, neededQty) {
   }
 
   if (remaining > 0) {
-    throw new Error(`Stoc insuficient (lipsă ${remaining} buc)`);
+    throw new Error(`Stoc insuficient în ${preferredWarehouse}. Lipsă ${remaining} buc`);
   }
 
   return allocated;
@@ -1217,34 +1257,32 @@ app.get("/api/debug-db", async (req, res) => {
   }
 });
 
-
-
-// GET stock
-// ===== STOCK (DB + fallback JSON) =====
-
-// GET stock
 app.get("/api/stock", async (req, res) => {
   try {
+    const warehouse = req.query.warehouse || 'depozit';
+    
     if (!db.hasDb()) {
-      const stock = readJson(STOCK_FILE, []);
+      const stock = readJson(STOCK_FILE, []).filter(s => (s.warehouse || 'depozit') === warehouse);
       return res.json(stock);
     }
 
     const r = await db.q(
-      `SELECT id, gtin, product_name, lot, expires_at, qty, location, created_at
-       FROM stock
-       ORDER BY created_at DESC`
+      `SELECT id, gtin, product_name, lot, expires_at, qty, location, warehouse, created_at
+       FROM stock 
+       WHERE warehouse = $1
+       ORDER BY created_at DESC`,
+      [warehouse]
     );
 
-    // map la cheile pe care frontend-ul tău le folosește acum
     const out = r.rows.map(s => ({
       id: s.id,
       gtin: s.gtin,
       productName: s.product_name,
       lot: s.lot,
-      expiresAt: s.expires_at,   // ok (front-ul îl afișează)
+      expiresAt: s.expires_at,
       qty: Number(s.qty || 0),
-      location: s.location || "A",
+      location: s.location || (s.warehouse === 'magazin' ? 'MAGAZIN' : 'A'),
+      warehouse: s.warehouse || 'depozit',
       createdAt: s.created_at
     }));
 
@@ -1252,6 +1290,87 @@ app.get("/api/stock", async (req, res) => {
   } catch (e) {
     console.error("GET /api/stock error:", e);
     res.status(500).json({ error: "Eroare DB stock" });
+  }
+});
+
+// POST transfer
+app.post("/api/stock/transfer", async (req, res) => {
+  try {
+    const { gtin, productName, lot, expiresAt, qty, fromWarehouse, toWarehouse, fromLocation, toLocation } = req.body;
+    
+    if (!gtin || !lot || !qty || !fromWarehouse || !toWarehouse) {
+      return res.status(400).json({ error: "Date incomplete" });
+    }
+
+    const transferQty = Number(qty);
+    if (!Number.isFinite(transferQty) || transferQty <= 0) {
+      return res.status(400).json({ error: "Cantitate invalidă" });
+    }
+
+    // Normalizare GTIN
+    const g = normalizeGTIN(gtin);
+    
+    // Determină locațiile exacte
+    const sourceLoc = fromWarehouse === 'magazin' ? 'MAGAZIN' : (fromLocation || 'A');
+    const destLoc = toWarehouse === 'magazin' ? 'MAGAZIN' : (toLocation || 'A');
+
+    console.log(`Transfer: ${transferQty} buc ${g} lot ${lot} din ${fromWarehouse}/${sourceLoc} în ${toWarehouse}/${destLoc}`);
+
+    await db.q("BEGIN");
+
+    // 1. Verifică și scade din sursă
+    // Căutăm după GTIN normalizat, lot exact, warehouse și locație
+    const r1 = await db.q(
+      `UPDATE stock SET qty = qty - $1 
+       WHERE gtin=$2 AND lot=$3 AND warehouse=$4 AND location=$5 AND qty >= $1
+       RETURNING id, qty as remaining`,
+      [transferQty, g, lot, fromWarehouse, sourceLoc]
+    );
+
+    if (r1.rows.length === 0) {
+      await db.q("ROLLBACK");
+      return res.status(400).json({ 
+        error: "Stoc insuficient în sursă sau lotul nu există în locația selectată",
+        debug: { gtin: g, lot, fromWarehouse, sourceLoc }
+      });
+    }
+
+    // 2. Verifică dacă există în destinație
+    const r2 = await db.q(
+      `SELECT id, qty FROM stock WHERE gtin=$1 AND lot=$2 AND warehouse=$3 AND location=$4`,
+      [g, lot, toWarehouse, destLoc]
+    );
+
+    if (r2.rows.length > 0) {
+      // Există, incrementăm
+      await db.q(
+        `UPDATE stock SET qty = qty + $1 WHERE id=$2`,
+        [transferQty, r2.rows[0].id]
+      );
+    } else {
+      // Nu există, creăm intrare nouă
+      const newId = crypto.randomUUID();
+      await db.q(
+        `INSERT INTO stock (id, gtin, product_name, lot, expires_at, qty, location, warehouse)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [newId, g, productName, lot, expiresAt, transferQty, destLoc, toWarehouse]
+      );
+    }
+
+    // 3. Log transfer
+    await db.q(
+      `INSERT INTO stock_transfers (id, gtin, product_name, lot, expires_at, qty, from_warehouse, to_warehouse, from_location, to_location, created_by, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())`,
+      [crypto.randomUUID(), g, productName, lot, expiresAt, transferQty, fromWarehouse, toWarehouse, sourceLoc, destLoc, req.session?.user?.username || 'system']
+    );
+
+    await db.q("COMMIT");
+    res.json({ ok: true, message: `Transfer ${transferQty} buc realizat cu succes` });
+
+  } catch (e) {
+    try { await db.q("ROLLBACK"); } catch {}
+    console.error("Transfer error:", e);
+    res.status(500).json({ error: e.message || "Eroare internă la transfer" });
   }
 });
 
@@ -1282,6 +1401,9 @@ app.get("/api/audit", async (req, res) => {
 // ADD stock
 app.post("/api/stock", async (req, res) => {
   try {
+    const warehouse = req.body.warehouse || 'depozit';
+    const location = warehouse === 'magazin' ? 'MAGAZIN' : (req.body.location || 'A');
+    
     const entry = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
       gtin: String(req.body.gtin || "").trim(),
@@ -1289,7 +1411,8 @@ app.post("/api/stock", async (req, res) => {
       lot: String(req.body.lot || "").trim(),
       expiresAt: String(req.body.expiresAt || "").slice(0, 10),
       qty: Number(req.body.qty),
-      location: String(req.body.location || "A").trim(),
+      location: location,
+      warehouse: warehouse, // 'magazin' sau 'depozit'
       createdAt: new Date().toISOString()
     };
 
@@ -1299,36 +1422,22 @@ app.post("/api/stock", async (req, res) => {
       const stock = readJson(STOCK_FILE, []);
       stock.push(entry);
       writeJson(STOCK_FILE, stock);
-
-     await logAudit(req, "STOCK_ADD", "stock", entry.id, {
-        gtin: entry.gtin,
-        productName: entry.productName,
-        lot: entry.lot,
-        qty: entry.qty
-      });
-
       return res.json({ ok: true, entry });
     }
 
-    if (!entry.expiresAt || entry.expiresAt.length !== 10) {
-  return res.status(400).json({ error: "Data expirării invalidă" });
-}
-if (!Number.isFinite(entry.qty) || entry.qty <= 0) {
-  return res.status(400).json({ error: "Cantitate invalidă" });
-}
-
-
     await db.q(
-      `INSERT INTO stock (id, gtin, product_name, lot, expires_at, qty, location, created_at)
-       VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8::timestamptz)`,
-      [entry.id, entry.gtin, entry.productName, entry.lot, entry.expiresAt, entry.qty, entry.location, entry.createdAt]
+      `INSERT INTO stock (id, gtin, product_name, lot, expires_at, qty, location, warehouse, created_at)
+       VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8,$9::timestamptz)`,
+      [entry.id, entry.gtin, entry.productName, entry.lot, entry.expiresAt, entry.qty, entry.location, entry.warehouse, entry.createdAt]
     );
 
-   await logAudit(req, "STOCK_ADD", "stock", entry.id, {
+    await logAudit(req, "STOCK_ADD", "stock", entry.id, {
       gtin: entry.gtin,
       productName: entry.productName,
       lot: entry.lot,
-      qty: entry.qty
+      qty: entry.qty,
+      warehouse: entry.warehouse,
+      location: entry.location
     });
 
     res.json({ ok: true, entry });
@@ -1439,6 +1548,8 @@ app.delete("/api/stock/:id", async (req, res) => {
     res.status(500).json({ error: "Eroare DB stock delete" });
   }
 });
+
+
 
 
 // Login
@@ -1658,26 +1769,27 @@ app.post("/api/clients", async (req, res) => {
     const name = String(req.body.name || "").trim();
     const group = String(req.body.group || "").trim();
     const category = String(req.body.category || "").trim();
+    const cui = String(req.body.cui || "").trim().toUpperCase(); // Nou
     const prices = (req.body.prices && typeof req.body.prices === "object") ? req.body.prices : {};
 
     if (!name) return res.status(400).json({ error: "Lipsește numele clientului" });
 
     // DB
     if (db.hasDb()) {
-      const id = Date.now().toString(); // suficient pt acum; mai târziu punem uuid
+      const id = Date.now().toString();
       await db.q(
-        `INSERT INTO clients (id, name, group_name, category, prices)
-         VALUES ($1,$2,$3,$4,$5::jsonb)`,
-        [id, name, group, category, JSON.stringify(prices)]
+        `INSERT INTO clients (id, name, group_name, category, cui, prices)
+         VALUES ($1,$2,$3,$4,$5,$6::jsonb)`,
+        [id, name, group, category, cui || null, JSON.stringify(prices)]
       );
 
-      return res.json({ ok: true, id });
+      return res.json({ ok: true, id, cui });
     }
 
     // fallback local file
     const clients = readJson(CLIENTS_FILE, []);
     const id = Date.now().toString();
-    clients.push({ id, name, group, category, prices });
+    clients.push({ id, name, group, category, cui, prices });
     writeJson(CLIENTS_FILE, clients);
     return res.json({ ok: true, id });
 

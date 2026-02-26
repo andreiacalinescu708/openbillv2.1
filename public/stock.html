@@ -343,81 +343,86 @@
       </div>
 
       <div class="form-grid">
-        <div class="form-group form-group-full">
-          <label class="form-label">Cod scanat</label>
-          <div class="input-wrap">
-            <input type="text" id="qrInput" class="form-input" placeholder="Apropie camera de cod..." />
-            <div class="auto-detect-indicator" id="stockAutoOk">✓</div>
-          </div>
-        </div>
+  <div class="form-group form-group-full">
+    <label class="form-label">Cod scanat</label>
+    <div class="input-wrap">
+      <input type="text" id="qrInput" class="form-input" placeholder="Apropie camera de cod..." />
+      <div class="auto-detect-indicator" id="stockAutoOk">✓</div>
+    </div>
+  </div>
 
-        <div class="form-group form-group-full">
-          <label class="form-label">Produs</label>
-          <div class="product-search-container">
-            <div class="input-wrap">
-              <input 
-                type="text" 
-                id="stockProductSearch" 
-                class="form-input" 
-                placeholder="Caută produs după nume..."
-                autocomplete="off"
-              />
-              <div class="auto-detect-indicator" id="productSelectOk" style="display: none;">✓</div>
-            </div>
-            <div id="stockProductResults" class="product-results"></div>
-            <!-- Input hidden pentru a păstra valoarea selectată (compatibilitate cu JS existent) -->
-            <input type="hidden" id="stockProduct" value="" data-name="" data-gtins="[]" />
-            
-            <!-- Afișare produs selectat -->
-            <div id="selectedProductDisplay" class="selected-product-display">
-              <span class="check">✓</span>
-              <span class="name" id="selectedProductName"></span>
-            </div>
-          </div>
-        </div>
+  <div class="form-group form-group-full">
+    <label class="form-label">Gestiune</label>
+    <select id="warehouseSelect" class="form-select">
+      <option value="depozit">🏭 Depozit</option>
+      <option value="magazin">🏪 Magazin</option>
+    </select>
+  </div>
 
-        <div class="form-group">
-          <label class="form-label">LOT</label>
-          <input type="text" id="stockLot" class="form-input" placeholder="Ex: LOT2024001" />
-        </div>
+  <!-- Acesta e singurul dropdown pentru locatie - apare doar pt Depozit -->
+  <div class="form-group" id="locationGroup">
+    <label class="form-label">Locație Depozit</label>
+    <select id="stockLocation" class="form-select">
+      <option value="A">📍 Locație A</option>
+      <option value="B">📍 Locație B</option>
+      <option value="C">📍 Locație C</option>
+      <option value="R1">📦 Raft R1</option>
+      <option value="R2">📦 Raft R2</option>
+      <option value="R3">📦 Raft R3</option>
+    </select>
+  </div>
 
-        <div class="form-group">
-          <label class="form-label">Data expirare</label>
-          <!-- MODIFICAT: type="text" în loc de "date", placeholder dd.mm.yyyy -->
-          <input 
-            type="text" 
-            id="stockExpire" 
-            class="form-input" 
-            placeholder="dd.mm.yyyy" 
-            maxlength="10"
-          />
-          <div class="date-hint">Format: zi.lună.an (ex: 31.12.2025)</div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Locație</label>
-          <select id="stockLocation" class="form-select">
-            <option value="A">📍 Locație A</option>
-            <option value="B">📍 Locație B</option>
-            <option value="C">📍 Locație C</option>
-            <option value="R1">📦 Raft R1</option>
-            <option value="R2">📦 Raft R2</option>
-            <option value="R3">📦 Raft R3</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Cantitate</label>
-          <input type="number" id="stockQty" class="form-input" min="1" placeholder="0" />
-        </div>
-
-        <div class="form-group form-group-full">
-          <button class="btn btn-primary btn-lg w-full" id="btnAddStock">
-            ➕ Adaugă în stoc
-          </button>
-        </div>
+  <div class="form-group form-group-full">
+    <label class="form-label">Produs</label>
+    <div class="product-search-container">
+      <div class="input-wrap">
+        <input 
+          type="text" 
+          id="stockProductSearch" 
+          class="form-input" 
+          placeholder="Caută produs după nume..."
+          autocomplete="off"
+        />
+        <div class="auto-detect-indicator" id="productSelectOk" style="display: none;">✓</div>
+      </div>
+      <div id="stockProductResults" class="product-results"></div>
+      <input type="hidden" id="stockProduct" value="" data-name="" data-gtins="[]" />
+      
+      <div id="selectedProductDisplay" class="selected-product-display">
+        <span class="check">✓</span>
+        <span class="name" id="selectedProductName"></span>
       </div>
     </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">LOT</label>
+    <input type="text" id="stockLot" class="form-input" placeholder="Ex: LOT2024001" />
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Data expirare</label>
+    <input 
+      type="text" 
+      id="stockExpire" 
+      class="form-input" 
+      placeholder="dd.mm.yyyy" 
+      maxlength="10"
+    />
+    <div class="date-hint">Format: zi.lună.an (ex: 31.12.2025)</div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Cantitate</label>
+    <input type="number" id="stockQty" class="form-input" min="1" placeholder="0" />
+  </div>
+
+  <div class="form-group form-group-full">
+    <button class="btn btn-primary btn-lg w-full" id="btnAddStock">
+      ➕ Adaugă în stoc
+    </button>
+  </div>
+</div>
 
     <!-- Lista Stoc Existent -->
     <div class="card">

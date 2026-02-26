@@ -2023,42 +2023,55 @@ o.items.forEach(i => {
   const gtin = i.gtin || "-";
   const price = Number(i.price || i.unitPrice || 0);
   const subtotal = price * (i.qty || 0);
-  
   // Extrage informațiile de alocare (Lot/Exp/Locatie)
-  let allocInfo = "";
-  if (Array.isArray(i.allocations) && i.allocations.length > 0) {
-    // Dacă sunt multiple alocări, le join-uim cu "|"
-    allocInfo = i.allocations.map(a => {
-      const loc = a.location || "-";
-      const lot = a.lot || "-";
-      const exp = a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('ro-RO') : "-";
-      return `<span class="alloc-tag">📍${loc} | LOT:${lot} | EXP:${exp}</span>`;
-    }).join(" <span style='color:var(--border-color)'>|</span> ");
-  } else {
-    allocInfo = `<span style="color:var(--text-muted); font-style:italic;">Fără alocare stoc</span>`;
-  }
-
-  row.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
-      <div style="flex:1; min-width:200px;">
-        <strong>${i.name}</strong>
-        <span style="color:var(--primary-400); font-weight:600; margin-left:8px;">× ${i.qty}</span>
-      </div>
-      <div style="text-align:right; font-weight:700; color:var(--primary-400);">
-        ${subtotal.toFixed(2)} RON
-      </div>
-    </div>
-    
-    <div style="margin-top:var(--space-2); font-size:0.875rem; display:flex; flex-wrap:wrap; gap:var(--space-3); align-items:center;">
-      <span style="color:var(--text-muted);">GTIN: ${gtin}</span>
-      <span style="color:var(--border-color);">|</span>
-      <span style="color:var(--text-muted);">Preț: ${price.toFixed(2)} RON</span>
-      <span style="color:var(--border-color);">|</span>
-      ${allocInfo}
-    </div>
-  `;
+let allocInfo = "";
+if (Array.isArray(i.allocations) && i.allocations.length > 0) {
+  // Grupează după Lot+Locație+Expirare și adună cantitățile
+  const grouped = {};
   
-  body.appendChild(row);
+  i.allocations.forEach(a => {
+    const key = `${a.lot}|${a.location}|${a.expiresAt}`;
+    if (!grouped[key]) {
+      grouped[key] = {
+        lot: a.lot || "-",
+        loc: a.location || "-",
+        exp: a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('ro-RO') : "-",
+        qty: 0
+      };
+    }
+    grouped[key].qty += Number(a.qty || 0);
+  });
+
+  // Afișează fiecare grup cu cantitatea sa - ADAUGĂ .join("") AICI!
+  allocInfo = Object.values(grouped).map(g => {
+    return `<span class="alloc-tag" style="background:rgba(59,130,246,0.15); padding:4px 8px; border-radius:6px; border:1px solid rgba(59,130,246,0.3);">
+      📍 ${g.loc} | <b>LOT:${g.lot}</b> | EXP:${g.exp} | <b style="color:#60a5fa;">${g.qty} buc</b>
+    </span>`;
+  }).join("");  // ← ADAUGĂ .join("") AICI!
+}  // ← Închide if-ul AICI!
+
+// MUTĂ row.innerHTML și body.appendChild în afara if-ului:
+row.innerHTML = `
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
+    <div style="flex:1; min-width:200px;">
+      <strong>${i.name}</strong>
+      <span style="color:var(--primary-400); font-weight:600; margin-left:8px;">× ${i.qty}</span>
+    </div>
+    <div style="text-align:right; font-weight:700; color:var(--primary-400);">
+      ${subtotal.toFixed(2)} RON
+    </div>
+  </div>
+  
+  <div style="margin-top:var(--space-2); font-size:0.875rem; display:flex; flex-wrap:wrap; gap:var(--space-3); align-items:center;">
+    <span style="color:var(--text-muted);">GTIN: ${gtin}</span>
+    <span style="color:var(--border-color);">|</span>
+    <span style="color:var(--text-muted);">Preț: ${price.toFixed(2)} RON</span>
+    <span style="color:var(--border-color);">|</span>
+    ${allocInfo}
+  </div>
+`;
+
+body.appendChild(row);
 });
 
       head.addEventListener("click", (e) => {
@@ -2870,13 +2883,18 @@ function selectProductByGTIN(gtin) {
 
 
 
- async function initStockPage() {
+async function initStockPage() {
   const list = document.getElementById("stockList");
   const qrInput = document.getElementById("qrInput");
   const btnScan = document.getElementById("btnScanQR");
   const btnClose = document.getElementById("btnCloseScan");
   
-  // Elemente noi pentru căutare produs
+  // Elemente gestiune
+  const warehouseSelect = document.getElementById("warehouseSelect");
+  const locationGroup = document.getElementById("locationGroup");
+  const locationSelect = document.getElementById("stockLocation");
+  
+  // Elemente produs
   const searchInput = document.getElementById("stockProductSearch");
   const resultsBox = document.getElementById("stockProductResults");
   const hiddenInput = document.getElementById("stockProduct");
@@ -2885,6 +2903,21 @@ function selectProductByGTIN(gtin) {
   const productSelectOk = document.getElementById("productSelectOk");
 
   if (btnClose) btnClose.onclick = closeScanner;
+
+  // Handler schimbare gestiune
+  if (warehouseSelect && locationGroup) {
+    warehouseSelect.addEventListener("change", () => {
+      if (warehouseSelect.value === 'magazin') {
+        locationGroup.style.display = 'none';
+        if (locationSelect) locationSelect.value = 'MAGAZIN';
+      } else {
+        locationGroup.style.display = 'block';
+        if (locationSelect) locationSelect.value = 'A';
+      }
+      // Reîncărcăm stocul pentru gestiunea selectată
+      loadStockForWarehouse(warehouseSelect.value);
+    });
+  }
 
   if (btnScan && qrInput) {
     btnScan.onclick = async () => {
@@ -2898,44 +2931,47 @@ function selectProductByGTIN(gtin) {
   }
 
   // Încărcăm datele
-  const products = await fetch("/api/products-flat").then(r => r.json());
-  const stock = await fetch("/api/stock").then(r => r.json());
-    // Expunem imediat produsele pentru ca selectProductByGTIN să funcționeze
+  let products = [];
+  try {
+    products = await fetch("/api/products-flat").then(r => r.json());
+  } catch (e) {
+    console.error("Eroare încărcare produse:", e);
+  }
+  
+  // Expunem pentru funcțiile globale
   window.stockPageProducts = products;
   console.log("Produse încărcate:", products.length);
-  
+
   // Variabilă pentru produsul selectat
   let selectedProduct = null;
 
-  // Funcție pentru selectarea unui produs
-   // Funcție pentru selectarea unui produs
+  // Funcție selectare produs
   function selectProduct(product) {
     selectedProduct = product;
     
-    // Populăm hidden input (pentru compatibilitate cu codul existent)
-    hiddenInput.value = product.id;
-    hiddenInput.dataset.name = product.name;
-    hiddenInput.dataset.gtins = JSON.stringify(product.gtins || []);
+    if (hiddenInput) {
+      hiddenInput.value = product.id;
+      hiddenInput.dataset.name = product.name;
+      hiddenInput.dataset.gtins = JSON.stringify(product.gtins || []);
+    }
     
-    // Afișăm produsul selectat
     if (selectedName) selectedName.textContent = product.name;
     if (selectedDisplay) selectedDisplay.style.display = "flex";
     if (productSelectOk) productSelectOk.style.display = "flex";
     
-    // Golim căutarea și ascundem rezultatele
-    if (searchInput) searchInput.value = "";
+    if (searchInput) {
+      searchInput.value = "";
+      searchInput.blur(); // Ascunde tastatura pe mobil
+    }
     if (resultsBox) resultsBox.classList.remove("show");
     
-    // NU mai modificăm qrInput.value aici pentru a nu declanșa din nou parsing-ul
-    // și a nu pierde lotul și data expirării extrase anterior
+    console.log("Produs selectat:", product.name, product.gtin);
   }
 
-  // Căutare live în produse
+  // Căutare live produse
   if (searchInput && resultsBox) {
     searchInput.addEventListener("input", () => {
       const query = searchInput.value.toLowerCase().trim();
-      
-      // Golește rezultatele anterioare
       resultsBox.innerHTML = "";
       
       if (!query) {
@@ -2943,13 +2979,12 @@ function selectProductByGTIN(gtin) {
         return;
       }
 
-      // Filtrează produsele
       const matches = products.filter(p => {
         const nameMatch = p.name.toLowerCase().includes(query);
         const catMatch = p.category && p.category.toLowerCase().includes(query);
         const gtinMatch = p.gtin && p.gtin.includes(query);
         return nameMatch || catMatch || gtinMatch;
-      }).slice(0, 10); // Max 10 rezultate
+      }).slice(0, 10);
 
       if (matches.length === 0) {
         resultsBox.innerHTML = '<div class="no-results">Niciun produs găsit</div>';
@@ -2957,7 +2992,6 @@ function selectProductByGTIN(gtin) {
         return;
       }
 
-      // Afișează rezultatele
       matches.forEach(product => {
         const item = document.createElement("div");
         item.className = "product-result-item";
@@ -2975,7 +3009,6 @@ function selectProductByGTIN(gtin) {
       resultsBox.classList.add("show");
     });
 
-    // Închide dropdown când click în afară
     document.addEventListener("click", (e) => {
       if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
         resultsBox.classList.remove("show");
@@ -2983,113 +3016,190 @@ function selectProductByGTIN(gtin) {
     });
   }
 
-    // Handler pentru scanare QR sau introducere GTIN
+  // Handler scanare QR - CORECTAT pentru a selecta automat produsul
   if (qrInput) {
     qrInput.addEventListener("input", () => {
       const clean = sanitizeGS1(qrInput.value);
       if (!clean || clean.length < 8) return;
       
-      console.log("QR Input:", clean);
-      
-      // Parsăm codul (GS1 sau GTIN simplu)
+      console.log("QR Input procesat:", clean);
       const parsed = parseGS1(clean);
       
       if (!parsed.gtin) {
-        console.log("Nu am găsit GTIN valid");
+        console.log("Nu am găsit GTIN valid în cod");
         return;
       }
       
-      console.log("GTIN extras:", parsed.gtin);
-      console.log("LOT extras:", parsed.lot);
-      console.log("Expirare extras:", parsed.expiresAt);
+      console.log("Caut produs pentru GTIN:", parsed.gtin);
 
-      // Căutăm produsul
+      // Căutăm produsul după GTIN
+      const scannedNorm = normalizeGTIN(parsed.gtin);
       const found = products.find(p => {
-        const scannedNorm = normalizeGTIN(parsed.gtin);
         if (p.gtin && normalizeGTIN(p.gtin) === scannedNorm) return true;
         if (Array.isArray(p.gtins) && p.gtins.some(g => normalizeGTIN(g) === scannedNorm)) return true;
         return false;
       });
       
       if (found) {
-        console.log("Produs găsit:", found.name);
+        console.log("✅ Produs găsit:", found.name);
         selectProduct(found);
         
-        // Completăm LOT (doar dacă avem valoare și câmpul este gol sau diferit)
+        // Populăm LOT și Expirare dacă există în cod
         if (parsed.lot) {
           const lotEl = document.getElementById("stockLot");
-          if (lotEl) {
-            lotEl.value = parsed.lot;
-            console.log("✅ LOT populat:", parsed.lot);
-          }
+          if (lotEl) lotEl.value = parsed.lot;
         }
         
-        // Completăm Expirare (doar dacă avem valoare)
         if (parsed.expiresAt) {
           const expEl = document.getElementById("stockExpire");
-          if (expEl) {
-            expEl.value = toDisplayDate(parsed.expiresAt);
-            console.log("✅ Expirare populată:", toDisplayDate(parsed.expiresAt));
-          }
+          if (expEl) expEl.value = toDisplayDate(parsed.expiresAt);
+        }
+        
+        // Afișăm indicator verde
+        const okEl = document.getElementById("stockAutoOk");
+        if (okEl) {
+          okEl.style.display = "flex";
+          setTimeout(() => { okEl.style.display = "none"; }, 2000);
         }
       } else {
-        console.warn("Produs negăsit pentru GTIN:", parsed.gtin);
+        console.warn("❌ Produs negăsit pentru GTIN:", parsed.gtin);
+        alert("Produsul cu GTIN " + parsed.gtin + " nu există în baza de date. Adaugă-l mai întâi în pagina de produse.");
       }
     });
   }
 
-  renderStock(stock);
+  // Expunem funcția global pentru scaner
+  window.selectStockProduct = selectProduct;
 
-  // Handler pentru butonul Adaugă în stoc (modificat pentru noua structură)
+  // Încărcare stoc specific gestiunii
+  async function loadStockForWarehouse(warehouse) {
+    if (!list) return;
+    list.innerHTML = "<p class='hint'>Se încarcă stocul...</p>";
+    
+    try {
+      const stock = await fetch(`/api/stock?warehouse=${warehouse}`).then(r => r.json());
+      renderStock(stock);
+    } catch (e) {
+      console.error("Eroare încărcare stoc:", e);
+      list.innerHTML = "<p class='hint'>Eroare la încărcarea stocului</p>";
+    }
+  }
+
+  // Render stoc
+  function renderStock(stock) {
+    if (!list) return;
+    list.innerHTML = "";
+
+    if (!Array.isArray(stock) || !stock.length) {
+      list.innerHTML = `<div class="stock-meta">Nu există stoc în această gestiune.</div>`;
+      return;
+    }
+
+    stock.forEach(s => {
+      const item = document.createElement("div");
+      item.className = "stock-item";
+
+      const left = document.createElement("div");
+      left.style.minWidth = "0";
+
+      const name = document.createElement("div");
+      name.className = "stock-item-name";
+      name.textContent = s.productName || "Produs";
+
+      const meta = document.createElement("div");
+      meta.className = "stock-item-meta";
+      const locDisplay = s.warehouse === 'magazin' ? '🏪 Magazin' : `📍 ${s.location || 'A'}`;
+      meta.innerHTML = `
+        LOT: <b>${s.lot || "-"}</b><br>
+        Expiră: <b>${(s.expiresAt || "-").slice(0,10)}</b><br>
+        Locație: <b>${locDisplay}</b>
+      `;
+
+      left.appendChild(name);
+      left.appendChild(meta);
+
+      const qty = Number(s.qty || 0);
+      const badge = document.createElement("div");
+      badge.className = "stock-badge " + (qty >= 50 ? "ok" : "warn");
+      badge.textContent = `${qty} buc`;
+
+      item.appendChild(left);
+      item.appendChild(badge);
+
+      list.appendChild(item);
+    });
+  }
+
+  // Handler Adaugă în stoc
   const btnAdd = document.getElementById("btnAddStock");
   if (btnAdd) {
     btnAdd.onclick = async () => {
-      if (!selectedProduct && !hiddenInput.value) {
+      const warehouse = warehouseSelect ? warehouseSelect.value : 'depozit';
+      const location = warehouse === 'magazin' ? 'MAGAZIN' : (locationSelect ? locationSelect.value : 'A');
+      
+      const productId = selectedProduct ? selectedProduct.id : (hiddenInput ? hiddenInput.value : '');
+      const productName = selectedProduct ? selectedProduct.name : (hiddenInput ? hiddenInput.dataset.name : '');
+      const gtins = selectedProduct ? (selectedProduct.gtins || []) : JSON.parse(hiddenInput?.dataset.gtins || "[]");
+      
+      const lot = document.getElementById("stockLot")?.value.trim();
+      const expiresAt = fromDisplayDate(document.getElementById("stockExpire")?.value);
+      const qty = document.getElementById("stockQty")?.value;
+
+      if (!productId) {
         alert("Selectează un produs mai întâi!");
         return;
       }
-
-      // Folosim selectedProduct dacă există, altfel luăm din hidden input
-      const productId = selectedProduct ? selectedProduct.id : hiddenInput.value;
-      const productName = selectedProduct ? selectedProduct.name : hiddenInput.dataset.name;
-      const gtins = selectedProduct ? (selectedProduct.gtins || []) : JSON.parse(hiddenInput.dataset.gtins || "[]");
-      
-      const lot = document.getElementById("stockLot").value.trim();
-      const expiresAt = fromDisplayDate(document.getElementById("stockExpire").value);
-      const qty = document.getElementById("stockQty").value;
-      const stockLocation = document.getElementById("stockLocation").value;
-
-      if (!productId || !lot || !expiresAt || !qty) {
-        alert("Completează toate câmpurile (Produs, LOT, Data expirare, Cantitate)");
+      if (!lot || !expiresAt || !qty) {
+        alert("Completează toate câmpurile (LOT, Data expirare, Cantitate)");
         return;
       }
 
       const gtin = gtins[0] || selectedProduct?.gtin || "";
 
-      await fetch("/api/stock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gtin,
-          productName,
-          lot,
-          expiresAt,
-          qty,
-          location: stockLocation
-        })
-      });
+      try {
+        await fetch("/api/stock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gtin,
+            productName,
+            lot,
+            expiresAt,
+            qty: Number(qty),
+            location,
+            warehouse
+          })
+        });
 
-      window.location.reload();
+        // Refresh și reset
+        loadStockForWarehouse(warehouse);
+        
+        // Reset form
+        document.getElementById("stockLot").value = '';
+        document.getElementById("stockExpire").value = '';
+        document.getElementById("stockQty").value = '';
+        if (selectedDisplay) selectedDisplay.style.display = "none";
+        if (searchInput) searchInput.value = "";
+        if (productSelectOk) productSelectOk.style.display = "none";
+        selectedProduct = null;
+        if (hiddenInput) {
+          hiddenInput.value = '';
+          hiddenInput.dataset.name = '';
+          hiddenInput.dataset.gtins = '[]';
+        }
+        
+      } catch (e) {
+        alert("Eroare la salvare");
+        console.error(e);
+      }
     };
   }
-    // Expunem variabilele globale pentru ca selectProductByGTIN să funcționeze
-    window.stockPageProducts = products;
-    window.selectStockProduct = selectProduct;
+
+  // Load inițial
+  loadStockForWarehouse('depozit');
   
   // Fix pentru selecturi pe mobil
   document.querySelectorAll('select').forEach(s => { s.size = 1; });
-
-  
 }
   const grouped = {};
   async function initInventoryPage() {
@@ -3868,276 +3978,314 @@ function selectProductByGTIN(gtin) {
     }
   }
 
-  async function initCheckStockPage() {
-    if (!location.pathname.endsWith("checkstock.html")) return;
+ async function initCheckStockPage() {
+  if (!location.pathname.endsWith("checkstock.html")) return;
 
-    const list = document.getElementById("stockList");
-    const inp = document.getElementById("stockSearch");
-    const btn = document.getElementById("btnRefresh");
-    const totalBox = document.getElementById("inventoryTotal");
+  const list = document.getElementById("inventoryList");
+  const searchInput = document.getElementById("stockSearch");
+  const refreshBtn = document.getElementById("btnRefreshStock");
+  const totalCountEl = document.getElementById("totalCount");
+  const tabs = document.querySelectorAll('.tab-btn');
+  const alertsContainer = document.getElementById('alertsContainer');
+  
+  let currentWarehouse = 'depozit';
+  let allStock = [];
 
-    if (!list) return;
+  // Funcție escape HTML
+  const esc = (s) => String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
-    // ===== utils =====
-    const esc = (s) =>
-      String(s ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
-    const toISODate = (v) => {
-      const s = String(v || "").trim();
-      if (!s) return "";
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (m) return `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
-      if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-      return "";
-    };
-
-    const qtyBadgeClass = (qty) => {
-      const n = Number(qty || 0);
-      if (n <= 0) return "qty-red";
-      if (n < 500) return "qty-amber";     // praguri “de aspect”
-      if (n < 2000) return "qty-yellow";
-      return "qty-green";
-    };
-
-    let stock = [];
-
-    async function load() {
-      list.innerHTML = `<p class="hint">Se încarcă stocul...</p>`;
-
-      const r = await apiFetch("/api/stock");
-      stock = await r.json().catch(() => []);
-
-      // sort stabil: productName, apoi loc, apoi lot
-      stock.sort((a, b) => {
-        const pn = String(a.productName || "").localeCompare(String(b.productName || ""), "ro");
-        if (pn !== 0) return pn;
-        const lc = String(a.location || "").localeCompare(String(b.location || ""), "ro");
-        if (lc !== 0) return lc;
-        return String(a.lot || "").localeCompare(String(b.lot || ""), "ro");
-      });
-
-      render();
-    }
-
-    function groupStock(arr) {
-      // grupare pe productName + gtin (dacă există) ca să nu unești produse diferite cu același nume
-      const map = new Map();
-
-      (arr || []).forEach((s) => {
-        const name = String(s.productName || "").trim() || "Produs";
-        const gtin = String(s.gtin || "").trim();
-        const key = `${name}|||${gtin}`;
-
-        if (!map.has(key)) {
-          map.set(key, {
-            key,
-            productName: name,
-            gtin,
-            totalQty: 0,
-            lots: []
-          });
-        }
-        const g = map.get(key);
-        g.totalQty += Number(s.qty || 0);
-        g.lots.push(s);
-      });
-
-      return [...map.values()];
-    }
-
-    function render() {
-      const q = String(inp?.value || "").toLowerCase().trim();
-
-      const filteredStock = !q
-        ? stock
-        : stock.filter((x) =>
-            String(x.productName || "").toLowerCase().includes(q) ||
-            String(x.lot || "").toLowerCase().includes(q) ||
-            String(x.location || "").toLowerCase().includes(q) ||
-            String(x.gtin || "").toLowerCase().includes(q)
-          );
-
-      const groups = groupStock(filteredStock);
-
-      list.innerHTML = "";
-
-      if (!groups.length) {
-        list.innerHTML = `<p class="hint">Nu există stoc.</p>`;
-        if (totalBox) totalBox.textContent = "0 buc";
-        return;
-      }
-
-      // total general
-      const grandTotal = groups.reduce((s, g) => s + Number(g.totalQty || 0), 0);
-      if (totalBox) totalBox.textContent = `${grandTotal} buc`;
-
-      groups.forEach((g) => {
-        const card = document.createElement("div");
-        card.className = "csProdCard";
-
-        const top = document.createElement("div");
-        top.className = "csProdTop";
-
-        top.innerHTML = `
-          <div class="csProdLeft">
-            <div class="csIcon">🗂️</div>
-            <div class="csName">${esc(g.productName)}</div>
-          </div>
-          <div class="csQtyBadge ${qtyBadgeClass(g.totalQty)}">
-            ${Number(g.totalQty || 0)} buc
-          </div>
-        `;
-
-        const details = document.createElement("div");
-        details.className = "csLots";
-        details.style.display = "none";
-
-        // lot rows
-        (g.lots || []).forEach((s) => {
-          const row = document.createElement("div");
-          row.className = "csLotRow";
-
-          const expISO = toISODate(s.expiresAt);
-
-          row.innerHTML = `
-            <div class="csLotGrid">
-              <div class="csField">
-                <div class="csLbl">LOT</div>
-                <input class="csInp lot" value="${esc(s.lot || "")}" disabled>
-              </div>
-
-              <div class="csField">
-                <div class="csLbl">EXP</div>
-                <input class="csInp exp" type="date" value="${esc(expISO)}" disabled>
-              </div>
-
-              <div class="csField">
-                <div class="csLbl">CANTITATE</div>
-                <input class="csInp qty" type="number" min="0" value="${Number(s.qty || 0)}" disabled>
-              </div>
-
-              <div class="csField">
-                <div class="csLbl">LOC</div>
-                <input class="csInp loc" value="${esc(s.location || "A")}" disabled>
-              </div>
-            </div>
-
-            <div class="csRowActions">
-              <button class="btnEdit" type="button">Editează</button>
-              <button class="btnSave" type="button" style="display:none;">Salvează</button>
-              <button class="btnCancel" type="button" style="display:none;">Renunță</button>
-              <div class="status"></div>
-            </div>
-          `;
-
-          const lotEl = row.querySelector(".lot");
-          const expEl = row.querySelector(".exp");
-          const qtyEl = row.querySelector(".qty");
-          const locEl = row.querySelector(".loc");
-
-          const btnEdit = row.querySelector(".btnEdit");
-          const btnSave = row.querySelector(".btnSave");
-          const btnCancel = row.querySelector(".btnCancel");
-          const statusEl = row.querySelector(".status");
-
-          const orig = {
-            lot: lotEl.value,
-            exp: expEl.value,
-            qty: qtyEl.value,
-            loc: locEl.value
-          };
-
-          const setEditMode = (on) => {
-            lotEl.disabled = !on;
-            expEl.disabled = !on;
-            qtyEl.disabled = !on;
-            locEl.disabled = !on;
-
-            btnEdit.style.display = on ? "none" : "";
-            btnSave.style.display = on ? "" : "none";
-            btnCancel.style.display = on ? "" : "none";
-
-            if (!on) statusEl.textContent = "";
-          };
-
-          btnEdit.onclick = () => setEditMode(true);
-
-          btnCancel.onclick = () => {
-            lotEl.value = orig.lot;
-            expEl.value = orig.exp;
-            qtyEl.value = orig.qty;
-            locEl.value = orig.loc;
-            setEditMode(false);
-          };
-
-          btnSave.onclick = async () => {
-            statusEl.textContent = "Salvez...";
-            try {
-              const payload = {
-                lot: String(lotEl.value || "").trim(),
-                expiresAt: String(expEl.value || "").slice(0, 10),
-                qty: Number(qtyEl.value),
-                location: String(locEl.value || "").trim()
-              };
-
-              const resp = await apiFetch(`/api/stock/${encodeURIComponent(s.id)}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-              });
-
-              const out = await resp.json().catch(() => ({}));
-              if (!resp.ok) throw new Error(out.error || "Eroare la salvare");
-
-              // actualizăm local
-              s.lot = payload.lot;
-              s.expiresAt = payload.expiresAt;
-              s.qty = payload.qty;
-              s.location = payload.location;
-
-              statusEl.textContent = "Salvat ✅";
-              setTimeout(() => (statusEl.textContent = ""), 900);
-
-              setEditMode(false);
-
-              // refresh UI (totaluri / badge)
-              render();
-            } catch (e) {
-              statusEl.textContent = "Eroare ❌";
-              alert(e.message || "Eroare");
-            }
-          };
-
-          setEditMode(false);
-          details.appendChild(row);
+  // Grupare stoc după produs
+  function groupStockByProduct(stock) {
+    const map = new Map();
+    
+    (stock || []).forEach((s) => {
+      const key = `${s.productName}|||${s.gtin}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          productName: s.productName,
+          gtin: s.gtin,
+          totalQty: 0,
+          lots: []
         });
-
-        // toggle expand
-        top.style.cursor = "pointer";
-        top.onclick = () => {
-          const open = details.style.display !== "none";
-          details.style.display = open ? "none" : "block";
-          card.classList.toggle("open", !open);
-        };
-
-        card.appendChild(top);
-        card.appendChild(details);
-        list.appendChild(card);
-      });
-    }
-
-    if (inp) inp.addEventListener("input", render);
-    if (btn) btn.onclick = load;
-
-    await load();
+      }
+      const g = map.get(key);
+      g.totalQty += Number(s.qty || 0);
+      g.lots.push(s);
+    });
+    
+    return [...map.values()];
   }
 
+  // Render alerte stoc mic
+  function renderAlerts(depozitStock, magazinStock) {
+    const alerts = [];
+    const LOW_LIMIT = 30;
+    
+    const depozitLow = depozitStock.filter(s => Number(s.qty) < LOW_LIMIT);
+    const magazinLow = magazinStock.filter(s => Number(s.qty) < LOW_LIMIT);
+    
+    if (depozitLow.length) {
+      alerts.push(`⚠️ Depozit: ${depozitLow.length} produse cu stoc sub ${LOW_LIMIT} buc`);
+    }
+    if (magazinLow.length) {
+      alerts.push(`⚠️ Magazin: ${magazinLow.length} produse cu stoc sub ${LOW_LIMIT} buc`);
+    }
+    
+    alertsContainer.innerHTML = alerts.length 
+      ? alerts.map(a => `<div class="alert-box">${esc(a)}</div>`).join('')
+      : '';
+  }
+
+  // Render card produs (pentru Total)
+  function renderProductCard(group, showWarehouse = false) {
+    const card = document.createElement("div");
+    card.className = "csProdCard";
+    
+    const isLow = group.totalQty < 30;
+    
+    let lotsHtml = '';
+    group.lots.forEach(lot => {
+      const locDisplay = lot.warehouse === 'magazin' 
+        ? '🏪 Magazin' 
+        : `📍 ${lot.location || 'A'}`;
+      
+      lotsHtml += `
+        <div class="csLotRow">
+          <div class="csLotGrid">
+            <div class="csField">
+              <div class="csLbl">LOT</div>
+              <div class="csInp">${esc(lot.lot)}</div>
+            </div>
+            <div class="csField">
+              <div class="csLbl">EXP</div>
+              <div class="csInp">${esc((lot.expiresAt || "").slice(0,10))}</div>
+            </div>
+            <div class="csField">
+              <div class="csLbl">CANTITATE</div>
+              <div class="csInp">${lot.qty} buc</div>
+            </div>
+            <div class="csField">
+              <div class="csLbl">LOC</div>
+              <div class="csInp">${locDisplay}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    card.innerHTML = `
+      <div class="csProdTop">
+        <div class="csProdLeft">
+          <div class="csIcon">🗂️</div>
+          <div class="csName">${esc(group.productName)}</div>
+        </div>
+        <div class="csQtyBadge ${isLow ? 'qty-red' : 'qty-green'}">
+          ${group.totalQty} buc
+        </div>
+      </div>
+      <div class="csLots">
+        ${lotsHtml}
+      </div>
+    `;
+    
+    return card;
+  }
+
+  // Render pentru Depozit sau Magazin (separat)
+  function renderWarehouseStock(stock, warehouse) {
+    list.innerHTML = '';
+    
+    const header = document.createElement("div");
+    header.className = "warehouse-header";
+    header.innerHTML = `<span class="warehouse-icon">${warehouse === 'depozit' ? '🏭' : '🏪'}</span><h2>${warehouse === 'depozit' ? 'Depozit' : 'Magazin'}</h2>`;
+    list.appendChild(header);
+    
+    if (!stock.length) {
+      list.innerHTML += `<p class="hint">Nu există stoc în ${warehouse}.</p>`;
+      return;
+    }
+    
+    const groups = groupStockByProduct(stock);
+    
+    groups.forEach(group => {
+      const card = renderProductCard(group, false);
+      list.appendChild(card);
+    });
+    
+    // Update total
+    const total = stock.reduce((sum, s) => sum + Number(s.qty || 0), 0);
+    if (totalCountEl) totalCountEl.textContent = total;
+  }
+
+  // Render Total General (ambele gestiuni)
+  function renderTotalStock(allStockData) {
+    list.innerHTML = '';
+    
+    const header = document.createElement("div");
+    header.className = "warehouse-header";
+    header.innerHTML = `<span class="warehouse-icon">📊</span><h2>Total General (Depozit + Magazin)</h2>`;
+    list.appendChild(header);
+    
+    if (!allStockData.length) {
+      list.innerHTML += `<p class="hint">Nu există stoc.</p>`;
+      return;
+    }
+    
+    const groups = groupStockByProduct(allStockData);
+    
+    groups.forEach(group => {
+      const card = document.createElement("div");
+      card.className = "csProdCard";
+      
+      const isLow = group.totalQty < 30;
+      
+      // Separăm pe gestiuni
+      const depozitLots = group.lots.filter(l => l.warehouse === 'depozit' || !l.warehouse);
+      const magazinLots = group.lots.filter(l => l.warehouse === 'magazin');
+      
+      let lotsHtml = '';
+      
+      if (depozitLots.length) {
+        lotsHtml += `<div style="font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 4px; font-weight: 700;">🏭 DEPOSIT</div>`;
+        depozitLots.forEach(lot => {
+          lotsHtml += `
+            <div class="csLotRow">
+              <div class="csLotGrid">
+                <div class="csField"><div class="csLbl">LOT</div><div class="csInp">${esc(lot.lot)}</div></div>
+                <div class="csField"><div class="csLbl">EXP</div><div class="csInp">${esc((lot.expiresAt || "").slice(0,10))}</div></div>
+                <div class="csField"><div class="csLbl">QTY</div><div class="csInp">${lot.qty}</div></div>
+                <div class="csField"><div class="csLbl">LOC</div><div class="csInp">📍 ${esc(lot.location || 'A')}</div></div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      if (magazinLots.length) {
+        lotsHtml += `<div style="font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 4px; font-weight: 700;">🏪 MAGAZIN</div>`;
+        magazinLots.forEach(lot => {
+          lotsHtml += `
+            <div class="csLotRow">
+              <div class="csLotGrid">
+                <div class="csField"><div class="csLbl">LOT</div><div class="csInp">${esc(lot.lot)}</div></div>
+                <div class="csField"><div class="csLbl">EXP</div><div class="csInp">${esc((lot.expiresAt || "").slice(0,10))}</div></div>
+                <div class="csField"><div class="csLbl">QTY</div><div class="csInp">${lot.qty}</div></div>
+                <div class="csField"><div class="csLbl">LOC</div><div class="csInp">🏪 Magazin</div></div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      card.innerHTML = `
+        <div class="csProdTop">
+          <div class="csProdLeft">
+            <div class="csIcon">🗂️</div>
+            <div class="csName">${esc(group.productName)}</div>
+          </div>
+          <div class="csQtyBadge ${isLow ? 'qty-red' : 'qty-green'}">
+            ${group.totalQty} buc
+          </div>
+        </div>
+        <div class="csLots">${lotsHtml}</div>
+      `;
+      
+      list.appendChild(card);
+    });
+    
+    // Total general
+    const total = allStockData.reduce((sum, s) => sum + Number(s.qty || 0), 0);
+    if (totalCountEl) totalCountEl.textContent = total;
+  }
+
+  // Filtrare după search
+  function filterAndRender() {
+    const q = (searchInput?.value || "").toLowerCase().trim();
+    
+    let filtered = allStock;
+    if (q) {
+      filtered = allStock.filter(s => 
+        (s.productName || "").toLowerCase().includes(q) ||
+        (s.lot || "").toLowerCase().includes(q) ||
+        (s.location || "").toLowerCase().includes(q) ||
+        (s.gtin || "").includes(q)
+      );
+    }
+    
+    if (currentWarehouse === 'total') {
+      renderTotalStock(filtered);
+    } else {
+      const warehouseFiltered = filtered.filter(s => 
+        currentWarehouse === 'depozit' 
+          ? (s.warehouse === 'depozit' || !s.warehouse)
+          : s.warehouse === 'magazin'
+      );
+      renderWarehouseStock(warehouseFiltered, currentWarehouse);
+    }
+  }
+
+  // Încărcare date
+  async function loadAllStock() {
+    if (list) list.innerHTML = "<p class='hint'>Se încarcă stocul...</p>";
+    
+    try {
+      const [depozitRes, magazinRes] = await Promise.all([
+        fetch('/api/stock?warehouse=depozit'),
+        fetch('/api/stock?warehouse=magazin')
+      ]);
+      
+      const depozitStock = await depozitRes.json();
+      const magazinStock = await magazinRes.json();
+      
+      allStock = [
+        ...depozitStock.map(s => ({...s, warehouse: s.warehouse || 'depozit'})),
+        ...magazinStock.map(s => ({...s, warehouse: 'magazin'}))
+      ];
+      
+      // Update badges
+      const depozitTotal = depozitStock.reduce((sum, s) => sum + Number(s.qty || 0), 0);
+      const magazinTotal = magazinStock.reduce((sum, s) => sum + Number(s.qty || 0), 0);
+      
+      document.getElementById('badge-depozit').textContent = depozitTotal;
+      document.getElementById('badge-magazin').textContent = magazinTotal;
+      
+      renderAlerts(depozitStock, magazinStock);
+      filterAndRender();
+      
+    } catch (e) {
+      console.error("Eroare încărcare stoc:", e);
+      if (list) list.innerHTML = "<p class='hint'>Eroare la încărcarea stocului.</p>";
+    }
+  }
+
+  // Tab switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentWarehouse = tab.dataset.warehouse;
+      filterAndRender();
+    });
+  });
+
+  // Search handler
+  if (searchInput) {
+    searchInput.addEventListener("input", filterAndRender);
+  }
+
+  // Refresh
+  if (refreshBtn) {
+    refreshBtn.onclick = loadAllStock;
+  }
+
+  // Load inițial
+  await loadAllStock();
+}
 
 
 

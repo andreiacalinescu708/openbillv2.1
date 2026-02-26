@@ -13,7 +13,7 @@
     :root {
       --bg-primary: #0f172a;
       --bg-card: #1e293b;
-      --bg-input: #ffffff;
+      --bg-input: rgba(15, 23, 42, 0.8);
       --text-primary: #f8fafc;
       --text-secondary: #cbd5e1;
       --accent-blue: #0284c7;
@@ -37,7 +37,6 @@
       line-height: 1.6;
     }
 
-    /* Topbar consistent cu aplicația */
     .topbar {
       background: var(--accent-blue);
       padding: 1rem 2rem;
@@ -77,14 +76,12 @@
       opacity: 0.9;
     }
 
-    /* Layout principal */
     .page {
       max-width: 1200px;
       margin: 2rem auto;
       padding: 0 1.5rem;
     }
 
-    /* Carduri moderne */
     .card {
       background: var(--bg-card);
       border-radius: 1rem;
@@ -111,26 +108,47 @@
       margin: 1.5rem 0 1rem 0;
     }
 
-    /* Input-uri moderne */
-    .input {
+    .input, select.input {
       width: 100%;
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1rem;
       border: 2px solid var(--border-color);
       border-radius: 0.5rem;
       font-size: 1rem;
       background: var(--bg-input);
-      color: #1e293b;
+      color: var(--text-primary);
       transition: all 0.3s ease;
       margin-bottom: 1rem;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      cursor: pointer;
     }
 
-    .input:focus {
+    select.input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 18px;
+      padding-right: 45px;
+    }
+
+    .input:focus, select.input:focus {
       outline: none;
       border-color: var(--accent-blue);
       box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+      background: rgba(15, 23, 42, 0.9);
     }
 
-    /* Form layout îmbunătățit */
+    .input::placeholder {
+      color: rgba(203, 213, 225, 0.5);
+    }
+
+    select.input option {
+      background: #1e293b;
+      color: var(--text-primary);
+      padding: 10px;
+    }
+
     .formRow {
       margin-bottom: 1.25rem;
     }
@@ -143,7 +161,6 @@
       font-size: 0.95rem;
     }
 
-    /* Butoane moderne */
     .btnPrimary {
       background: var(--accent-blue);
       color: white;
@@ -184,7 +201,6 @@
       background: rgba(2, 132, 199, 0.1);
     }
 
-    /* Listă clienți */
     .list {
       background: rgba(15, 23, 42, 0.5);
       border-radius: 0.75rem;
@@ -203,7 +219,6 @@
       padding: 2rem;
     }
 
-    /* Item client în listă */
     .client-item {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -228,7 +243,6 @@
       border-color: var(--accent-blue);
     }
 
-    /* Secțiune prețuri speciale */
     #specialPricesBox {
       background: rgba(15, 23, 42, 0.5);
       border-radius: 0.75rem;
@@ -245,10 +259,11 @@
       align-items: end;
     }
 
-    /* Detalii client */
     #clientDetails {
       background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
       min-height: 200px;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
     }
 
     #clientDetails:empty::before {
@@ -260,7 +275,18 @@
       padding: 3rem;
     }
 
-    /* Mesaje */
+    .cui-badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
     .hint {
       margin-top: 1rem;
       padding: 1rem;
@@ -280,7 +306,6 @@
       border: 1px solid rgba(239, 68, 68, 0.3);
     }
 
-    /* Separatoare */
     hr {
       border: none;
       height: 1px;
@@ -288,7 +313,6 @@
       margin: 2rem 0;
     }
 
-    /* Scrollbar modern */
     ::-webkit-scrollbar {
       width: 8px;
     }
@@ -306,7 +330,6 @@
       background: var(--accent-hover);
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .page {
         padding: 0 1rem;
@@ -329,7 +352,6 @@
       }
     }
 
-    /* Stiluri pentru elementele generate dinamic de script.js */
     .client-group-header {
       color: var(--accent-blue);
       font-weight: 600;
@@ -365,6 +387,11 @@
     .delete-btn:hover {
       background: rgba(239, 68, 68, 0.4);
     }
+
+    /* Ascunde elementele când nu sunt necesare */
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -396,19 +423,39 @@
           <input id="newClientName" class="input" placeholder="ex: Farmacia Tei" required />
         </div>
 
+        <!-- Rând cu CUI și Grup -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="formRow">
-            <label>Grup</label>
-            <select id="newClientGroup" class="input">
-              <option value="Craiova">Craiova</option>
-              <option value="Exterior">Exterior</option>
-            </select>
+            <label>CUI Firmă</label>
+            <input id="newClientCui" class="input" placeholder="ex: RO12345678" style="text-transform: uppercase;" />
           </div>
 
           <div class="formRow">
-            <label>Categorie / Zonă</label>
-            <input id="newClientCategory" class="input" placeholder="ex: Vâlcea" />
+            <label>Grup</label>
+            <select id="newClientGroup" class="input" required>
+              <option value="">-- Selectează grup --</option>
+              <option value="Craiova">📍 Craiova</option>
+              <option value="Exterior">🌍 Exterior</option>
+            </select>
           </div>
+        </div>
+
+        <!-- Zonă pentru Exterior (ascuns implicit) -->
+        <div id="zoneContainer" class="formRow hidden">
+          <label>Județ / Zonă</label>
+          <select id="newClientZone" class="input">
+            <option value="">-- Selectează zona --</option>
+            <option value="Vâlcea - Râmnicu Vâlcea">Vâlcea - Râmnicu Vâlcea</option>
+            <option value="Vâlcea - Drăgășani">Vâlcea - Drăgășani</option>
+            <option value="Gorj - Târgu Jiu">Gorj - Târgu Jiu</option>
+            <option value="Gorj - Motru">Gorj - Motru</option>
+            <option value="Mehedinți - Drobeta">Mehedinți - Drobeta</option>
+            <option value="Olt - Slatina">Olt - Slatina</option>
+            <option value="Olt - Caracal">Olt - Caracal</option>
+            <option value="Teleorman - Alexandria">Teleorman - Alexandria</option>
+            <option value="Argeș - Pitești">Argeș - Pitești</option>
+            <option value="Argeș - Câmpulung">Argeș - Câmpulung</option>
+          </select>
         </div>
 
         <hr />
@@ -438,5 +485,125 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // Gestionarea afișării zonă în funcție de grup
+    const groupSelect = document.getElementById('newClientGroup');
+    const zoneContainer = document.getElementById('zoneContainer');
+    const zoneSelect = document.getElementById('newClientZone');
+
+    groupSelect.addEventListener('change', function() {
+      const selectedGroup = this.value;
+      
+      if (selectedGroup === 'Exterior') {
+        // Arată dropdown pentru zonă
+        zoneContainer.classList.remove('hidden');
+        zoneSelect.required = true;
+      } else {
+        // Ascunde dropdown pentru Craiova sau când nu e selectat nimic
+        zoneContainer.classList.add('hidden');
+        zoneSelect.value = '';
+        zoneSelect.required = false;
+      }
+    });
+
+    // Salvare client
+    document.getElementById('addClientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('newClientName').value.trim();
+      const cui = document.getElementById('newClientCui').value.trim().toUpperCase();
+      const group = document.getElementById('newClientGroup').value;
+      
+      // Dacă e Craiova, zona e implicit "Craiova", dacă e Exterior, luăm din dropdown
+      let zone = 'Craiova';
+      if (group === 'Exterior') {
+        zone = document.getElementById('newClientZone').value;
+        if (!zone) {
+          alert('Selectează o zonă pentru grupul Exterior!');
+          return;
+        }
+      }
+      
+      // Colectează prețuri speciale
+      const prices = {};
+      document.querySelectorAll('.special-price-row').forEach(row => {
+        const prodId = row.querySelector('select')?.value;
+        const price = row.querySelector('input[type="number"]')?.value;
+        if (prodId && price) {
+          prices[prodId] = Number(price);
+        }
+      });
+
+      try {
+        const res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, cui, group, category: zone, prices })
+        });
+        
+        const data = await res.json();
+        const msgBox = document.getElementById('clientMsg');
+        
+        if (res.ok) {
+          msgBox.textContent = `✅ Client salvat cu succes!${cui ? ' CUI: ' + cui : ''}`;
+          msgBox.className = 'hint success';
+          msgBox.style.display = 'block';
+          
+          // Reset form
+          document.getElementById('newClientName').value = '';
+          document.getElementById('newClientCui').value = '';
+          document.getElementById('newClientGroup').value = '';
+          zoneContainer.classList.add('hidden');
+          zoneSelect.value = '';
+          document.getElementById('specialPricesBox').innerHTML = '';
+          
+          // Reîncarcă lista
+          if (typeof loadClientsAdmin === 'function') loadClientsAdmin();
+          
+          setTimeout(() => msgBox.style.display = 'none', 3000);
+        } else {
+          msgBox.textContent = '❌ Eroare: ' + (data.error || 'Necunoscută');
+          msgBox.className = 'hint error';
+          msgBox.style.display = 'block';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Afișare detalii client
+    window.renderClientDetails = function(client) {
+      const details = document.getElementById('clientDetails');
+      if (!details) return;
+      
+      let html = `<h3 style="margin-bottom: 1rem;">${client.name}</h3>`;
+      
+      if (client.cui) {
+        html += `<div class="cui-badge">🏢 CUI: ${client.cui}</div>`;
+      }
+      
+      html += `
+        <div style="margin-bottom: 0.5rem; color: var(--text-secondary);">
+          <strong>Grup:</strong> ${client.group || '-'}
+        </div>
+        <div style="margin-bottom: 1rem; color: var(--text-secondary);">
+          <strong>Zonă:</strong> ${client.category || '-'}
+        </div>
+      `;
+      
+      if (client.prices && Object.keys(client.prices).length > 0) {
+        html += `<hr style="margin: 1rem 0;"><h4>Prețuri speciale:</h4><ul style="list-style: none; padding: 0;">`;
+        for (const [prodId, price] of Object.entries(client.prices)) {
+          html += `<li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+            <span>Produs ID ${prodId}</span>
+            <span class="price-tag">${price} RON</span>
+          </li>`;
+        }
+        html += `</ul>`;
+      }
+      
+      details.innerHTML = html;
+    };
+  </script>
 </body>
 </html>

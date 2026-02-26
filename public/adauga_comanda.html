@@ -28,6 +28,8 @@
 
     .search-box input {
       padding-left: var(--space-10);
+      font-size: 1.1rem;
+      height: 3.5rem;
     }
 
     .search-icon {
@@ -36,10 +38,9 @@
       top: 50%;
       transform: translateY(-50%);
       color: var(--text-muted);
-      font-size: 1.25rem;
+      font-size: 1.5rem;
     }
 
-    /* Container pentru rezultate search - populat dinamic de JS */
     #clientSearchResults {
       position: absolute;
       top: calc(100% + var(--space-2));
@@ -52,14 +53,13 @@
       overflow-y: auto;
       z-index: 50;
       box-shadow: var(--shadow-xl);
-      display: none; /* Ascuns default, JS îl arată când e ceva */
+      display: none;
     }
 
     #clientSearchResults.show {
       display: block;
     }
 
-    /* Stil pentru butoanele generate de JS în search */
     #clientSearchResults .itembtn {
       width: 100%;
       text-align: left;
@@ -70,7 +70,7 @@
       color: var(--text-primary);
       cursor: pointer;
       transition: background var(--transition-fast);
-      font-size: 0.9375rem;
+      font-size: 1rem;
     }
 
     #clientSearchResults .itembtn:hover {
@@ -89,60 +89,213 @@
       min-height: 400px;
     }
 
-    /* Stiluri pentru tree-ul generat de renderTree() */
-    #clientsTree h4 {
-      margin: var(--space-4) 0 var(--space-3);
-      color: var(--text-secondary);
-      font-size: 0.875rem;
+    /* ===== ACCORDION PRINCIPAL (GRUPURI) ===== */
+    .group-accordion {
+      margin-bottom: var(--space-4);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.6);
+      transition: all 0.3s ease;
+    }
+
+    .group-accordion:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.2);
+    }
+
+    .group-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-5) var(--space-6);
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+      border: none;
+      color: var(--text-primary);
+      font-size: 1.375rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.3s ease;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    /* Butoane clienți din tree */
-    #clientsTree .itembtn {
-      width: 100%;
-      text-align: left;
-      padding: var(--space-3) var(--space-4);
-      margin-bottom: var(--space-2);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
+    .group-header:hover {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.3) 0%, rgba(59, 130, 246, 0.2) 100%);
+      padding-left: var(--space-8);
+    }
+
+    .group-header::after {
+      content: "▼";
+      font-size: 1rem;
+      transition: transform 0.3s ease;
+      color: var(--accent-blue);
+      font-weight: 900;
+    }
+
+    .group-header.active::after {
+      transform: rotate(180deg);
+    }
+
+    .group-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out;
+      background: var(--bg-card);
+    }
+
+    .group-body.open {
+      max-height: 5000px;
+      transition: max-height 0.6s ease-in;
+    }
+
+    /* ===== ACCORDION SECUNDAR (JUDEȚE) ===== */
+    .category-accordion {
+      margin: var(--space-3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-lg);
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      font-size: 0.9375rem;
+      overflow: hidden;
+      background: rgba(30, 41, 59, 0.5);
     }
 
-    #clientsTree .itembtn:hover {
-      background: var(--primary-600);
-      border-color: var(--primary-600);
-      color: white;
-      transform: translateX(4px);
-    }
-
-    /* Accordion headers din tree */
-    #clientsTree .accHead {
+    .category-header {
       width: 100%;
-      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: var(--space-3) var(--space-4);
-      margin: var(--space-2) 0;
       background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: var(--radius-lg);
-      color: var(--primary-400);
-      cursor: pointer;
-      transition: all var(--transition-fast);
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
       font-weight: 600;
-      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
 
-    #clientsTree .accHead:hover {
+    .category-header:hover {
       background: rgba(59, 130, 246, 0.2);
+      color: var(--text-primary);
+      padding-left: var(--space-5);
     }
 
-    #clientsTree .accBody {
-      padding-left: var(--space-4);
-      margin-bottom: var(--space-3);
+    .category-header::after {
+      content: "▶";
+      font-size: 0.75rem;
+      transition: transform 0.3s ease;
+      color: var(--accent-blue);
+    }
+
+    .category-header.active::after {
+      transform: rotate(90deg);
+    }
+
+    .category-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .category-body.open {
+      max-height: 2000px;
+      transition: max-height 0.4s ease-in;
+    }
+
+    .category-content {
+      padding: var(--space-4);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+
+    @media (min-width: 640px) {
+      .category-content {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .category-content {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* ===== CARDURI CLIENT ===== */
+    .client-card {
+      position: relative;
+      padding: var(--space-5);
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-xl);
+      color: var(--text-primary);
+      font-size: 1.125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: left;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      min-height: 4rem;
+    }
+
+    .client-card::before {
+      content: "👤";
+      font-size: 1.5rem;
+      opacity: 0.7;
+    }
+
+    .client-card:hover {
+      transform: translateY(-3px) scale(1.02);
+      border-color: var(--accent-blue);
+      box-shadow: 0 12px 24px -4px rgba(2, 132, 199, 0.4);
+      background: linear-gradient(145deg, #1e293b 0%, #1e3a5f 100%);
+    }
+
+    .client-card:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    .client-card .client-name {
+      flex: 1;
+      font-size: 1.125rem;
+      line-height: 1.4;
+    }
+
+    .client-card .arrow {
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: all 0.3s ease;
+      color: var(--accent-blue);
+      font-size: 1.25rem;
+    }
+
+    .client-card:hover .arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Badge număr clienți */
+    .client-count {
+      background: var(--accent-blue);
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      margin-left: auto;
+      margin-right: var(--space-3);
+    }
+
+    .sub-count {
+      background: rgba(59, 130, 246, 0.3);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      margin-left: auto;
     }
 
     .empty-state {
@@ -151,7 +304,6 @@
       color: var(--text-muted);
     }
 
-    /* Badge pentru coș */
     .cart-indicator {
       position: relative;
       display: inline-flex;
@@ -160,7 +312,7 @@
     }
 
     #cartBadge {
-      display: none; /* Ascuns default, JS îl arată */
+      display: none;
       background: var(--danger-500);
       color: white;
       padding: 2px 8px;
@@ -171,7 +323,27 @@
     }
 
     #btnViewCurrentOrder {
-      display: none; /* JS îl va face vizibil dacă există items în coș */
+      display: none;
+    }
+
+    /* Stil pentru grupul Craiova (fără sub-categorii) */
+    .simple-group-content {
+      padding: var(--space-4);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+
+    @media (min-width: 640px) {
+      .simple-group-content {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .simple-group-content {
+        grid-template-columns: repeat(3, 1fr);
+      }
     }
   </style>
 </head>
@@ -182,7 +354,8 @@
         <div class="navbar-brand-icon">⚕️</div>
         <span>FMD</span>
       </a>
-      <div class="navbar-actions"><div id="userBar"></div>
+      <div class="navbar-actions">
+        <div id="userBar"></div>
         <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
       </div>
     </div>
@@ -191,8 +364,8 @@
   <main class="container">
     <div class="page-header">
       <div>
-        <h1 style="margin-bottom: var(--space-2);">Selectează Client</h1>
-        <p style="color: var(--text-muted); margin: 0;">Alege un client pentru a începe o comandă nouă</p>
+        <h1 style="margin-bottom: var(--space-2); font-size: 2rem;">Selectează Client</h1>
+        <p style="color: var(--text-muted); margin: 0; font-size: 1.125rem;">Alege un client pentru a începe o comandă nouă</p>
       </div>
       
       <button class="btn btn-primary btn-lg cart-indicator" id="btnViewCurrentOrder">
@@ -215,15 +388,6 @@
     </div>
 
     <div class="clients-container">
-      <div class="card-header" style="margin-bottom: var(--space-4);">
-        <div>
-          <h3 style="margin: 0; font-size: 1.125rem;">Lista Clienți</h3>
-          <p style="margin: var(--space-1) 0 0; color: var(--text-muted); font-size: 0.875rem;">
-            Selectează un client pentru a continua
-          </p>
-        </div>
-      </div>
-      
       <div id="clientsTree">
         <div class="empty-state">
           <div style="font-size: 3rem; margin-bottom: var(--space-4); opacity: 0.3;">👥</div>
@@ -234,7 +398,6 @@
   </main>
 
   <script>
-    // Inițializare vizibilitate buton coș - sincronizat cu logica din script.js
     document.addEventListener("DOMContentLoaded", function() {
       const btn = document.getElementById("btnViewCurrentOrder");
       const badge = document.getElementById("cartBadge");
@@ -253,5 +416,193 @@
   </script>
   
   <script src="script.js"></script>
+  
+  <script>
+    // Override pentru renderTree cu accordion NESTED
+    (function() {
+      window.renderTree = function(obj, onClick, opts = {}) {
+        const container = document.createElement("div");
+        
+        if (!obj || typeof obj !== 'object') return container;
+        
+        // Dacă e array (clienți simpli)
+        if (Array.isArray(obj)) {
+          const content = document.createElement("div");
+          content.className = "simple-group-content";
+          
+          obj.forEach(item => {
+            let label = "";
+            let value = null;
+            
+            if (typeof item === "string") {
+              label = item;
+              value = item;
+            } else if (typeof item === "object" && item !== null) {
+              label = item.name || item.id || "Necunoscut";
+              value = item.id || item.name;
+            } else {
+              return;
+            }
+            
+            const card = createClientCard(label, value, onClick);
+            content.appendChild(card);
+          });
+          
+          container.appendChild(content);
+          return container;
+        }
+        
+        // Sortare: Craiova primul, apoi Exterior
+        const sortedKeys = Object.keys(obj).sort((a, b) => {
+          if (a === "Craiova") return -1;
+          if (b === "Craiova") return 1;
+          return a.localeCompare(b, "ro");
+        });
+        
+        sortedKeys.forEach((key, index) => {
+          const value = obj[key];
+          const groupDiv = document.createElement("div");
+          groupDiv.className = "group-accordion";
+          
+          // Header grup principal
+          const header = document.createElement("button");
+          header.className = "group-header";
+          header.type = "button";
+          
+          let totalCount = 0;
+          if (Array.isArray(value)) {
+            totalCount = value.length;
+          } else if (typeof value === 'object' && value !== null) {
+            totalCount = Object.values(value).flat().length;
+          }
+          
+          header.innerHTML = `
+            <span style="display: flex; align-items: center; gap: var(--space-3);">
+              ${key === "Craiova" ? "📍" : "🌍"}
+              ${key}
+            </span>
+            <span style="display: flex; align-items: center;">
+              <span class="client-count">${totalCount} clienți</span>
+            </span>
+          `;
+          
+          // Body grup principal
+          const body = document.createElement("div");
+          body.className = "group-body";
+          
+          // Dacă e array (ex: Craiova) - afișare directă
+          if (Array.isArray(value)) {
+            const content = document.createElement("div");
+            content.className = "simple-group-content";
+            content.style.padding = "var(--space-4)";
+            
+            value.forEach(client => {
+              const card = createClientCard(client, client, onClick);
+              content.appendChild(card);
+            });
+            body.appendChild(content);
+          } 
+          // Dacă e obiect (ex: Exterior -> OLT, Hunedoara...)
+          else if (typeof value === 'object' && value !== null) {
+            Object.entries(value).forEach(([subKey, clients], subIndex) => {
+              const categoryDiv = document.createElement("div");
+              categoryDiv.className = "category-accordion";
+              
+              // Header categorie (județ)
+              const catHeader = document.createElement("button");
+              catHeader.className = "category-header";
+              catHeader.type = "button";
+              
+              const subCount = Array.isArray(clients) ? clients.length : 0;
+              
+              catHeader.innerHTML = `
+                <span style="display: flex; align-items: center; gap: var(--space-2);">
+                  🏘️ ${subKey}
+                </span>
+                <span style="display: flex; align-items: center;">
+                  <span class="sub-count">${subCount} clienți</span>
+                </span>
+              `;
+              
+              // Body categorie
+              const catBody = document.createElement("div");
+              catBody.className = "category-body";
+              const catContent = document.createElement("div");
+              catContent.className = "category-content";
+              
+              if (Array.isArray(clients)) {
+                clients.forEach(client => {
+                  const card = createClientCard(client, client, onClick);
+                  catContent.appendChild(card);
+                });
+              }
+              
+              catBody.appendChild(catContent);
+              categoryDiv.appendChild(catHeader);
+              categoryDiv.appendChild(catBody);
+              body.appendChild(categoryDiv);
+              
+              // Toggle categorie
+              catHeader.addEventListener("click", () => {
+                const isOpen = catBody.classList.contains("open");
+                
+                // Închide alte categorii din același grup (opțional)
+                // body.querySelectorAll(".category-body.open").forEach(el => {
+                //   if (el !== catBody) {
+                //     el.classList.remove("open");
+                //     el.previousElementSibling.classList.remove("active");
+                //   }
+                // });
+                
+                catBody.classList.toggle("open", !isOpen);
+                catHeader.classList.toggle("active", !isOpen);
+              });
+              
+              // Deschide prima categorie implicit
+              if (subIndex === 0) {
+                setTimeout(() => {
+                  catBody.classList.add("open");
+                  catHeader.classList.add("active");
+                }, 150);
+              }
+            });
+          }
+          
+          groupDiv.appendChild(header);
+          groupDiv.appendChild(body);
+          container.appendChild(groupDiv);
+          
+          // Toggle grup principal
+          header.addEventListener("click", () => {
+            const isOpen = body.classList.contains("open");
+            body.classList.toggle("open", !isOpen);
+            header.classList.toggle("active", !isOpen);
+          });
+          
+          // Deschide primul grup implicit
+          if (index === 0) {
+            setTimeout(() => {
+              body.classList.add("open");
+              header.classList.add("active");
+            }, 100);
+          }
+        });
+        
+        return container;
+      };
+      
+      // Helper pentru creare card client
+      function createClientCard(label, value, onClick) {
+        const card = document.createElement("button");
+        card.className = "client-card";
+        card.innerHTML = `
+          <span class="client-name">${label}</span>
+          <span class="arrow">→</span>
+        `;
+        card.onclick = () => onClick(value);
+        return card;
+      }
+    })();
+  </script>
 </body>
 </html>
