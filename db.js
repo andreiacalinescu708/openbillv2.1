@@ -214,6 +214,8 @@ await q(`
 await q(`CREATE INDEX IF NOT EXISTS idx_trip_sheets_date ON trip_sheets(date DESC)`);
 await q(`CREATE INDEX IF NOT EXISTS idx_trip_sheets_driver ON trip_sheets(driver_id)`);
 await q(`CREATE INDEX IF NOT EXISTS idx_fuel_receipts_sheet ON fuel_receipts(trip_sheet_id)`);
+
+
 }
 
 // ================= AUDIT LOG (DB) =================
