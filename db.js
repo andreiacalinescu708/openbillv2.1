@@ -154,6 +154,66 @@ await q(`UPDATE users SET is_approved = false WHERE is_approved IS NULL`);
 
   // normalize active null (dacă au existat rânduri fără active)
   await q(`UPDATE products SET active = true WHERE active IS NULL`);
+
+  // TABEL ȘOFERI
+await q(`
+  CREATE TABLE IF NOT EXISTS drivers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )
+`);
+
+// TABEL MAȘINI (Numere de înmatriculare)
+await q(`
+  CREATE TABLE IF NOT EXISTS vehicles (
+    id TEXT PRIMARY KEY,
+    plate_number TEXT NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )
+`);
+
+// TABEL FOi DE PARCURS
+await q(`
+  CREATE TABLE IF NOT EXISTS trip_sheets (
+    id TEXT PRIMARY KEY,
+    date DATE NOT NULL,
+    driver_id TEXT NOT NULL,
+    vehicle_id TEXT NOT NULL,
+    km_start INTEGER NOT NULL,
+    km_end INTEGER,
+    locations TEXT NOT NULL DEFAULT '',
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    FOREIGN KEY (driver_id) REFERENCES drivers(id),
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+  )
+`);
+
+// TABEL BONURI ALIMENTARE
+await q(`
+  CREATE TABLE IF NOT EXISTS fuel_receipts (
+    id TEXT PRIMARY KEY,
+    trip_sheet_id TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('diesel', 'adblue')),
+    receipt_number TEXT NOT NULL,
+    liters NUMERIC(8,2) NOT NULL,
+    km_at_refuel INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    FOREIGN KEY (trip_sheet_id) REFERENCES trip_sheets(id) ON DELETE CASCADE
+  )
+`);
+await q(`
+  ALTER TABLE trip_sheets 
+  ADD COLUMN IF NOT EXISTS trip_number VARCHAR(20) UNIQUE
+`);
+
+// Indexuri pentru performanță
+await q(`CREATE INDEX IF NOT EXISTS idx_trip_sheets_date ON trip_sheets(date DESC)`);
+await q(`CREATE INDEX IF NOT EXISTS idx_trip_sheets_driver ON trip_sheets(driver_id)`);
+await q(`CREATE INDEX IF NOT EXISTS idx_fuel_receipts_sheet ON fuel_receipts(trip_sheet_id)`);
 }
 
 // ================= AUDIT LOG (DB) =================

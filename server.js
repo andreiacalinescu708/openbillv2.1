@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('dotenv').config();
 console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
 console.log("DATABASE_URL value:", process.env.DATABASE_URL?.substring(0, 30) + "...");
 const session = require("express-session");
@@ -1692,14 +1691,6 @@ app.post("/api/clients", async (req, res) => {
 // ADMIN ENDPOINTS (User Management)
 // ==========================================
 
-// Middleware pentru verificare admin
-// Middleware pentru verificare admin
-function isAdmin(req, res, next) {
-  if (req.session?.user?.role !== 'admin') {
-    return res.status(403).json({ error: "Acces interzis. Doar admin." });
-  }
-  next();
-}
 
 // Lista utilizatori în așteptare
 app.get("/api/users/pending", isAdmin, async (req, res) => {
@@ -1937,21 +1928,254 @@ async function ensureDefaultAdmin() {
   console.log(`✅ Admin implicit creat: ${username} (aprobat automat)`);
 }
 
-(async () => {
-  // IMPORTANT:
-  // - dacă DB e configurat greșit / cade temporar, NU vrem 502 (Railway).
-  // - pornim serverul oricum; doar API-urile DB pot da erori până rezolvi DB.
+async function seedInitialData() {
+  if (!db.hasDb()) return;
+
   try {
-   await db.ensureTables();
-console.log("✅ DB ready");
-await seedClientsFromFileIfEmpty();
-await seedProductsFromFileIfEmpty();
-await ensureDefaultAdmin();
+    // ȘOFERI
+    const soferi = [
+      "Calinescu Andrei-Alexandru",
+      "Paun Rares-Alexandru", 
+      "Cristiana Paun"
+    ];
+
+    for (const nume of soferi) {
+      // Verifică dacă există deja
+      const check = await db.q(
+        `SELECT id FROM drivers WHERE name = $1`,
+        [nume]
+      );
+      
+      if (check.rows.length === 0) {
+        const id = crypto.randomUUID();
+        await db.q(
+          `INSERT INTO drivers (id, name, active) VALUES ($1, $2, true)`,
+          [id, nume]
+        );
+        console.log(`✅ Șofer adăugat: ${nume}`);
+      } else {
+        console.log(`ℹ️ Șoferul există deja: ${nume}`);
+      }
+    }
+
+    // MAȘINI (Numere de înmatriculare)
+    const masini = ["DJ05FMD", "DJ50FMD"];
+    
+    for (const numar of masini) {
+      // Verifică dacă există deja
+      const check = await db.q(
+        `SELECT id FROM vehicles WHERE plate_number = $1`,
+        [numar]
+      );
+      
+      if (check.rows.length === 0) {
+        const id = crypto.randomUUID();
+        await db.q(
+          `INSERT INTO vehicles (id, plate_number, active) VALUES ($1, $2, true)`,
+          [id, numar]
+        );
+        console.log(`✅ Mașină adăugată: ${numar}`);
+      } else {
+        console.log(`ℹ️ Mașina există deja: ${numar}`);
+      }
+    }
+    
+    console.log("✅ Date inițiale verificate/adăugate cu succes!");
+  } catch (e) {
+    console.error("❌ Eroare la adăugarea datelor inițiale:", e.message);
+  }
+}
+
+ // ==========================================
+// API ȘOFERI
+// ==========================================
+app.get("/api/drivers", async (req, res) => {
+  try {
+    const r = await db.q(`SELECT id, name, active FROM drivers WHERE active=true ORDER BY name`);
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/drivers", isAdmin, async (req, res) => {
+  try {
+    const { name } = req.body;
+    const id = crypto.randomUUID();
+    await db.q(`INSERT INTO drivers (id, name) VALUES ($1,$2)`, [id, name]);
+    res.json({ ok: true, id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==========================================
+// API MAȘINI
+// ==========================================
+app.get("/api/vehicles", async (req, res) => {
+  try {
+    const r = await db.q(`SELECT id, plate_number, active FROM vehicles WHERE active=true ORDER BY plate_number`);
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/vehicles", isAdmin, async (req, res) => {
+  try {
+    const { plate_number } = req.body;
+    const id = crypto.randomUUID();
+    await db.q(`INSERT INTO vehicles (id, plate_number) VALUES ($1,$2)`, [id, plate_number.toUpperCase()]);
+    res.json({ ok: true, id });
+  } catch (e) {
+    if (e.message.includes("unique")) return res.status(400).json({ error: "Numărul există deja" });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==========================================
+// API FOi DE PARCURS
+// ==========================================
+app.get("/api/trip-sheets", async (req, res) => {
+  try {
+    const r = await db.q(`
+      SELECT 
+        t.id, t.date, t.km_start, t.km_end, t.locations, 
+        t.trip_number, t.departure_time, t.arrival_time, 
+        t.purpose, t.tech_check_departure, t.tech_check_arrival,
+        t.created_at,
+        d.name as driver_name,
+        v.plate_number
+      FROM trip_sheets t
+      JOIN drivers d ON t.driver_id = d.id
+      JOIN vehicles v ON t.vehicle_id = v.id
+      ORDER BY t.date DESC
+    `);
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/trip-sheets", async (req, res) => {
+  try {
+    const { 
+      date, driver_id, vehicle_id, km_start, locations,
+      trip_number, departure_time, arrival_time, purpose,
+      tech_check_departure, tech_check_arrival 
+    } = req.body;
+    
+    const id = crypto.randomUUID();
+    
+    await db.q(`
+      INSERT INTO trip_sheets (
+        id, date, driver_id, vehicle_id, km_start, locations,
+        trip_number, departure_time, arrival_time, purpose,
+        tech_check_departure, tech_check_arrival, created_by
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    `, [
+      id, date, driver_id, vehicle_id, km_start, locations || '',
+      trip_number, departure_time, arrival_time, purpose,
+      tech_check_departure || false, tech_check_arrival || false,
+      req.session.user.username
+    ]);
+    
+    res.json({ ok: true, id, trip_number });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put("/api/trip-sheets/:id", async (req, res) => {
+  try {
+    const { km_end, locations } = req.body;
+    const r = await db.q(`
+      UPDATE trip_sheets 
+      SET km_end = $1, locations = $2
+      WHERE id = $3
+      RETURNING km_start, km_end
+    `, [km_end, locations, req.params.id]);
+    
+    if (r.rows.length === 0) return res.status(404).json({ error: "Not found" });
+    
+    const km_total = r.rows[0].km_end - r.rows[0].km_start;
+    res.json({ ok: true, km_total });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/trip-sheets/:id", async (req, res) => {
+  try {
+    await db.q(`DELETE FROM trip_sheets WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==========================================
+// API BONURI ALIMENTARE
+// ==========================================
+app.get("/api/trip-sheets/:id/fuel-receipts", async (req, res) => {
+  try {
+    const r = await db.q(`
+      SELECT id, type, receipt_number, liters, km_at_refuel 
+      FROM fuel_receipts 
+      WHERE trip_sheet_id = $1 
+      ORDER BY km_at_refuel
+    `, [req.params.id]);
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/trip-sheets/:id/fuel-receipts", async (req, res) => {
+  try {
+    const { type, receipt_number, liters, km_at_refuel } = req.body;
+    const id = crypto.randomUUID();
+    
+    await db.q(`
+      INSERT INTO fuel_receipts (id, trip_sheet_id, type, receipt_number, liters, km_at_refuel)
+      VALUES ($1,$2,$3,$4,$5,$6)
+    `, [id, req.params.id, type, receipt_number, liters, km_at_refuel]);
+    
+    res.json({ ok: true, id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/fuel-receipts/:id", async (req, res) => {
+  try {
+    await db.q(`DELETE FROM fuel_receipts WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ==========================================
+// SEED DATE INIȚIALE - ȘOFERI ȘI MAȘINI
+// ==========================================
+
+(async () => {
+  try {
+    await db.ensureTables();
+    console.log("✅ DB ready");
+    await seedClientsFromFileIfEmpty();
+    await seedProductsFromFileIfEmpty();
+    await ensureDefaultAdmin();
+    await seedInitialData(); // ← ADĂUGĂ ACEASTĂ LINIE
   } catch (e) {
     console.error("❌ DB init error (pornesc fără DB):", e?.message || e);
   }
 
-  app.listen(PORT, () => console.log("Server pornit pe port", PORT));
+ 
+
+
+app.listen(PORT, () => console.log("Server pornit pe port", PORT));
 })();
 
 

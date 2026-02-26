@@ -4165,6 +4165,10 @@ function selectProductByGTIN(gtin) {
     if (document.getElementById("pickingList")) await initPickingOrderPage();
     if (location.pathname.endsWith("client.html")) initClientHomePage();
     if (document.getElementById("productsList")) initCheckPricePage();
+    // Inițializare pagină Foi de Parcurs (dacă suntem pe acea pagină)
+if (location.pathname.includes('foi_parcurs')) {
+  // Nu e nevoie de extra init aici, e inline în HTML
+}
 initProductsPage();
     await initClientPricesPage();
 
