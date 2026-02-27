@@ -2274,49 +2274,126 @@ body.appendChild(row);
     return out;
   }
 
-  function parseGS1(qr) {
-    const out = {};
-    const s0 = sanitizeGS1(qr);
-    if (!s0) return out;
+ function parseGS1(qr) {
+  const out = {};
+  const s0 = sanitizeGS1(qr);
+  if (!s0) return out;
 
-    console.log("parseGS1 input:", s0);
+  console.log("parseGS1 input:", s0);
 
-    // Extrage toate câmpurile (AI)valoare într-un obiect
+  // === CAZ 1: Format cu paranteze (01)GTIN(17)EXP(10)LOT ===
+  if (s0.includes("(")) {
     const regex = /\((\d{2})\)([^()]*)/g;
     let match;
-    const fields = {};
     
     while ((match = regex.exec(s0)) !== null) {
       const ai = match[1];
-      const value = match[2].trim();
-      fields[ai] = value;
-      console.log(`Găsit (AI)${ai}: ${value}`);
-    }
-
-    // Găsește GTIN
-    if (fields['01']) {
-      out.gtin = fields['01'];
-    } else {
-      // Dacă nu avem (01), ia primele cifre (GTIN fără prefix)
-      const leadingDigits = s0.match(/^(\d{8,14})/);
-      if (leadingDigits) {
-        out.gtin = leadingDigits[1];
+      let value = match[2] || "";
+      
+      // Pentru câmpuri variabile (ca LOT), valoarea poate conține următorul AI dacă nu e delimitat corect
+      // Încercăm să găsim unde începe următorul AI în valoare
+      if (ai === "10" || ai === "21") { // LOT sau Serial sunt variabile
+        const nextAiInValue = value.match(/\(\d{2}\)/);
+        if (nextAiInValue && nextAiInValue.index > 0) {
+          value = value.substring(0, nextAiInValue.index);
+        }
       }
+      
+      if (ai === "01") out.gtin = value.substring(0, 14);
+      else if (ai === "17") out.expiresAt = yymmddToISO(value);
+      else if (ai === "10") out.lot = value;
+      else if (ai === "21") out.serial = value;
     }
-
-    // Găsește LOT (10)
-    if (fields['10']) {
-      out.lot = fields['10'];
-    }
-
-    // Găsește Expirare (17) - ignoră (11) data fabricației
-    if (fields['17']) {
-      out.expiresAt = yymmddToISO(fields['17']);
-    }
-
-    console.log("parseGS1 output:", out);
+    
+    console.log("parseGS1 output (paranteze):", out);
     return out;
   }
+
+  // === CAZ 2: Format fără paranteze 01GTIN17EXP10LOT... ===
+  let i = 0;
+  const s = s0;
+  
+  while (i + 2 <= s.length) {
+    const ai = s.slice(i, i + 2);
+    i += 2;
+    
+    if (ai === "01") { 
+      // GTIN - poate fi 8, 12, 13 sau 14 cifre
+      // Căutăm următorul AI sau luăm maxim 14 cifre
+      let gtin = "";
+      const remaining = s.slice(i);
+      
+      // Pattern: între 8 și 14 cifre urmate de alt AI (10, 11, 17, 21) sau final
+      const match = remaining.match(/^(\d{8,14})(?=(10|11|17|21)\d|$)/);
+      if (match) {
+        gtin = match[1];
+        i += gtin.length;
+      } else {
+        // Fallback: luăm câte cifre mai sunt (max 14)
+        gtin = remaining.slice(0, 14).replace(/\D/g, '');
+        i += gtin.length;
+      }
+      out.gtin = gtin;
+    }
+    else if (ai === "17") { 
+      const val = s.slice(i, i + 6);
+      if (val.length === 6) {
+        out.expiresAt = yymmddToISO(val);
+        i += 6;
+      }
+    }
+    else if (ai === "11") { 
+      i += 6; // Skip data fabricație
+    }
+    else if (ai === "10") { 
+      // LOT variabil - până la următorul AI sau final
+      const remaining = s.slice(i);
+      const nextAiMatch = remaining.match(/(10|11|17|21)\d/);
+      let lot = "";
+      
+      if (nextAiMatch && nextAiMatch.index > 0) {
+        lot = remaining.slice(0, nextAiMatch.index);
+        i += nextAiMatch.index;
+      } else {
+        lot = remaining;
+        i = s.length;
+      }
+      out.lot = lot;
+    }
+    else if (ai === "21") {
+      // Serial variabil
+      const remaining = s.slice(i);
+      const nextAiMatch = remaining.match(/(01|10|11|17)\d/);
+      let serial = "";
+      
+      if (nextAiMatch && nextAiMatch.index > 0) {
+        serial = remaining.slice(0, nextAiMatch.index);
+        i += nextAiMatch.index;
+      } else {
+        serial = remaining;
+        i = s.length;
+      }
+      out.serial = serial;
+    }
+    else {
+      // AI necunoscut, încercăm să avansăm
+      // Dacă următoarele caractere sunt cifre, posibil sunt date pentru AI-ul curent
+      if (/^\d/.test(s.slice(i, i + 1))) {
+        // Sărim peste un bloc de cifre (presupunem că e dată fixă de 6-14 caractere)
+        const digits = s.slice(i).match(/^\d+/);
+        if (digits) i += Math.min(digits[0].length, 14);
+      }
+    }
+  }
+
+  // === CAZ 3: Fallback - doar cifre, posibil doar GTIN ===
+  if (!out.gtin && /^\d{8,14}$/.test(s0)) {
+    out.gtin = s0;
+  }
+
+  console.log("parseGS1 output (fără paranteze):", out);
+  return out;
+}
 
  function sanitizeGS1(raw) {
   const GS = String.fromCharCode(29); // FNC1 / Group Separator
@@ -2930,209 +3007,59 @@ function selectProductByGTIN(gtin) {
 
 
 async function initStockPage() {
+  // Referințe DOM - toate declarate aici sus
   const list = document.getElementById("stockList");
   const qrInput = document.getElementById("qrInput");
   const btnScan = document.getElementById("btnScanQR");
   const btnClose = document.getElementById("btnCloseScan");
   
-  // Elemente gestiune
-  const warehouseSelect = document.getElementById("warehouseSelect");
-  const locationGroup = document.getElementById("locationGroup");
-  const locationSelect = document.getElementById("stockLocation");
-  
-  // Elemente produs
+  // IMPORTANT: Verificăm dacă există aceste elemente
   const searchInput = document.getElementById("stockProductSearch");
-  const resultsBox = document.getElementById("stockProductResults");
+const resultsBox = document.getElementById("stockProductResults");
+  
+  console.log("searchInput:", searchInput ? "gasit" : "lipsa");
+  console.log("resultsBox:", resultsBox ? "gasit" : "lipsa");
+  
+  const lotInput = document.getElementById("stockLot");
+  const expInput = document.getElementById("stockExpire");
+  const qtyInput = document.getElementById("stockQty");
   const hiddenInput = document.getElementById("stockProduct");
   const selectedDisplay = document.getElementById("selectedProductDisplay");
   const selectedName = document.getElementById("selectedProductName");
   const productSelectOk = document.getElementById("productSelectOk");
+  const warehouseSelect = document.getElementById("warehouseSelect");
+  const locationGroup = document.getElementById("locationGroup");
+  const locationSelect = document.getElementById("stockLocation");
 
-  if (btnClose) btnClose.onclick = closeScanner;
-
-  // Handler schimbare gestiune
-  if (warehouseSelect && locationGroup) {
-    warehouseSelect.addEventListener("change", () => {
-      if (warehouseSelect.value === 'magazin') {
-        locationGroup.style.display = 'none';
-        if (locationSelect) locationSelect.value = 'MAGAZIN';
-      } else {
-        locationGroup.style.display = 'block';
-        if (locationSelect) locationSelect.value = 'A';
-      }
-      // Reîncărcăm stocul pentru gestiunea selectată
-      loadStockForWarehouse(warehouseSelect.value);
-    });
-  }
-
-  if (btnScan && qrInput) {
-    btnScan.onclick = async () => {
-      try {
-        await startScanIntoInput(qrInput);
-      } catch (e) {
-        closeScanner();
-        alert("Nu pot porni camera. Verifică permisiunile.");
-      }
-    };
-  }
-
-  // Încărcăm datele
+  // Încărcăm produsele MAI ÎNTÂI
   let products = [];
   try {
-    products = await fetch("/api/products-flat").then(r => r.json());
+    const res = await fetch("/api/products-flat");
+    products = await res.json();
+    console.log("Produse încărcate:", products.length);
   } catch (e) {
     console.error("Eroare încărcare produse:", e);
   }
-  
-  // Expunem pentru funcțiile globale
-  window.stockPageProducts = products;
-  console.log("Produse încărcate:", products.length);
 
-  // Variabilă pentru produsul selectat
+  // Stare locală
   let selectedProduct = null;
 
-  // Funcție selectare produs
-  function selectProduct(product) {
-    selectedProduct = product;
-    
-    if (hiddenInput) {
-      hiddenInput.value = product.id;
-      hiddenInput.dataset.name = product.name;
-      hiddenInput.dataset.gtins = JSON.stringify(product.gtins || []);
-    }
-    
-    if (selectedName) selectedName.textContent = product.name;
-    if (selectedDisplay) selectedDisplay.style.display = "flex";
-    if (productSelectOk) productSelectOk.style.display = "flex";
-    
-    if (searchInput) {
-      searchInput.value = "";
-      searchInput.blur(); // Ascunde tastatura pe mobil
-    }
-    if (resultsBox) resultsBox.classList.remove("show");
-    
-    console.log("Produs selectat:", product.name, product.gtin);
-  }
-
-  // Căutare live produse
-  if (searchInput && resultsBox) {
-    searchInput.addEventListener("input", () => {
-      const query = searchInput.value.toLowerCase().trim();
-      resultsBox.innerHTML = "";
-      
-      if (!query) {
-        resultsBox.classList.remove("show");
-        return;
-      }
-
-      const matches = products.filter(p => {
-        const nameMatch = p.name.toLowerCase().includes(query);
-        const catMatch = p.category && p.category.toLowerCase().includes(query);
-        const gtinMatch = p.gtin && p.gtin.includes(query);
-        return nameMatch || catMatch || gtinMatch;
-      }).slice(0, 10);
-
-      if (matches.length === 0) {
-        resultsBox.innerHTML = '<div class="no-results">Niciun produs găsit</div>';
-        resultsBox.classList.add("show");
-        return;
-      }
-
-      matches.forEach(product => {
-        const item = document.createElement("div");
-        item.className = "product-result-item";
-        item.innerHTML = `
-          <div class="product-result-name">${escapeHtml(product.name)}</div>
-          <div class="product-result-meta">
-            ${product.category || 'Produs'} 
-            ${product.gtin ? '• GTIN: ' + product.gtin : ''}
-          </div>
-        `;
-        item.onclick = () => selectProduct(product);
-        resultsBox.appendChild(item);
-      });
-
-      resultsBox.classList.add("show");
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
-        resultsBox.classList.remove("show");
-      }
-    });
-  }
-
-  // Handler scanare QR - CORECTAT pentru a selecta automat produsul
-  if (qrInput) {
-    qrInput.addEventListener("input", () => {
-      const clean = sanitizeGS1(qrInput.value);
-      if (!clean || clean.length < 8) return;
-      
-      console.log("QR Input procesat:", clean);
-      const parsed = parseGS1(clean);
-      
-      if (!parsed.gtin) {
-        console.log("Nu am găsit GTIN valid în cod");
-        return;
-      }
-      
-      console.log("Caut produs pentru GTIN:", parsed.gtin);
-
-      // Căutăm produsul după GTIN
-      const scannedNorm = normalizeGTIN(parsed.gtin);
-      const found = products.find(p => {
-        if (p.gtin && normalizeGTIN(p.gtin) === scannedNorm) return true;
-        if (Array.isArray(p.gtins) && p.gtins.some(g => normalizeGTIN(g) === scannedNorm)) return true;
-        return false;
-      });
-      
-      if (found) {
-        console.log("✅ Produs găsit:", found.name);
-        selectProduct(found);
-        
-        // Populăm LOT și Expirare dacă există în cod
-        if (parsed.lot) {
-          const lotEl = document.getElementById("stockLot");
-          if (lotEl) lotEl.value = parsed.lot;
-        }
-        
-        if (parsed.expiresAt) {
-          const expEl = document.getElementById("stockExpire");
-          if (expEl) expEl.value = toDisplayDate(parsed.expiresAt);
-        }
-        
-        // Afișăm indicator verde
-        const okEl = document.getElementById("stockAutoOk");
-        if (okEl) {
-          okEl.style.display = "flex";
-          setTimeout(() => { okEl.style.display = "none"; }, 2000);
-        }
-      } else {
-        console.warn("❌ Produs negăsit pentru GTIN:", parsed.gtin);
-        alert("Produsul cu GTIN " + parsed.gtin + " nu există în baza de date. Adaugă-l mai întâi în pagina de produse.");
-      }
-    });
-  }
-
-  // Expunem funcția global pentru scaner
-  window.selectStockProduct = selectProduct;
-
-  // Încărcare stoc specific gestiunii
+  // ===== FUNCȚIE: Încărcare stoc pentru gestiune =====
   async function loadStockForWarehouse(warehouse) {
     if (!list) return;
     list.innerHTML = "<p class='hint'>Se încarcă stocul...</p>";
     
     try {
       const stock = await fetch(`/api/stock?warehouse=${warehouse}`).then(r => r.json());
-      renderStock(stock);
+      renderStockList(stock);
     } catch (e) {
       console.error("Eroare încărcare stoc:", e);
       list.innerHTML = "<p class='hint'>Eroare la încărcarea stocului</p>";
     }
   }
 
-  // Render stoc
-  function renderStock(stock) {
+  // ===== FUNCȚIE: Render stoc =====
+  function renderStockList(stock) {
     if (!list) return;
     list.innerHTML = "";
 
@@ -3171,36 +3098,327 @@ async function initStockPage() {
 
       item.appendChild(left);
       item.appendChild(badge);
-
       list.appendChild(item);
     });
   }
 
-  // Handler Adaugă în stoc
+  // ===== FUNCȚIE: Selectare produs în formular =====
+  function selectProduct(product) {
+    selectedProduct = product;
+    
+    if (hiddenInput) {
+      hiddenInput.value = product.id;
+      hiddenInput.dataset.name = product.name;
+      hiddenInput.dataset.gtins = JSON.stringify(product.gtins || []);
+    }
+    
+    if (selectedName) selectedName.textContent = product.name;
+    if (selectedDisplay) selectedDisplay.style.display = "flex";
+    if (productSelectOk) productSelectOk.style.display = "flex";
+    
+    console.log("Produs selectat:", product.name);
+  }
+
+  // ===== INPUT 1: SCANARE QR GS1 =====
+  if (qrInput) {
+    let scanTimeout;
+    
+    const wrapper = qrInput.parentElement;
+    if (wrapper && !document.getElementById('qrClearBtn')) {
+      wrapper.style.position = 'relative';
+      const clearBtn = document.createElement('button');
+      clearBtn.id = 'qrClearBtn';
+      clearBtn.type = 'button';
+      clearBtn.innerHTML = '×';
+      clearBtn.title = "Șterge tot";
+      clearBtn.style.cssText = `
+        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        background: rgba(100,100,100,0.2); border: none; color: var(--text);
+        width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+        font-size: 20px; line-height: 1; display: none; align-items: center; justify-content: center;
+        z-index: 10;
+      `;
+      
+      clearBtn.onclick = () => {
+        qrInput.value = '';
+        clearBtn.style.display = 'none';
+        resetForm();
+      };
+      wrapper.appendChild(clearBtn);
+    }
+    
+    const clearBtn = document.getElementById('qrClearBtn');
+    
+    qrInput.addEventListener("input", () => {
+      const value = qrInput.value.trim();
+      if (clearBtn) clearBtn.style.display = value.length > 0 ? 'flex' : 'none';
+      
+      if (!value) return;
+      
+      clearTimeout(scanTimeout);
+      scanTimeout = setTimeout(() => {
+        processQRCode(value);
+      }, 500);
+    });
+    
+    function processQRCode(code) {
+      const clean = sanitizeGS1(code);
+      const parsed = parseGS1(clean);
+      
+      if (!parsed.gtin) {
+        console.log("Nu am găsit GTIN valid în QR");
+        return;
+      }
+      
+      const scannedRaw = parsed.gtin;
+      const scannedNorm = normalizeGTIN(parsed.gtin);
+      
+      const found = products.find(p => {
+        const prodGtins = [p.gtin, ...(Array.isArray(p.gtins) ? p.gtins : [])].filter(Boolean);
+        return prodGtins.some(g => {
+          const gNorm = normalizeGTIN(g);
+          return gNorm === scannedNorm || g === scannedRaw || g.includes(scannedRaw);
+        });
+      });
+      
+      if (found) {
+        selectProduct(found);
+        if (parsed.lot && lotInput) lotInput.value = parsed.lot;
+        if (parsed.expiresAt && expInput) expInput.value = toDisplayDate(parsed.expiresAt);
+        if (qtyInput) qtyInput.focus();
+      } else {
+        alert("Produsul cu GTIN " + scannedRaw + " nu există în baza de date.");
+      }
+    }
+  }
+
+  // ===== INPUT 2: CĂUTARE MANUALĂ (NUME sau GTIN cu/fără 0) =====
+  if (searchInput && resultsBox) {
+    console.log("Initializare cautare produs...");
+    
+    // Stiluri pentru dropdown dacă nu există în CSS
+    resultsBox.style.cssText = `
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    // Container relativ pentru poziționare
+    const container = searchInput.parentElement;
+    if (container) {
+      container.style.position = 'relative';
+    }
+    
+    let searchTimeout;
+    
+    searchInput.addEventListener("input", (e) => {
+      const rawValue = e.target.value;
+      const query = rawValue.toLowerCase().trim();
+      
+      console.log("Cautare:", query);
+      
+      // Golim rezultatele
+      resultsBox.innerHTML = "";
+      
+      if (!query) {
+        resultsBox.style.display = "none";
+        return;
+      }
+
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        performSearch(query, rawValue);
+      }, 300);
+    });
+    
+    function performSearch(queryLower, rawQuery) {
+      console.log("Perform search pentru:", queryLower);
+      
+      // Varianta fără leading zero
+      const queryNoZero = queryLower.replace(/^0+/, '');
+      
+      const matches = products.filter(p => {
+        // 1. Căutare după NUME (parțial, case insensitive)
+        const nameMatch = p.name && p.name.toLowerCase().includes(queryLower);
+        
+        // 2. Căutare după GTIN principal (cu sau fără zero)
+        let gtinMatch = false;
+        if (p.gtin) {
+          const gtinLower = p.gtin.toLowerCase();
+          // Match direct (05900 conține 059)
+          const directMatch = gtinLower.includes(queryLower);
+          // Match fără zero (5900 === 5900)
+          const normalizedMatch = p.gtin.replace(/^0+/, '').toLowerCase() === queryNoZero;
+          // Match parțial fără zero (5900 conține 59)
+          const partialNormalized = p.gtin.replace(/^0+/, '').toLowerCase().includes(queryNoZero);
+          
+          gtinMatch = directMatch || normalizedMatch || partialNormalized;
+        }
+        
+        // 3. Căutare după GTIN secundare (array)
+        let gtinsMatch = false;
+        if (Array.isArray(p.gtins)) {
+          gtinsMatch = p.gtins.some(g => {
+            const gLower = g.toLowerCase();
+            const direct = gLower.includes(queryLower);
+            const normalized = g.replace(/^0+/, '').toLowerCase() === queryNoZero;
+            const partialNorm = g.replace(/^0+/, '').toLowerCase().includes(queryNoZero);
+            return direct || normalized || partialNorm;
+          });
+        }
+        
+        return nameMatch || gtinMatch || gtinsMatch;
+      }).slice(0, 15); // Max 15 rezultate
+
+      console.log("Rezultate gasite:", matches.length);
+
+      if (matches.length === 0) {
+        resultsBox.innerHTML = '<div style="padding: 12px; color: var(--text-muted); text-align: center;">Niciun produs găsit</div>';
+        resultsBox.style.display = "block";
+        return;
+      }
+
+      // Construim lista
+      matches.forEach(product => {
+        const item = document.createElement("div");
+        item.style.cssText = `
+          padding: 12px;
+          border-bottom: 1px solid var(--border);
+          cursor: pointer;
+          hover: background-color: var(--hover);
+        `;
+        item.onmouseover = () => item.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+        item.onmouseout = () => item.style.backgroundColor = 'transparent';
+        
+        // Determinăm ce a făcut match pentru afișare
+        let matchInfo = product.category || 'Produs';
+        let displayGtin = product.gtin;
+        
+        // Dacă are GTIN-uri multiple, arătăm cel care a făcut match
+        if (product.gtins && Array.isArray(product.gtins) && product.gtins.length > 0) {
+          // Găsim GTIN-ul care a făcut match
+          const matchedGtin = product.gtins.find(g => {
+            const gLower = g.toLowerCase();
+            const queryLower = rawQuery.toLowerCase();
+            return gLower.includes(queryLower) || 
+                   g.replace(/^0+/, '').toLowerCase().includes(queryLower.replace(/^0+/, ''));
+          });
+          if (matchedGtin) displayGtin = matchedGtin;
+        }
+        
+        if (displayGtin) {
+          matchInfo += ` • GTIN: ${displayGtin}`;
+        }
+        
+        item.innerHTML = `
+          <div style="font-weight: 600; color: var(--text);">${escapeHtml(product.name)}</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">${escapeHtml(matchInfo)}</div>
+        `;
+        
+        item.onclick = () => {
+          console.log("Selectat:", product.name);
+          selectProduct(product);
+          searchInput.value = "";
+          resultsBox.style.display = "none";
+          if (lotInput) lotInput.focus();
+        };
+        
+        resultsBox.appendChild(item);
+      });
+
+      resultsBox.style.display = "block";
+    }
+
+    // Închide dropdown când click în afară
+    document.addEventListener("click", (e) => {
+      if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+        resultsBox.style.display = "none";
+      }
+    });
+    
+    // Previne închiderea când click în input
+    searchInput.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (searchInput.value.trim().length > 0) {
+        resultsBox.style.display = "block";
+      }
+    });
+  } else {
+    console.error("Lipseste searchInput sau resultsBox!");
+  }
+
+  // ===== FUNCȚIE: Resetare formular =====
+  function resetForm() {
+    selectedProduct = null;
+    if (hiddenInput) hiddenInput.value = '';
+    if (selectedDisplay) selectedDisplay.style.display = 'none';
+    if (productSelectOk) productSelectOk.style.display = 'none';
+    if (lotInput) lotInput.value = '';
+    if (expInput) expInput.value = '';
+    if (qtyInput) qtyInput.value = '';
+  }
+
+  // ===== HANDLER: Schimbare gestiune =====
+  if (warehouseSelect && locationGroup) {
+    warehouseSelect.addEventListener("change", () => {
+      if (warehouseSelect.value === 'magazin') {
+        locationGroup.style.display = 'none';
+        if (locationSelect) locationSelect.value = 'MAGAZIN';
+      } else {
+        locationGroup.style.display = 'block';
+        if (locationSelect) locationSelect.value = 'A';
+      }
+      loadStockForWarehouse(warehouseSelect.value);
+    });
+  }
+
+  // ===== HANDLER: Buton Scanare Camera =====
+  if (btnScan && qrInput) {
+    btnScan.onclick = async () => {
+      try {
+        await startScanIntoInput(qrInput);
+      } catch (e) {
+        closeScanner();
+        alert("Nu pot porni camera. Verifică permisiunile.");
+      }
+    };
+  }
+  
+  if (btnClose) btnClose.onclick = closeScanner;
+
+  // ===== HANDLER: Adaugă în stoc =====
   const btnAdd = document.getElementById("btnAddStock");
   if (btnAdd) {
     btnAdd.onclick = async () => {
-      const warehouse = warehouseSelect ? warehouseSelect.value : 'depozit';
-      const location = warehouse === 'magazin' ? 'MAGAZIN' : (locationSelect ? locationSelect.value : 'A');
-      
-      const productId = selectedProduct ? selectedProduct.id : (hiddenInput ? hiddenInput.value : '');
-      const productName = selectedProduct ? selectedProduct.name : (hiddenInput ? hiddenInput.dataset.name : '');
-      const gtins = selectedProduct ? (selectedProduct.gtins || []) : JSON.parse(hiddenInput?.dataset.gtins || "[]");
-      
-      const lot = document.getElementById("stockLot")?.value.trim();
-      const expiresAt = fromDisplayDate(document.getElementById("stockExpire")?.value);
-      const qty = document.getElementById("stockQty")?.value;
-
-      if (!productId) {
+      if (!selectedProduct) {
         alert("Selectează un produs mai întâi!");
         return;
       }
+      
+      const warehouse = warehouseSelect ? warehouseSelect.value : 'depozit';
+      const location = warehouse === 'magazin' ? 'MAGAZIN' : (locationSelect ? locationSelect.value : 'A');
+      
+      const lot = lotInput?.value.trim();
+      const expiresAt = fromDisplayDate(expInput?.value);
+      const qty = qtyInput?.value;
+
       if (!lot || !expiresAt || !qty) {
         alert("Completează toate câmpurile (LOT, Data expirare, Cantitate)");
         return;
       }
 
-      const gtin = gtins[0] || selectedProduct?.gtin || "";
+      const gtins = selectedProduct.gtins || [];
+      const gtin = gtins[0] || selectedProduct.gtin || "";
 
       try {
         await fetch("/api/stock", {
@@ -3208,7 +3426,7 @@ async function initStockPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             gtin,
-            productName,
+            productName: selectedProduct.name,
             lot,
             expiresAt,
             qty: Number(qty),
@@ -3217,22 +3435,11 @@ async function initStockPage() {
           })
         });
 
-        // Refresh și reset
         loadStockForWarehouse(warehouse);
-        
-        // Reset form
-        document.getElementById("stockLot").value = '';
-        document.getElementById("stockExpire").value = '';
-        document.getElementById("stockQty").value = '';
-        if (selectedDisplay) selectedDisplay.style.display = "none";
-        if (searchInput) searchInput.value = "";
-        if (productSelectOk) productSelectOk.style.display = "none";
-        selectedProduct = null;
-        if (hiddenInput) {
-          hiddenInput.value = '';
-          hiddenInput.dataset.name = '';
-          hiddenInput.dataset.gtins = '[]';
-        }
+        resetForm();
+        if (qrInput) qrInput.value = '';
+        const clearBtn = document.getElementById('qrClearBtn');
+        if (clearBtn) clearBtn.style.display = 'none';
         
       } catch (e) {
         alert("Eroare la salvare");
@@ -3241,10 +3448,9 @@ async function initStockPage() {
     };
   }
 
-  // Load inițial
+  // Inițializare
   loadStockForWarehouse('depozit');
   
-  // Fix pentru selecturi pe mobil
   document.querySelectorAll('select').forEach(s => { s.size = 1; });
 }
   const grouped = {};
@@ -3399,50 +3605,8 @@ async function initStockPage() {
 
 
 
-  function renderStock(stock) {
-    const list = document.getElementById("stockList");
-    if (!list) return;
+ 
 
-    list.innerHTML = "";
-
-    if (!Array.isArray(stock) || !stock.length) {
-      list.innerHTML = `<div class="stock-meta">Nu există stoc.</div>`;
-      return;
-    }
-
-    stock.forEach(s => {
-      const item = document.createElement("div");
-      item.className = "stock-item";
-
-      const left = document.createElement("div");
-      left.style.minWidth = "0";
-
-      const name = document.createElement("div");
-      name.className = "stock-name";
-      name.textContent = s.productName || "Produs";
-
-      const meta = document.createElement("div");
-      meta.className = "stock-meta";
-      meta.innerHTML = `
-        LOT: <b>${s.lot || "-"}</b><br>
-        Expiră: <b>${(s.expiresAt || "-").slice(0,10)}</b><br>
-        Locație: <b>${s.location || "-"}</b>
-      `;
-
-      left.appendChild(name);
-      left.appendChild(meta);
-
-      const qty = Number(s.qty || 0);
-      const badge = document.createElement("div");
-      badge.className = "badge " + (qty >= 50 ? "ok" : "warn");
-      badge.textContent = `${qty} buc`;
-
-      item.appendChild(left);
-      item.appendChild(badge);
-
-      list.appendChild(item);
-    });
-  }
 
 
   function getProductPrice(product, client) {

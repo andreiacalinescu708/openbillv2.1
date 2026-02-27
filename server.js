@@ -73,14 +73,14 @@ async function sendDraftToSmartBill(order, clientCui) {
     isDraft: true,                          // CIORNĂ
     seriesName: company.smartbill_series,   // FMD
     issueDate: new Date().toISOString().split('T')[0],
+    useStock: false,
     
     // MENȚIUNI - apare pe factura PDF în SmartBill
-    mentions: `Punct de lucru: ${order.client?.name || 'Client'}`,  mentions: order.client?.name || 'Client',
-    
+mentions: `Punct de lucru: ${order.client?.name || 'Client'}`,    
     products: (order.items || []).map(item => ({
       name: item.name,
       code: item.gtin,                      // GTIN pentru identificare în SmartBill
-      measuringUnitName: 'buc',
+      measuringUnitName: "BUC",
       currency: 'RON',
       quantity: Number(item.qty || 0),
       price: Number(item.unitPrice || item.price || 0),  // Preț unitar
@@ -88,6 +88,7 @@ async function sendDraftToSmartBill(order, clientCui) {
       taxName: 'Normala',
       taxPercentage: 21,                    // TVA 21%
       isDiscount: false,
+      warehouseName: "DISTRIBUTIE",
       isService: false,
       saveToDb: false,                      // Nu salvăm produsul în catalogul SmartBill
       productDescription: (item.allocations || []).map(alloc => {
