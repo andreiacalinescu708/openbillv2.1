@@ -243,6 +243,46 @@ await q(`
   )
 `);
 
+// În funcția ensureTables(), adaugă după cea mai recentă migrare:
+
+// Coloane pentru SmartBill integration
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_draft_sent BOOLEAN NOT NULL DEFAULT false`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_error TEXT`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_response JSONB`); // Salvăm răspunsul complet pentru debug
+
+// Index pentru căutare rapidă comenzi cu eroare
+await q(`CREATE INDEX IF NOT EXISTS orders_smartbill_error_idx ON orders (smartbill_draft_sent) WHERE smartbill_draft_sent = false AND smartbill_error IS NOT NULL`);
+
+// Company settings (date firmă)
+await q(`
+  CREATE TABLE IF NOT EXISTS company_settings (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    name TEXT NOT NULL DEFAULT 'Fast Medical Distribution',
+    cui TEXT NOT NULL DEFAULT 'RO47095864',
+    smartbill_series TEXT DEFAULT 'FMD',
+    address TEXT,
+    city TEXT,
+    country TEXT DEFAULT 'Romania',
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )
+`);
+
+await q(`
+  INSERT INTO company_settings (id, name, cui, smartbill_series)
+  VALUES ('default', 'Fast Medical Distribution', 'RO47095864', 'FMD')
+  ON CONFLICT (id) DO NOTHING
+`);
+
+// Coloane SmartBill pentru comenzi
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_draft_sent BOOLEAN NOT NULL DEFAULT false`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_error TEXT`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_response JSONB`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_series TEXT`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_number TEXT`);
+
+// Index pentru comenzi cu eroare
+await q(`CREATE INDEX IF NOT EXISTS orders_smartbill_error_idx ON orders (smartbill_draft_sent) WHERE smartbill_draft_sent = false AND smartbill_error IS NOT NULL`);
+
 }
 
 // ================= AUDIT LOG (DB) =================

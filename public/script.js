@@ -1739,13 +1739,14 @@ stock.forEach(s => {
   const searchResults = document.getElementById("orderSearchResults");
   const btnReset = document.getElementById("btnResetFilters");
 
-  const statusLabels = {
-    "": "Toate",
-    gata_de_livrare: "Gata de livrare",
-    in_procesare: "În procesare",
-    facturata: "Facturată",
-    livrata: "Livrată"
-  };
+ const statusLabels = {
+  "": "Toate",
+  gata_de_livrare: "Gata de livrare",
+  in_procesare: "În procesare",
+  eroare_smartbill: "⚠️ Eroare SmartBill",  // NOU
+  facturata: "Facturată",
+  livrata: "Livrată"
+};
 
   const TAB_ORDER = ["gata_de_livrare", "in_procesare", "facturata", "livrata", ""];
 
@@ -2008,6 +2009,51 @@ stock.forEach(s => {
         location.href = "pickingorder.html";
       };
       head.appendChild(pickBtn);
+
+      // Buton reîncercare pentru erori SmartBill
+if (status === "eroare_smartbill") {
+  const retryBtn = document.createElement("button");
+  retryBtn.textContent = "🔄 Reîncearcă SmartBill";
+  retryBtn.className = "btnRetry";
+  retryBtn.style.cssText = "margin-left:8px; background:#f59e0b; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;";
+  
+  retryBtn.onclick = async (e) => {
+    e.stopPropagation();
+    if (!confirm("Reîncerci trimiterea comenzii în SmartBill?")) return;
+    
+    retryBtn.disabled = true;
+    retryBtn.textContent = "⏳...";
+    
+    try {
+      const r = await fetch(`/api/orders/${o.id}/retry-smartbill`, { method: "POST" });
+      const data = await r.json();
+      
+      if (r.ok) {
+        alert(`✅ Trimis cu succes!\nSerie: ${data.smartbillSeries}\nNumăr: ${data.smartbillNumber}`);
+        o.status = "in_procesare";
+        o.smartbill_draft_sent = true;
+        renderTabs();
+        render();
+      } else {
+        alert(`❌ Eroare: ${data.error || "Necunoscută"}`);
+        retryBtn.textContent = "🔄 Reîncearcă SmartBill";
+        retryBtn.disabled = false;
+      }
+    } catch (err) {
+      alert("Eroare de conexiune");
+      retryBtn.textContent = "🔄 Reîncearcă SmartBill";
+      retryBtn.disabled = false;
+    }
+  };
+  
+  head.appendChild(retryBtn);
+  
+  // Afișează mesajul de eroare
+  const errorDiv = document.createElement("div");
+  errorDiv.style.cssText = "color:#ef4444; font-size:0.875rem; margin-top:4px;";
+  errorDiv.textContent = `Eroare: ${o.smartbill_error || "Trimitere eșuată"}`;
+  head.appendChild(errorDiv);
+}
 
       const body = document.createElement("div");
       body.className = "orderBody";

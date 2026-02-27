@@ -14,6 +14,127 @@ const crypto = require("crypto");
 
 const app = express();
 
+// ===== SMARTBILL CONFIG =====
+const SMARTBILL_TOKEN = process.env.SMARTBILL_TOKEN || 'cristiana_paun@yahoo.com:002|797b74e49656fba88457a0eb0854941e';
+const SMARTBILL_BASE_URL = 'https://ws.smartbill.ro/SBORO/api';
+
+let companyCache = null;
+
+async function getCompanyDetails() {
+  if (companyCache) return companyCache;
+  try {
+    const r = await db.q(`SELECT * FROM company_settings WHERE id = 'default'`);
+    if (r.rows.length) {
+      companyCache = r.rows[0];
+      return companyCache;
+    }
+  } catch (e) {
+    console.error('Eroare la citire date firmă:', e);
+  }
+  return {
+    name: 'Fast Medical Distribution',
+    cui: 'RO47095864',
+    smartbill_series: 'FMD'
+  };
+}
+
+function getSmartbillAuthHeaders() {
+  const authString = Buffer.from(SMARTBILL_TOKEN).toString('base64');
+  return {
+    'Authorization': `Basic ${authString}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+}
+
+
+async function sendDraftToSmartBill(order, clientCui) {
+  if (!SMARTBILL_TOKEN) {
+    throw new Error('Token SmartBill neconfigurat');
+  }
+
+  const company = await getCompanyDetails();
+
+  // Validare: toate produsele trebuie să aibă GTIN
+  for (const item of order.items || []) {
+    if (!item.gtin) {
+      throw new Error(`Produsul "${item.name}" nu are GTIN configurat`);
+    }
+  }
+
+  const payload = {
+    companyVatCode: company.cui,           // RO47095864 - Fast Medical Distribution
+    client: {
+      name: order.client?.name || 'Client',
+      vatCode: clientCui || '',            // RO9285726 - Al Shefa (din DB)
+      isTaxPayer: true,
+      country: 'Romania'
+    },
+    isDraft: true,                          // CIORNĂ
+    seriesName: company.smartbill_series,   // FMD
+    issueDate: new Date().toISOString().split('T')[0],
+    
+    // MENȚIUNI - apare pe factura PDF în SmartBill
+    mentions: `Punct de lucru: ${order.client?.name || 'Client'}`,  mentions: order.client?.name || 'Client',
+    
+    products: (order.items || []).map(item => ({
+      name: item.name,
+      code: item.gtin,                      // GTIN pentru identificare în SmartBill
+      measuringUnitName: 'buc',
+      currency: 'RON',
+      quantity: Number(item.qty || 0),
+      price: Number(item.unitPrice || item.price || 0),  // Preț unitar
+      isTaxIncluded: false,                  // Prețul include TVA
+      taxName: 'Normala',
+      taxPercentage: 21,                    // TVA 21%
+      isDiscount: false,
+      isService: false,
+      saveToDb: false,                      // Nu salvăm produsul în catalogul SmartBill
+      productDescription: (item.allocations || []).map(alloc => {
+        const lot = alloc.lot || '-';
+        const exp = alloc.expiresAt ? new Date(alloc.expiresAt).toLocaleDateString('ro-RO') : '-';
+        return `LOT: ${lot} | EXP: ${exp}`;
+      }).join('\n')
+    }))
+  };
+
+  console.log('=== SMARTBILL PAYLOAD ===');
+  console.log(JSON.stringify(payload, null, 2));
+
+  try {
+    const response = await fetch(`${SMARTBILL_BASE_URL}/invoice`, {
+      method: 'POST',
+      headers: getSmartbillAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    const responseData = await response.json().catch(() => ({}));
+    
+    console.log('=== SMARTBILL RESPONSE ===');
+    console.log('Status:', response.status);
+    console.log('Data:', responseData);
+
+    if (!response.ok) {
+      const errorMsg = responseData.error || responseData.message || `Eroare HTTP ${response.status}`;
+      throw new Error(errorMsg);
+    }
+
+    return {
+      success: true,
+      data: responseData,  // Conține series, number, url etc.
+      httpStatus: response.status
+    };
+
+  } catch (error) {
+    console.error('SmartBill API Error:', error);
+    return {
+      success: false,
+      error: error.message,
+      httpStatus: error.status || 0
+    };
+  }
+}
+
 // Middleware pentru verificare admin
 function isAdmin(req, res, next) {
   if (req.session?.user?.role !== 'admin') {
@@ -754,44 +875,47 @@ app.post("/api/orders", async (req, res) => {
       return res.status(400).json({ error: "Comandă goală" });
     }
 
-    // Pentru fiecare item, alocăm stoc automat din locațiile A, B, C...
+    // Validare: toate produsele trebuie să aibă GTIN
+    for (const item of items) {
+      if (!item.gtin) {
+        return res.status(400).json({ 
+          error: `Produsul "${item.name}" nu are GTIN configurat. Adăugați GTIN înainte de a trimite comanda.` 
+        });
+      }
+    }
+
+    // Alocare stoc și pregătire items
     const itemsWithAllocations = [];
     
-    for (const it of items) {
-      const qty = Number(it.qty || 0);
+    for (const item of items) {
+      const qty = Number(item.qty || 0);
       if (qty <= 0) continue;
       
-      const unitPrice = Number(it.price || 0);
-      const lineTotal = unitPrice * qty;
+      const unitPrice = Number(item.price || 0);
       
       let allocations = [];
-      
       try {
-        // Încercăm să alocăm stoc automat
         if (db.hasDb()) {
-          // Alocare din DB
-          allocations = await allocateStockFromDB(it.gtin, qty);
+          allocations = await allocateStockFromDB(item.gtin, qty);
         } else {
-          // Fallback JSON
           const stock = readJson(STOCK_FILE, []);
-          allocations = allocateStockByLocation(stock, it.gtin, qty);
-          writeJson(STOCK_FILE, stock); // Salvăm stocul modificat
+          allocations = allocateStockByLocation(stock, item.gtin, qty);
+          writeJson(STOCK_FILE, stock);
         }
       } catch (e) {
-        // Dacă nu e stoc suficient, returnăm eroare
         return res.status(400).json({ 
-          error: `Stoc insuficient pentru ${it.name}. Disponibil: ${e.message}` 
+          error: `Stoc insuficient pentru ${item.name}. ${e.message}` 
         });
       }
       
       itemsWithAllocations.push({
-        id: it.id,
-        name: it.name,
-        gtin: it.gtin,
+        id: item.id,
+        name: item.name,
+        gtin: item.gtin,
         qty: qty,
         unitPrice: unitPrice,
-        lineTotal: lineTotal,
-        allocations: allocations // Aici salvăm locațiile alocate
+        lineTotal: unitPrice * qty,
+        allocations: allocations
       });
     }
 
@@ -800,34 +924,100 @@ app.post("/api/orders", async (req, res) => {
       client,
       items: itemsWithAllocations,
       status: "in_procesare",
+      smartbill_draft_sent: false,
+      smartbill_error: null,
+      smartbill_series: null,
+      smartbill_number: null,
       createdAt: new Date().toISOString()
     };
 
+    // Salvare inițială în DB
     if (!db.hasDb()) {
-      // Fallback JSON
       const orders = readJson(ORDERS_FILE, []);
       orders.push(newOrder);
       writeJson(ORDERS_FILE, orders);
       return res.json({ ok: true, order: newOrder });
     }
 
-    // Salvare în DB
     await db.q(
-      `INSERT INTO orders (id, client, items, status, created_at)
-       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz)`,
-      [newOrder.id, JSON.stringify(client), JSON.stringify(itemsWithAllocations), newOrder.status, newOrder.createdAt]
+      `INSERT INTO orders (id, client, items, status, created_at, smartbill_draft_sent, smartbill_error)
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz, $6, $7)`,
+      [newOrder.id, JSON.stringify(client), JSON.stringify(itemsWithAllocations), 
+       newOrder.status, newOrder.createdAt, false, null]
     );
 
-    await logAudit(req, "ORDER_CREATE", "order", newOrder.id, {
-      clientName: client?.name,
-      itemsCount: itemsWithAllocations.length,
-      totalValue: itemsWithAllocations.reduce((sum, i) => sum + i.lineTotal, 0)
-    });
+    // Încercăm trimiterea la SmartBill
+    try {
+      const clientRes = await db.q(`SELECT cui FROM clients WHERE id = $1`, [client.id]);
+      const clientCui = clientRes.rows[0]?.cui || '';
+      
+      const smartbillResult = await sendDraftToSmartBill(newOrder, clientCui);
+      
+      if (smartbillResult.success) {
+        // Update succes
+        await db.q(
+          `UPDATE orders SET 
+            smartbill_draft_sent = true, 
+            smartbill_response = $1,
+            smartbill_series = $2,
+            smartbill_number = $3
+           WHERE id = $4`,
+          [
+            JSON.stringify(smartbillResult.data),
+            smartbillResult.data.series || null,
+            smartbillResult.data.number || null,
+            newOrder.id
+          ]
+        );
+        
+        await logAudit(req, "ORDER_CREATE_SMARTBILL_OK", "order", newOrder.id, {
+          clientName: client?.name,
+          smartbillSeries: smartbillResult.data.series,
+          smartbillNumber: smartbillResult.data.number
+        });
+        
+        return res.json({ 
+          ok: true, 
+          order: { 
+            ...newOrder, 
+            smartbill_draft_sent: true,
+            smartbill_series: smartbillResult.data.series,
+            smartbill_number: smartbillResult.data.number
+          },
+          message: "Comandă trimisă în SmartBill ca ciornă",
+          smartbillUrl: smartbillResult.data.url
+        });
+      } else {
+        throw new Error(smartbillResult.error);
+      }
+      
+    } catch (smartbillErr) {
+      // Eroare SmartBill - salvăm eroarea dar comanda rămâne în DB
+      await db.q(
+        `UPDATE orders SET 
+          smartbill_error = $1, 
+          smartbill_response = $2,
+          status = 'eroare_smartbill'
+         WHERE id = $3`,
+        [smartbillErr.message, JSON.stringify({error: smartbillErr.message}), newOrder.id]
+      );
+      
+      await logAudit(req, "ORDER_CREATE_SMARTBILL_FAIL", "order", newOrder.id, {
+        clientName: client?.name,
+        error: smartbillErr.message
+      });
+      
+      return res.json({ 
+        ok: true,
+        order: { ...newOrder, status: 'eroare_smartbill', smartbill_error: smartbillErr.message },
+        warning: `Comanda a fost salvată dar nu s-a putut trimite în SmartBill: ${smartbillErr.message}`,
+        requiresRetry: true
+      });
+    }
 
-    res.json({ ok: true, order: newOrder });
   } catch (e) {
     console.error("POST /api/orders error:", e);
-    res.status(500).json({ error: "Eroare DB la salvare comandă" });
+    res.status(500).json({ error: "Eroare la salvare comandă" });
   }
 });
 
@@ -1944,7 +2134,6 @@ app.post('/api/schimba-parola', async (req, res) => {
 // SMARTBILL TEST - de activat mâine cu token
 // ==========================================
 
-const SMARTBILL_TOKEN = process.env.SMARTBILL_TOKEN || ''; // Pune tokenul aici mâine
 const SMARTBILL_CIF_TEST = 'RO12345678'; // CUI Al Shefa (completezi mâine)
 
 // Test endpoint: http://localhost:3000/test-smartbill
@@ -2338,6 +2527,9 @@ app.delete("/api/fuel-receipts/:id", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+
+
 
 // ==========================================
 // SEED DATE INIȚIALE - ȘOFERI ȘI MAȘINI
