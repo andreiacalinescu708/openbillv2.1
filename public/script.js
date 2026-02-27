@@ -2069,55 +2069,79 @@ o.items.forEach(i => {
   const gtin = i.gtin || "-";
   const price = Number(i.price || i.unitPrice || 0);
   const subtotal = price * (i.qty || 0);
-  // Extrage informațiile de alocare (Lot/Exp/Locatie)
-let allocInfo = "";
-if (Array.isArray(i.allocations) && i.allocations.length > 0) {
-  // Grupează după Lot+Locație+Expirare și adună cantitățile
-  const grouped = {};
   
-  i.allocations.forEach(a => {
-    const key = `${a.lot}|${a.location}|${a.expiresAt}`;
-    if (!grouped[key]) {
-      grouped[key] = {
-        lot: a.lot || "-",
-        loc: a.location || "-",
-        exp: a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('ro-RO') : "-",
-        qty: 0
-      };
-    }
-    grouped[key].qty += Number(a.qty || 0);
-  });
+  // Extrage informațiile de alocare - GRUPATE PE LINII SEPARATE
+  let allocInfoHtml = "";
+  if (Array.isArray(i.allocations) && i.allocations.length > 0) {
+    const grouped = {};
+    
+    i.allocations.forEach(a => {
+      const key = `${a.lot}|${a.location}|${a.expiresAt}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          lot: a.lot || "-",
+          loc: a.location || "-",
+          exp: a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('ro-RO') : "-",
+          qty: 0
+        };
+      }
+      grouped[key].qty += Number(a.qty || 0);
+    });
 
-  // Afișează fiecare grup cu cantitatea sa - ADAUGĂ .join("") AICI!
-  allocInfo = Object.values(grouped).map(g => {
-    return `<span class="alloc-tag" style="background:rgba(59,130,246,0.15); padding:4px 8px; border-radius:6px; border:1px solid rgba(59,130,246,0.3);">
-      📍 ${g.loc} | <b>LOT:${g.lot}</b> | EXP:${g.exp} | <b style="color:#60a5fa;">${g.qty} buc</b>
-    </span>`;
-  }).join("");  // ← ADAUGĂ .join("") AICI!
-}  // ← Închide if-ul AICI!
+    // Fiecare alloc pe câte o linie separată, flex-wrap pentru mobil
+    allocInfoHtml = Object.values(grouped).map(g => {
+      return `
+        <div style="
+          display: flex; 
+          flex-wrap: wrap; 
+          gap: 4px 8px; 
+          margin-top: 6px;
+          padding: 6px 10px;
+          background: rgba(59,130,246,0.1); 
+          border-radius: 6px;
+          border-left: 3px solid rgba(59,130,246,0.5);
+          font-size: 0.85rem;
+          align-items: center;
+        ">
+          <span style="white-space: nowrap;">📍 <b>${g.loc}</b></span>
+          <span style="color: var(--border-color);">•</span>
+          <span style="white-space: nowrap;"><b>LOT:</b> ${g.lot}</span>
+          <span style="color: var(--border-color);">•</span>
+          <span style="white-space: nowrap; color: var(--text-muted);">EXP: ${g.exp}</span>
+          <span style="color: var(--border-color);">•</span>
+          <span style="color: #60a5fa; font-weight: 700; white-space: nowrap;">${g.qty} buc</span>
+        </div>
+      `;
+    }).join("");
+  }
 
-// MUTĂ row.innerHTML și body.appendChild în afara if-ului:
-row.innerHTML = `
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-2);">
-    <div style="flex:1; min-width:200px;">
-      <strong>${i.name}</strong>
-      <span style="color:var(--primary-400); font-weight:600; margin-left:8px;">× ${i.qty}</span>
+  // HTML structurat pentru mobil - nume și preț pe prima linie, detalii sub
+  row.innerHTML = `
+    <div style="width: 100%;">
+      <!-- Linia 1: Nume produs și Preț total -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
+        <div style="flex: 1; min-width: 0;">
+          <strong style="word-break: break-word; line-height: 1.3;">${i.name}</strong>
+          <span style="color: var(--primary-400); font-weight: 600; margin-left: 6px;">× ${i.qty}</span>
+        </div>
+        <div style="font-weight: 700; color: var(--primary-400); white-space: nowrap; font-size: 1.05rem;">
+          ${subtotal.toFixed(2)} RON
+        </div>
+      </div>
+      
+      <!-- Linia 2: GTIN și Preț unitar -->
+      <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 4px; word-break: break-all;">
+        <span>GTIN: ${gtin}</span>
+        <span style="margin: 0 6px; color: var(--border-color);">|</span>
+        <span>Preț: ${price.toFixed(2)} RON</span>
+      </div>
+      
+      <!-- Linia 3+: Allocations (fiecare pe linie nouă) -->
+      ${allocInfoHtml}
     </div>
-    <div style="text-align:right; font-weight:700; color:var(--primary-400);">
-      ${subtotal.toFixed(2)} RON
-    </div>
-  </div>
-  
-  <div style="margin-top:var(--space-2); font-size:0.875rem; display:flex; flex-wrap:wrap; gap:var(--space-3); align-items:center;">
-    <span style="color:var(--text-muted);">GTIN: ${gtin}</span>
-    <span style="color:var(--border-color);">|</span>
-    <span style="color:var(--text-muted);">Preț: ${price.toFixed(2)} RON</span>
-    <span style="color:var(--border-color);">|</span>
-    ${allocInfo}
-  </div>
-`;
+  `;
 
-body.appendChild(row);
+  body.appendChild(row);
 });
 
       head.addEventListener("click", (e) => {
