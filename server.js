@@ -1785,100 +1785,9 @@ app.delete("/api/stock/:id", async (req, res) => {
 
 
 
-// ========== SOLDURI CLIENȚI (SmartBill Integration) ==========
 
-// POST /api/balances/upload - Încarcă raportul Excel cu facturi scadente
-app.post("/api/balances/upload", async (req, res) => {
-  try {
-    const { invoices } = req.body;
-    
-    if (!invoices || !Array.isArray(invoices)) {
-      return res.status(400).json({ error: "Date invalide. Trimite array de facturi." });
-    }
-    
-    // Ștergem datele vechi (mai vechi de 24h)
-    await db.q(`DELETE FROM client_balances WHERE uploaded_at < NOW() - INTERVAL '24 hours'`);
-    
-    // Găsim toți clienții pentru match după CUI
-    const clientsRes = await db.q(`SELECT id, cui FROM clients WHERE cui IS NOT NULL`);
-    const clientsByCui = {};
-    clientsRes.rows.forEach(c => {
-      const cuiCurat = String(c.cui).replace(/^RO/i, '').replace(/\s/g, '').trim();
-      clientsByCui[cuiCurat] = c.id;
-    });
-    
-    // Inserăm facturile noi
-    let inserted = 0;
-    for (const inv of invoices) {
-      const cuiCurat = String(inv.cui || '').replace(/^RO/i, '').replace(/\s/g, '').trim();
-      const clientId = clientsByCui[cuiCurat] || null;
-      
-      await db.q(`
-        INSERT INTO client_balances 
-        (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `, [
-        clientId,
-        inv.cui,
-        inv.invoice_number,
-        inv.invoice_date,
-        inv.due_date,
-        inv.currency,
-        inv.total_value,
-        inv.balance_due,
-        inv.days_overdue,
-        inv.status
-      ]);
-      inserted++;
-    }
-    
-    res.json({ success: true, inserted, timestamp: new Date().toISOString() });
-  } catch (e) {
-    console.error("Upload balances error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
 
-// GET /api/clients/:id/balances - Solduri pentru un client
-app.get("/api/clients/:id/balances", async (req, res) => {
-  try {
-    const clientId = String(req.params.id);
-    
-    // Verificăm dacă datele sunt expirate
-    const checkRes = await db.q(`
-      SELECT MAX(uploaded_at) as last_upload 
-      FROM client_balances 
-      WHERE client_id = $1
-    `, [clientId]);
-    
-    const lastUpload = checkRes.rows[0]?.last_upload;
-    const isExpired = !lastUpload || (new Date() - new Date(lastUpload)) > 24 * 60 * 60 * 1000;
-    
-    if (isExpired) {
-      return res.json({ expired: true, message: "Raportul a expirat. Încărcați unul nou din secțiunea Birou." });
-    }
-    
-    // Returnăm facturile scadente
-    const result = await db.q(`
-      SELECT * FROM client_balances 
-      WHERE client_id = $1 
-      ORDER BY due_date ASC
-    `, [clientId]);
-    
-    const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
-    
-    res.json({
-      expired: false,
-      lastUpload,
-      invoices: result.rows,
-      totalBalance: total,
-      count: result.rows.length
-    });
-  } catch (e) {
-    console.error("Get balances error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
+
 
 
 // Login
@@ -2667,15 +2576,30 @@ app.delete("/api/fuel-receipts/:id", async (req, res) => {
   }
 });
 
-// POST /api/balances/upload - Încarcă raportul Excel
+
+// ==========================================
+// SOLDURI CLIENȚI (Raport facturi scadente)
+// ==========================================
+
+// TEST - să vedem dacă serverul răspunde
+app.get("/api/test", (req, res) => {
+  res.json({ ok: true, message: "Server funcționează!" });
+});
+
+// POST /api/balances/upload - Încarcă raportul Excel cu facturi scadente
+
 app.post("/api/balances/upload", async (req, res) => {
   try {
-    const { invoices } = req.body; // Array de facturi din Excel
+    const { invoices } = req.body;
     
-    // Ștergem datele vechi (mai vechi de 24h se șterg automat, dar curățăm și acum)
-    await db.q(`DELETE FROM client_balances WHERE uploaded_at < NOW() - INTERVAL '24 hours'`);
+    if (!invoices || !Array.isArray(invoices)) {
+      return res.status(400).json({ error: "Date invalide. Trimite array de facturi." });
+    }
     
-    // Găsim toți clienții din DB pentru a face match după CUI
+    // ȘTERGE TOATE datele vechi (nu doar cele de 24h) - curăță complet
+    await db.q(`DELETE FROM client_balances`);
+    
+    // Găsim clienții după CUI pentru matching
     const clientsRes = await db.q(`SELECT id, cui FROM clients WHERE cui IS NOT NULL`);
     const clientsByCui = {};
     clientsRes.rows.forEach(c => {
@@ -2683,29 +2607,29 @@ app.post("/api/balances/upload", async (req, res) => {
       clientsByCui[cuiCurat] = c.id;
     });
     
-    // Inserăm facturile noi
+    // Inserăm cu ON CONFLICT (protecție dublă la duplicat)
     let inserted = 0;
     for (const inv of invoices) {
       const cuiCurat = String(inv.cui || '').replace(/^RO/i, '').replace(/\s/g, '').trim();
       const clientId = clientsByCui[cuiCurat] || null;
       
-      await db.q(`
-        INSERT INTO client_balances 
-        (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `, [
-        clientId,
-        inv.cui,
-        inv.invoice_number,
-        inv.invoice_date,
-        inv.due_date,
-        inv.currency,
-        inv.total_value,
-        inv.balance_due,
-        inv.days_overdue,
-        inv.status
-      ]);
-      inserted++;
+      // Verificăm dacă factura există deja pentru acest client (extra safety)
+      const check = await db.q(
+        `SELECT 1 FROM client_balances WHERE client_id = $1 AND invoice_number = $2 LIMIT 1`,
+        [clientId, inv.invoice_number]
+      );
+      
+      if (check.rows.length === 0) {
+        await db.q(`
+          INSERT INTO client_balances 
+          (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `, [
+          clientId, inv.cui, inv.invoice_number, inv.invoice_date, inv.due_date,
+          inv.currency, inv.total_value, inv.balance_due, inv.days_overdue, inv.status
+        ]);
+        inserted++;
+      }
     }
     
     res.json({ success: true, inserted, timestamp: new Date().toISOString() });
@@ -2718,36 +2642,30 @@ app.post("/api/balances/upload", async (req, res) => {
 // GET /api/clients/:id/balances - Solduri pentru un client
 app.get("/api/clients/:id/balances", async (req, res) => {
   try {
-    // Verificăm dacă datele sunt expirate (mai vechi de 24h)
-    const checkRes = await db.q(`
-      SELECT MAX(uploaded_at) as last_upload 
-      FROM client_balances 
-      WHERE client_id = $1 OR EXISTS (
-        SELECT 1 FROM clients c 
-        WHERE c.id = $1 
-        AND client_balances.cui = c.cui
-      )
-    `, [req.params.id]);
+    const clientId = String(req.params.id);
     
-    const lastUpload = checkRes.rows[0]?.last_upload;
-    const isExpired = !lastUpload || (new Date() - new Date(lastUpload)) > 24 * 60 * 60 * 1000;
-    
-    if (isExpired) {
-      return res.json({ expired: true, message: "Raportul a expirat. Încărcați unul nou." });
-    }
-    
-    // Returnăm facturile scadente
+    // Returnăm facturile (fără verificare de expirare)
     const result = await db.q(`
       SELECT * FROM client_balances 
       WHERE client_id = $1 
       ORDER BY due_date ASC
-    `, [req.params.id]);
+    `, [clientId]);
+    
+    if (result.rows.length === 0) {
+      return res.json({ 
+        expired: false, 
+        lastUpload: null,
+        invoices: [], 
+        totalBalance: 0,
+        message: "Nu sunt facturi scadente pentru acest client" 
+      });
+    }
     
     const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
     
     res.json({
-      expired: false,
-      lastUpload,
+      expired: false,  // Nu mai expiră niciodată
+      lastUpload: new Date().toISOString(),
       invoices: result.rows,
       totalBalance: total,
       count: result.rows.length
@@ -2759,90 +2677,9 @@ app.get("/api/clients/:id/balances", async (req, res) => {
 });
 
 
-// POST /api/balances/upload - Încarcă raportul Excel cu facturi scadente
-app.post("/api/balances/upload", async (req, res) => {
-  try {
-    const { invoices } = req.body;
-    
-    // Ștergem datele vechi (mai vechi de 24h)
-    await db.q(`DELETE FROM client_balances WHERE uploaded_at < NOW() - INTERVAL '24 hours'`);
-    
-    // Găsim toți clienții pentru match după CUI
-    const clientsRes = await db.q(`SELECT id, cui FROM clients WHERE cui IS NOT NULL`);
-    const clientsByCui = {};
-    clientsRes.rows.forEach(c => {
-      const cuiCurat = String(c.cui).replace(/^RO/i, '').replace(/\s/g, '').trim();
-      clientsByCui[cuiCurat] = c.id;
-    });
-    
-    // Inserăm facturile noi
-    let inserted = 0;
-    for (const inv of invoices) {
-      const cuiCurat = String(inv.cui || '').replace(/^RO/i, '').replace(/\s/g, '').trim();
-      const clientId = clientsByCui[cuiCurat] || null;
-      
-      await db.q(`
-        INSERT INTO client_balances 
-        (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `, [
-        clientId,
-        inv.cui,
-        inv.invoice_number,
-        inv.invoice_date,
-        inv.due_date,
-        inv.currency,
-        inv.total_value,
-        inv.balance_due,
-        inv.days_overdue,
-        inv.status
-      ]);
-      inserted++;
-    }
-    
-    res.json({ success: true, inserted, timestamp: new Date().toISOString() });
-  } catch (e) {
-    console.error("Upload balances error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
 
-// GET /api/clients/:id/balances - Solduri pentru un client
-app.get("/api/clients/:id/balances", async (req, res) => {
-  try {
-    // Verificăm dacă datele sunt expirate
-    const checkRes = await db.q(`
-      SELECT MAX(uploaded_at) as last_upload 
-      FROM client_balances 
-      WHERE client_id = $1
-    `, [req.params.id]);
-    
-    const lastUpload = checkRes.rows[0]?.last_upload;
-    const isExpired = !lastUpload || (new Date() - new Date(lastUpload)) > 24 * 60 * 60 * 1000;
-    
-    if (isExpired) {
-      return res.json({ expired: true, message: "Raportul a expirat. Încărcați unul nou." });
-    }
-    
-    const result = await db.q(`
-      SELECT * FROM client_balances 
-      WHERE client_id = $1 
-      ORDER BY due_date ASC
-    `, [req.params.id]);
-    
-    const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
-    
-    res.json({
-      expired: false,
-      lastUpload,
-      invoices: result.rows,
-      totalBalance: total,
-      count: result.rows.length
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+
+
 
 // ==========================================
 // SEED DATE INIȚIALE - ȘOFERI ȘI MAȘINI
@@ -2855,15 +2692,12 @@ app.get("/api/clients/:id/balances", async (req, res) => {
     await seedClientsFromFileIfEmpty();
     await seedProductsFromFileIfEmpty();
     await ensureDefaultAdmin();
-    await seedInitialData(); // ← ADĂUGĂ ACEASTĂ LINIE
+    await seedInitialData();
   } catch (e) {
     console.error("❌ DB init error (pornesc fără DB):", e?.message || e);
   }
 
- 
-
-
-app.listen(PORT, () => console.log("Server pornit pe port", PORT));
+  app.listen(PORT, () => console.log("Server pornit pe port", PORT));
 })();
 
 
