@@ -73,7 +73,7 @@ async function sendDraftToSmartBill(order, clientCui) {
     isDraft: true,                          // CIORNĂ
     seriesName: company.smartbill_series,   // FMD
     issueDate: new Date().toISOString().split('T')[0],
-    useStock: false,
+    useStock: true,
     
     // MENȚIUNI - apare pe factura PDF în SmartBill
 mentions: `Punct de lucru: ${order.client?.name || 'Client'}`,    
@@ -615,7 +615,7 @@ app.get("/api/clients/:id", async (req, res) => {
     const id = String(req.params.id);
 
     const r = await db.q(
-      `SELECT id, name, group_name AS "group", category, prices
+      `SELECT id, name, group_name AS "group", category, prices, cui, payment_terms
        FROM clients
        WHERE id = $1`,
       [id]
@@ -1103,57 +1103,100 @@ app.put("/api/orders/:id", async (req, res) => {
 
 // Funcție nouă pentru alocare stoc din DB
 // Funcție modificată pentru alocare cu fallback pe locații
+// Funcție modificată pentru alocare cu suport multiple GTIN-uri
 async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozit') {
   const g = normalizeGTIN(gtin);
   if (!g) throw new Error("GTIN invalid");
 
-  const locCase = sqlLocOrderCase("location");
-  
-  // Întâi încercăm din depozit, locațiile în ordinea A,B,C,R1,R2,R3
-  let r = await db.q(
-    `SELECT id, gtin, lot, expires_at, qty, location, warehouse
-     FROM stock
-     WHERE gtin=$1 AND warehouse=$2 AND qty > 0
-     ORDER BY ${locCase} ASC, expires_at ASC
-     FOR UPDATE`,
-    [g, preferredWarehouse]
+  // 1. Găsim produsul după GTIN - FIX pentru JSONB
+  const productRes = await db.q(
+    `SELECT id, gtin, gtins FROM products 
+     WHERE gtin = $1 OR gtins::jsonb @> to_jsonb($1) 
+     LIMIT 1`,
+    [g]
   );
+  
+  if (!productRes.rows.length) {
+    throw new Error(`Produs cu GTIN ${gtin} nu există în catalog`);
+  }
+  
+  const product = productRes.rows[0];
+  
+  // 2. Construim lista tuturor GTIN-urilor produsului
+  let allGtins = [];
+  
+  // Adăugăm gtin-ul principal
+  if (product.gtin) allGtins.push(product.gtin);
+  
+  // Adăugăm gtins din array JSONB
+  if (product.gtins) {
+    try {
+      const gtinsArray = typeof product.gtins === 'string' 
+        ? JSON.parse(product.gtins) 
+        : product.gtins;
+      if (Array.isArray(gtinsArray)) {
+        allGtins = allGtins.concat(gtinsArray);
+      }
+    } catch (e) {
+      console.error('Eroare parsing gtins:', e);
+    }
+  }
+  
+  // Normalizăm și eliminăm duplicatele
+  const uniqueGtins = [...new Set(allGtins.map(normalizeGTIN))].filter(Boolean);
+  
+  console.log(`[Stock] Produs ${product.id}, GTIN-uri: ${uniqueGtins.join(', ')}`);
 
+  const locCase = sqlLocOrderCase("location");
   let remaining = Number(neededQty);
   const allocated = [];
 
-  // Dacă nu găsim în depozit, încercăm în magazin (fallback)
-  if (r.rows.length === 0 && preferredWarehouse === 'depozit') {
-    r = await db.q(
-      `SELECT id, gtin, lot, expires_at, qty, location, warehouse
-       FROM stock
-       WHERE gtin=$1 AND warehouse='magazin' AND qty > 0
-       ORDER BY expires_at ASC
-       FOR UPDATE`,
-      [g]
-    );
-  }
-
-  for (const s of r.rows) {
+  // 3. Încercăm să alocăm din stocul oricărui GTIN al produsului
+  for (const productGtin of uniqueGtins) {
     if (remaining <= 0) break;
     
-    const avail = Number(s.qty || 0);
-    if (avail <= 0) continue;
-    
-    const take = Math.min(avail, remaining);
-    
-    await db.q(`UPDATE stock SET qty = qty - $1 WHERE id=$2`, [take, s.id]);
-    
-    allocated.push({
-      stockId: s.id,
-      lot: s.lot,
-      expiresAt: s.expires_at ? s.expires_at.toISOString().slice(0, 10) : null,
-      location: s.location || (s.warehouse === 'magazin' ? 'MAGAZIN' : 'A'),
-      warehouse: s.warehouse,
-      qty: take
-    });
-    
-    remaining -= take;
+    let r = await db.q(
+      `SELECT id, gtin, lot, expires_at, qty, location, warehouse
+       FROM stock
+       WHERE gtin=$1 AND warehouse=$2 AND qty > 0
+       ORDER BY ${locCase} ASC, expires_at ASC
+       FOR UPDATE`,
+      [productGtin, preferredWarehouse]
+    );
+
+    if (r.rows.length === 0 && preferredWarehouse === 'depozit') {
+      r = await db.q(
+        `SELECT id, gtin, lot, expires_at, qty, location, warehouse
+         FROM stock
+         WHERE gtin=$1 AND warehouse='magazin' AND qty > 0
+         ORDER BY expires_at ASC
+         FOR UPDATE`,
+        [productGtin]
+      );
+    }
+
+    for (const s of r.rows) {
+      if (remaining <= 0) break;
+
+      const avail = Number(s.qty || 0);
+      if (avail <= 0) continue;
+
+      const take = Math.min(avail, remaining);
+
+      await db.q(`UPDATE stock SET qty = qty - $1 WHERE id=$2`, [take, s.id]);
+
+      allocated.push({
+        stockId: s.id,
+        lot: s.lot,
+        expiresAt: s.expires_at ? s.expires_at.toISOString().slice(0, 10) : null,
+        location: s.location || (s.warehouse === 'magazin' ? 'MAGAZIN' : 'A'),
+        warehouse: s.warehouse,
+        qty: take,
+        gtinUsed: s.gtin
+      });
+
+      remaining -= take;
+    }
   }
 
   if (remaining > 0) {
@@ -1741,6 +1784,101 @@ app.delete("/api/stock/:id", async (req, res) => {
 });
 
 
+
+// ========== SOLDURI CLIENȚI (SmartBill Integration) ==========
+
+// POST /api/balances/upload - Încarcă raportul Excel cu facturi scadente
+app.post("/api/balances/upload", async (req, res) => {
+  try {
+    const { invoices } = req.body;
+    
+    if (!invoices || !Array.isArray(invoices)) {
+      return res.status(400).json({ error: "Date invalide. Trimite array de facturi." });
+    }
+    
+    // Ștergem datele vechi (mai vechi de 24h)
+    await db.q(`DELETE FROM client_balances WHERE uploaded_at < NOW() - INTERVAL '24 hours'`);
+    
+    // Găsim toți clienții pentru match după CUI
+    const clientsRes = await db.q(`SELECT id, cui FROM clients WHERE cui IS NOT NULL`);
+    const clientsByCui = {};
+    clientsRes.rows.forEach(c => {
+      const cuiCurat = String(c.cui).replace(/^RO/i, '').replace(/\s/g, '').trim();
+      clientsByCui[cuiCurat] = c.id;
+    });
+    
+    // Inserăm facturile noi
+    let inserted = 0;
+    for (const inv of invoices) {
+      const cuiCurat = String(inv.cui || '').replace(/^RO/i, '').replace(/\s/g, '').trim();
+      const clientId = clientsByCui[cuiCurat] || null;
+      
+      await db.q(`
+        INSERT INTO client_balances 
+        (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `, [
+        clientId,
+        inv.cui,
+        inv.invoice_number,
+        inv.invoice_date,
+        inv.due_date,
+        inv.currency,
+        inv.total_value,
+        inv.balance_due,
+        inv.days_overdue,
+        inv.status
+      ]);
+      inserted++;
+    }
+    
+    res.json({ success: true, inserted, timestamp: new Date().toISOString() });
+  } catch (e) {
+    console.error("Upload balances error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/clients/:id/balances - Solduri pentru un client
+app.get("/api/clients/:id/balances", async (req, res) => {
+  try {
+    const clientId = String(req.params.id);
+    
+    // Verificăm dacă datele sunt expirate
+    const checkRes = await db.q(`
+      SELECT MAX(uploaded_at) as last_upload 
+      FROM client_balances 
+      WHERE client_id = $1
+    `, [clientId]);
+    
+    const lastUpload = checkRes.rows[0]?.last_upload;
+    const isExpired = !lastUpload || (new Date() - new Date(lastUpload)) > 24 * 60 * 60 * 1000;
+    
+    if (isExpired) {
+      return res.json({ expired: true, message: "Raportul a expirat. Încărcați unul nou din secțiunea Birou." });
+    }
+    
+    // Returnăm facturile scadente
+    const result = await db.q(`
+      SELECT * FROM client_balances 
+      WHERE client_id = $1 
+      ORDER BY due_date ASC
+    `, [clientId]);
+    
+    const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
+    
+    res.json({
+      expired: false,
+      lastUpload,
+      invoices: result.rows,
+      totalBalance: total,
+      count: result.rows.length
+    });
+  } catch (e) {
+    console.error("Get balances error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 
 // Login
@@ -2529,8 +2667,182 @@ app.delete("/api/fuel-receipts/:id", async (req, res) => {
   }
 });
 
+// POST /api/balances/upload - Încarcă raportul Excel
+app.post("/api/balances/upload", async (req, res) => {
+  try {
+    const { invoices } = req.body; // Array de facturi din Excel
+    
+    // Ștergem datele vechi (mai vechi de 24h se șterg automat, dar curățăm și acum)
+    await db.q(`DELETE FROM client_balances WHERE uploaded_at < NOW() - INTERVAL '24 hours'`);
+    
+    // Găsim toți clienții din DB pentru a face match după CUI
+    const clientsRes = await db.q(`SELECT id, cui FROM clients WHERE cui IS NOT NULL`);
+    const clientsByCui = {};
+    clientsRes.rows.forEach(c => {
+      const cuiCurat = String(c.cui).replace(/^RO/i, '').replace(/\s/g, '').trim();
+      clientsByCui[cuiCurat] = c.id;
+    });
+    
+    // Inserăm facturile noi
+    let inserted = 0;
+    for (const inv of invoices) {
+      const cuiCurat = String(inv.cui || '').replace(/^RO/i, '').replace(/\s/g, '').trim();
+      const clientId = clientsByCui[cuiCurat] || null;
+      
+      await db.q(`
+        INSERT INTO client_balances 
+        (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `, [
+        clientId,
+        inv.cui,
+        inv.invoice_number,
+        inv.invoice_date,
+        inv.due_date,
+        inv.currency,
+        inv.total_value,
+        inv.balance_due,
+        inv.days_overdue,
+        inv.status
+      ]);
+      inserted++;
+    }
+    
+    res.json({ success: true, inserted, timestamp: new Date().toISOString() });
+  } catch (e) {
+    console.error("Upload balances error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/clients/:id/balances - Solduri pentru un client
+app.get("/api/clients/:id/balances", async (req, res) => {
+  try {
+    // Verificăm dacă datele sunt expirate (mai vechi de 24h)
+    const checkRes = await db.q(`
+      SELECT MAX(uploaded_at) as last_upload 
+      FROM client_balances 
+      WHERE client_id = $1 OR EXISTS (
+        SELECT 1 FROM clients c 
+        WHERE c.id = $1 
+        AND client_balances.cui = c.cui
+      )
+    `, [req.params.id]);
+    
+    const lastUpload = checkRes.rows[0]?.last_upload;
+    const isExpired = !lastUpload || (new Date() - new Date(lastUpload)) > 24 * 60 * 60 * 1000;
+    
+    if (isExpired) {
+      return res.json({ expired: true, message: "Raportul a expirat. Încărcați unul nou." });
+    }
+    
+    // Returnăm facturile scadente
+    const result = await db.q(`
+      SELECT * FROM client_balances 
+      WHERE client_id = $1 
+      ORDER BY due_date ASC
+    `, [req.params.id]);
+    
+    const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
+    
+    res.json({
+      expired: false,
+      lastUpload,
+      invoices: result.rows,
+      totalBalance: total,
+      count: result.rows.length
+    });
+  } catch (e) {
+    console.error("Get balances error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 
+// POST /api/balances/upload - Încarcă raportul Excel cu facturi scadente
+app.post("/api/balances/upload", async (req, res) => {
+  try {
+    const { invoices } = req.body;
+    
+    // Ștergem datele vechi (mai vechi de 24h)
+    await db.q(`DELETE FROM client_balances WHERE uploaded_at < NOW() - INTERVAL '24 hours'`);
+    
+    // Găsim toți clienții pentru match după CUI
+    const clientsRes = await db.q(`SELECT id, cui FROM clients WHERE cui IS NOT NULL`);
+    const clientsByCui = {};
+    clientsRes.rows.forEach(c => {
+      const cuiCurat = String(c.cui).replace(/^RO/i, '').replace(/\s/g, '').trim();
+      clientsByCui[cuiCurat] = c.id;
+    });
+    
+    // Inserăm facturile noi
+    let inserted = 0;
+    for (const inv of invoices) {
+      const cuiCurat = String(inv.cui || '').replace(/^RO/i, '').replace(/\s/g, '').trim();
+      const clientId = clientsByCui[cuiCurat] || null;
+      
+      await db.q(`
+        INSERT INTO client_balances 
+        (client_id, cui, invoice_number, invoice_date, due_date, currency, total_value, balance_due, days_overdue, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `, [
+        clientId,
+        inv.cui,
+        inv.invoice_number,
+        inv.invoice_date,
+        inv.due_date,
+        inv.currency,
+        inv.total_value,
+        inv.balance_due,
+        inv.days_overdue,
+        inv.status
+      ]);
+      inserted++;
+    }
+    
+    res.json({ success: true, inserted, timestamp: new Date().toISOString() });
+  } catch (e) {
+    console.error("Upload balances error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/clients/:id/balances - Solduri pentru un client
+app.get("/api/clients/:id/balances", async (req, res) => {
+  try {
+    // Verificăm dacă datele sunt expirate
+    const checkRes = await db.q(`
+      SELECT MAX(uploaded_at) as last_upload 
+      FROM client_balances 
+      WHERE client_id = $1
+    `, [req.params.id]);
+    
+    const lastUpload = checkRes.rows[0]?.last_upload;
+    const isExpired = !lastUpload || (new Date() - new Date(lastUpload)) > 24 * 60 * 60 * 1000;
+    
+    if (isExpired) {
+      return res.json({ expired: true, message: "Raportul a expirat. Încărcați unul nou." });
+    }
+    
+    const result = await db.q(`
+      SELECT * FROM client_balances 
+      WHERE client_id = $1 
+      ORDER BY due_date ASC
+    `, [req.params.id]);
+    
+    const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
+    
+    res.json({
+      expired: false,
+      lastUpload,
+      invoices: result.rows,
+      totalBalance: total,
+      count: result.rows.length
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ==========================================
 // SEED DATE INIȚIALE - ȘOFERI ȘI MAȘINI

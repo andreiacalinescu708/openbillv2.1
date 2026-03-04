@@ -420,9 +420,15 @@ function sortCategories(keys) {
   let total = 0;
 
   cart.forEach(i => {
-   const normalizedGtin = normalizeGTIN(i.gtin);
+  const allGtins = [i.gtin, ...(i.gtins || [])];
+let available = 0;
+for (const g of allGtins) {
+  const normalized = normalizeGTIN(g);
+  if (stockMap[normalized]) {
+    available += stockMap[normalized];
+  }
+}
 const nameKey = String(i.name).toLowerCase().trim();
-const available = stockMap[normalizedGtin] || 0;
     const insufficient = i.qty > available;
     const price = Number(i.price) || 0;
     const lineTotal = price * i.qty;
@@ -3625,6 +3631,105 @@ const resultsBox = document.getElementById("stockProductResults");
     loadStock();
   }
 
+ async function incarcaRaportSold(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  const statusEl = document.getElementById('statusRaport');
+  const infoEl = document.getElementById('lastUploadInfo');
+  
+  statusEl.textContent = "⏳ Se procesează...";
+  
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+      
+      // Parsăm facturile
+      // Coloane: A=Client, B=CIF, C=Data emiterii, D=Factura, E=Moneda, 
+      //          F=Valoare totala, G=Rest de Incasat, H=Data scadentei, I=Zile intarziere, J=Status
+      
+      const invoices = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 7) continue;
+        
+        // Parsare sumă (format american: 1,234.56)
+        const parseSum = (val) => {
+          if (!val) return 0;
+          if (typeof val === 'number') return val;
+          return parseFloat(String(val).replace(/,/g, '')) || 0;
+        };
+        
+        // Parsare dată
+        const parseDate = (val) => {
+          if (!val) return null;
+          if (val instanceof Date) return val.toISOString().split('T')[0];
+          const parts = String(val).split(/[\/\-\.]/);
+          if (parts.length === 3) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+          return val;
+        };
+        
+        invoices.push({
+          client_name: String(row[0] || ''),
+          cui: String(row[1] || ''),
+          invoice_date: parseDate(row[2]),
+          invoice_number: String(row[3] || ''),
+          currency: String(row[4] || 'RON'),
+          total_value: parseSum(row[5]),
+          balance_due: parseSum(row[6]),
+          due_date: parseDate(row[7]),
+          days_overdue: parseInt(row[8]) || 0,
+          status: String(row[9] || '')
+        });
+      }
+      
+      // Trimitem la server
+      const res = await fetch('/api/balances/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoices })
+      });
+      
+      const result = await res.json();
+      
+      if (result.success) {
+        statusEl.innerHTML = `✅ <span style="color: var(--success-500);">${result.inserted} facturi încărcate</span>`;
+        infoEl.textContent = `Ultima încărcare: ${new Date().toLocaleString('ro-RO')}`;
+        localStorage.setItem('lastSoldUpload', new Date().toISOString());
+      } else {
+        statusEl.innerHTML = `❌ <span style="color: var(--danger-500);">Eroare la încărcare</span>`;
+      }
+      
+    } catch (err) {
+      console.error(err);
+      statusEl.innerHTML = `❌ <span style="color: var(--danger-500);">${err.message}</span>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseExcelDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val.toISOString().split('T')[0];
+  // Încearcă DD/MM/YYYY
+  const parts = String(val).split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return val;
+}
+
+function parseExcelNumber(val) {
+  if (!val) return 0;
+  if (typeof val === 'number') return val;
+  // Format american: 5,210.00 -> 5210.00
+  return parseFloat(String(val).replace(/,/g, '')) || 0;
+}
 
 
 
@@ -3647,40 +3752,39 @@ const resultsBox = document.getElementById("stockProductResults");
   }
 
 
-  function addToCart(product) {
-    const cart = getCart();
-    const client = getSelectedClient();
+ function addToCart(product) {
+  const cart = getCart();
+  const client = getSelectedClient();
 
-    const price = getProductPrice(product, client);
-    const isSpecial = client?.prices && client.prices[String(product.id)] != null;
+  const price = getProductPrice(product, client);
+  const isSpecial = client?.prices && client.prices[String(product.id)] != null;
 
+  // GTIN principal (primul din gtins sau fallback pe gtin vechi)
+  const primaryGTIN =
+    (Array.isArray(product.gtins) && product.gtins.length)
+      ? product.gtins[0]
+      : (product.gtin || "");
 
-    // GTIN principal (primul din gtins sau fallback pe gtin vechi)
-    const primaryGTIN =
-      (Array.isArray(product.gtins) && product.gtins.length)
-        ? product.gtins[0]
-        : (product.gtin || "");
+  const g = normalizeGTIN(primaryGTIN);
+  const found = cart.find(p => normalizeGTIN(p.gtin) === g);
 
-    const g = normalizeGTIN(primaryGTIN);
-    const found = cart.find(p => normalizeGTIN(p.gtin) === g);
-
-    if (found) {
-      found.qty++;
-    } else {
-      cart.push({
-    id: product.id,
-    gtin: primaryGTIN,
-    name: product.name,
-    qty: 1,
-    price,
-    isSpecial: client?.prices?.[String(product.id)] != null
-  });
-
-    }
-
-    saveCart(cart);
-    renderCart();
+  if (found) {
+    found.qty++;
+  } else {
+    cart.push({
+      id: product.id,
+      gtin: primaryGTIN,
+      gtins: product.gtins || [],  // ← Adaugă toate GTIN-urile
+      name: product.name,
+      qty: 1,
+      price,
+      isSpecial: client?.prices?.[String(product.id)] != null
+    });
   }
+
+  saveCart(cart);
+  renderCart();
+}
 
   const orderItemsMap = {};
 

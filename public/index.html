@@ -183,10 +183,25 @@
         <div class="dashboard-actions">
           <a href="clienti.html" class="btn" style="background: #f59e0b; color: #000; border: 1px solid #f59e0b;">⚙️ Administrare clienți</a>
           <button class="btn btn-ghost" disabled style="opacity: 0.5;">📈 Rapoarte (în curând)</button>
+          <div class="section" style="margin-top: 20px; padding: 20px; background: var(--surface); border-radius: 8px;">
+  <h3>📊 Solduri Clienți</h3>
+  <p class="hint">Încarcă raportul zilnic cu facturi scadente (valabil 24h)</p>
+  
+  <div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
+    <input type="file" id="raportSold" accept=".xlsx" style="display: none;" onchange="incarcaRaportSold(this)">
+    <button class="btn-primary" onclick="document.getElementById('raportSold').click()">
+      📁 Încarcă Raport Excel
+    </button>
+    <span id="statusRaport" class="hint"></span>
+  </div>
+  
+  <div id="lastUploadInfo" style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);"></div>
+</div>
         </div>
       </div>
     </div>
   </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <script src="script.js"></script>
 </body>

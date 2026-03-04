@@ -283,6 +283,35 @@ await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_number TEXT`);
 // Index pentru comenzi cu eroare
 await q(`CREATE INDEX IF NOT EXISTS orders_smartbill_error_idx ON orders (smartbill_draft_sent) WHERE smartbill_draft_sent = false AND smartbill_error IS NOT NULL`);
 
+// Coloană CUI pentru clienți (pentru grupare sold SmartBill)
+await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS cui TEXT`);
+
+// Termen de plată (0 = plată pe loc, 30/60/90 = zile termen)
+await q(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS payment_terms INTEGER DEFAULT 0`);
+
+// Tabel pentru solduri clienți (din raportul zilnic SmartBill)
+await q(`
+  CREATE TABLE IF NOT EXISTS client_balances (
+    id SERIAL PRIMARY KEY,
+    client_id TEXT REFERENCES clients(id),
+    cui TEXT,
+    invoice_number TEXT,
+    invoice_date DATE,
+    due_date DATE,
+    currency TEXT,
+    total_value NUMERIC(12,2),
+    balance_due NUMERIC(12,2),
+    days_overdue INTEGER,
+    status TEXT,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Index pentru căutare rapidă
+await q(`CREATE INDEX IF NOT EXISTS idx_balances_client ON client_balances(client_id)`);
+await q(`CREATE INDEX IF NOT EXISTS idx_balances_cui ON client_balances(cui)`);
+await q(`CREATE INDEX IF NOT EXISTS idx_balances_uploaded ON client_balances(uploaded_at)`);
+
 }
 
 // ================= AUDIT LOG (DB) =================
