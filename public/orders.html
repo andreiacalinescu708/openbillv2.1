@@ -337,23 +337,17 @@
     <!-- Filtre -->
     <div class="filters-container">
       <!-- Status Tabs -->
-      <div class="status-tabs" id="statusTabs">
-        <button class="mTab active" data-status="">
-          Toate <span class="badge" id="countAll">0</span>
-        </button>
-        <button class="mTab" data-status="gata_de_livrare">
-          Gata de livrare <span class="badge" id="countGata">0</span>
-        </button>
-        <button class="mTab" data-status="in_procesare">
-          În procesare <span class="badge" id="countProcesare">0</span>
-        </button>
-        <button class="mTab" data-status="facturata">
-          Facturate <span class="badge" id="countFacturate">0</span>
-        </button>
-        <button class="mTab" data-status="livrata">
-          Livrate <span class="badge" id="countLivrate">0</span>
-        </button>
-      </div>
+   <div class="status-tabs" id="statusTabs">
+  <button class="mTab active" data-sent="">
+    Toate <span class="badge" id="countAll">0</span>
+  </button>
+  <button class="mTab" data-sent="false">
+    Netrimise <span class="badge" id="countNetrimise">0</span>
+  </button>
+  <button class="mTab" data-sent="true">
+    Trimise <span class="badge" id="countTrimise">0</span>
+  </button>
+</div>
 
       <!-- Selects -->
       <div class="filters-row">

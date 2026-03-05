@@ -1733,31 +1733,26 @@ stock.forEach(s => {
 
   // ================= ORDERS.HTML =================
   // ================= ORDERS.HTML =================
- async function initOrdersPage() {
+async function initOrdersPage() {
   const list = document.getElementById("ordersList");
   if (!list) return;
 
   const selGroup = document.getElementById("filterGroup");
   const selCategory = document.getElementById("filterCategory");
-  const selStatus = document.getElementById("filterStatus");
   const tabsBox = document.getElementById("statusTabs");
   const searchInput = document.getElementById("orderSearch");
   const searchResults = document.getElementById("orderSearchResults");
   const btnReset = document.getElementById("btnResetFilters");
 
- const statusLabels = {
-  "": "Toate",
-  gata_de_livrare: "Gata de livrare",
-  in_procesare: "În procesare",
-  eroare_smartbill: "⚠️ Eroare SmartBill",  // NOU
-  facturata: "Facturată",
-  livrata: "Livrată"
-};
+  const statusLabels = {
+    "": "Toate",
+    "false": "Netrimise",
+    "true": "Trimise"
+  };
 
-  const TAB_ORDER = ["gata_de_livrare", "in_procesare", "facturata", "livrata", ""];
+  const TAB_ORDER = ["false", "true", ""];
 
-  // ✅ CURĂȚĂM filtrul forcedClient la încărcare (să nu blocheze vizualizarea)
-  // Păstrăm doar dacă venim explicit de la client.html cu intenție
+  // Curățăm filtrul forcedClient la încărcare
   const urlParams = new URLSearchParams(window.location.search);
   const fromClient = urlParams.get('from') === 'client';
   const forcedClient = fromClient ? localStorage.getItem("ordersClientFilter") : null;
@@ -1768,25 +1763,22 @@ stock.forEach(s => {
 
   let orders = [];
   let clients = [];
-  let isLoading = false;
-
-  function getSafeStatus(o) {
-    return o.status || "in_procesare";
-  }
 
   function getFilterState() {
+    // Citește statusul din TAB-UL ACTIV
+    const activeTab = tabsBox?.querySelector(".mTab.active");
+    const sFilter = activeTab?.dataset?.status || "";
+    
     return {
       gFilter: selGroup ? (selGroup.value || "") : "",
       cFilter: selCategory ? (selCategory.value || "") : "",
-      sFilter: selStatus ? (selStatus.value || "") : "",
+      sFilter: sFilter,
       q: searchInput ? (searchInput.value || "").toLowerCase().trim() : ""
     };
   }
 
   function setStatusFilter(v) {
     const val = v || "";
-    if (selStatus) selStatus.value = val;
-
     if (tabsBox) {
       [...tabsBox.querySelectorAll(".mTab")].forEach(b => {
         b.classList.toggle("active", (b.dataset.status || "") === val);
@@ -1837,7 +1829,7 @@ stock.forEach(s => {
       if (g) groups.add(g);
     });
 
-    selGroup.innerHTML = `<option value="">Toate</option>`;
+    selGroup.innerHTML = `<option value="">Toate grupurile</option>`;
     [...groups].sort((a, b) => a.localeCompare(b, "ro")).forEach(g => {
       const opt = document.createElement("option");
       opt.value = g;
@@ -1860,7 +1852,7 @@ stock.forEach(s => {
     });
 
     const prev = selCategory.value || "";
-    selCategory.innerHTML = `<option value="">Toate</option>`;
+    selCategory.innerHTML = `<option value="">Toate categoriile</option>`;
 
     const CATEGORY_ORDER = [
       "Seni Active Classic x30", "Seni Active Classic x10",
@@ -1885,10 +1877,10 @@ stock.forEach(s => {
 
   // 4) COUNTS + TABS
   function getCounts() {
-    const counts = { "": 0, gata_de_livrare: 0, in_procesare: 0, facturata: 0, livrata: 0 };
+    const counts = { "": 0, "false": 0, "true": 0 };
     orders.forEach(o => {
-      const s = getSafeStatus(o);
-      if (counts[s] == null) counts[s] = 0;
+      if (!o) return;
+      const s = o.sentToSmartbill ? "true" : "false";
       counts[s]++;
       counts[""]++;
     });
@@ -1915,25 +1907,33 @@ stock.forEach(s => {
       };
       tabsBox.appendChild(btn);
     });
-    setStatusFilter(selStatus ? selStatus.value : "");
+    setStatusFilter("");
   }
 
-  // 5) MAIN RENDER - ✅ curăță complet DOM-ul pentru a evita duplicarea eventurilor
+  // 5) MAIN RENDER
   function render() {
-    if (isLoading) return;
+    if (!list) return;
     
     const { gFilter, cFilter, sFilter, q } = getFilterState();
-    list.innerHTML = ""; // Curăță complet
+    list.innerHTML = "";
 
+    // Filtrare
     const filtered = orders.filter(o => {
+      if (!o || typeof o !== 'object') return false;
+      
       const g = getOrderGroup(o);
       if (gFilter && g !== gFilter) return false;
+      
       const cat = getOrderCategory(o);
       if (cFilter && cat !== cFilter) return false;
-      const st = getSafeStatus(o);
-      if (sFilter && st !== sFilter) return false;
+      
+      // Filtrare după sentToSmartbill
+      const sent = o.sentToSmartbill ? "true" : "false";
+      if (sFilter && sent !== sFilter) return false;
+      
       const clientName = String(o?.client?.name || "").toLowerCase();
       if (q && !clientName.includes(q)) return false;
+      
       if (forcedClient) {
         const cn = String(o?.client?.name || "");
         if (cn !== forcedClient) return false;
@@ -1946,54 +1946,39 @@ stock.forEach(s => {
       return;
     }
 
-    // Sort by date desc
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // Document fragment pentru performanță
-    const fragment = document.createDocumentFragment();
+    filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     filtered.forEach(o => {
-      if (!o || !Array.isArray(o.items)) return;
-
+      if (!o) return;
+      
       const card = document.createElement("div");
       card.className = "orderCard";
 
       const head = document.createElement("div");
       head.className = "orderHeader";
-      head.innerHTML = `
-        <span>${o.client.name} (${getOrderGroup(o)}) – ${new Date(o.createdAt).toLocaleDateString("ro-RO")}</span>
-      `;
+      
+      const clientName = o?.client?.name || 'Fără nume';
+      const groupName = getOrderGroup(o) || '-';
+      const orderDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString("ro-RO") : '-';
+      
+      // Info principal
+      const infoSpan = document.createElement("span");
+      infoSpan.textContent = `${clientName} (${groupName}) – ${orderDate}`;
+      head.appendChild(infoSpan);
+      
+      // BADGE STATUS
+      const statusBadge = document.createElement("span");
+      if (o.sentToSmartbill) {
+        statusBadge.textContent = "✅ Trimis";
+        statusBadge.style.cssText = "background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-left: 12px; border: 1px solid rgba(34, 197, 94, 0.3);";
+      } else {
+        statusBadge.textContent = "❌ Netrimis";
+        statusBadge.style.cssText = "background: rgba(234, 179, 8, 0.15); color: #fbbf24; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-left: 12px; border: 1px solid rgba(234, 179, 8, 0.3);";
+      }
+      head.appendChild(statusBadge);
 
-      const status = getSafeStatus(o);
-      const nextStatusMap = {
-        in_procesare: "facturata", facturata: "gata_de_livrare", 
-        gata_de_livrare: "livrata", livrata: "in_procesare"
-      };
-
-      const statusBtn = document.createElement("button");
-      statusBtn.className = `order-status ${status}`;
-      statusBtn.textContent = statusLabels[status] || status;
-      statusBtn.onclick = async (e) => {
-        e.stopPropagation();
-        const newStatus = nextStatusMap[status] || "in_procesare";
-        try {
-          const r = await fetch(`/api/orders/${o.id}/status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: newStatus })
-          });
-          if (!r.ok) throw new Error("Eroare");
-          o.status = newStatus;
-          renderTabs();
-          render();
-        } catch (err) {
-          alert("Eroare la schimbare status");
-        }
-      };
-      head.appendChild(statusBtn);
-
-      // Butoane acțiuni
-      if (status === "in_procesare") {
+      // Buton Modifică (doar netrimise)
+      if (!o.sentToSmartbill) {
         const editBtn = document.createElement("button");
         editBtn.textContent = "✏️ Modifică";
         editBtn.className = "btnEdit";
@@ -2003,11 +1988,50 @@ stock.forEach(s => {
           location.href = "editorder.html";
         };
         head.appendChild(editBtn);
+        
+        // Buton Trimite SB
+        const sendBtn = document.createElement("button");
+        sendBtn.textContent = "📤 Trimite SB";
+        sendBtn.style.cssText = "background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; margin-left: 8px; font-weight: 600; font-size: 0.8125rem;";
+        sendBtn.onclick = async (e) => {
+          e.stopPropagation();
+          if (!confirm('Trimite comanda la SmartBill?')) return;
+          
+          sendBtn.disabled = true;
+          sendBtn.textContent = "⏳...";
+          
+          try {
+            const res = await fetch(`/api/orders/${o.id}/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+              alert(`✅ Trimis: ${data.smartbillSeries} ${data.smartbillNumber}`);
+              o.sentToSmartbill = true;
+              renderTabs();
+              render();
+            } else {
+              alert(`❌ Eroare: ${data.error || 'Necunoscută'}`);
+              sendBtn.disabled = false;
+              sendBtn.textContent = "📤 Trimite SB";
+            }
+          } catch (err) {
+            alert('❌ Eroare de rețea');
+            sendBtn.disabled = false;
+            sendBtn.textContent = "📤 Trimite SB";
+          }
+        };
+        head.appendChild(sendBtn);
       }
 
+      // Buton Detalii (toate)
       const pickBtn = document.createElement("button");
-      pickBtn.textContent = "📦 Pregătește";
+      pickBtn.textContent = "📦 Detalii";
       pickBtn.className = "btnPick";
+      pickBtn.style.marginLeft = "8px";
       pickBtn.onclick = (e) => {
         e.stopPropagation();
         localStorage.setItem("pickingOrder", JSON.stringify(o));
@@ -2016,183 +2040,79 @@ stock.forEach(s => {
       };
       head.appendChild(pickBtn);
 
-      // Buton reîncercare pentru erori SmartBill
-if (status === "eroare_smartbill") {
-  const retryBtn = document.createElement("button");
-  retryBtn.textContent = "🔄 Reîncearcă SmartBill";
-  retryBtn.className = "btnRetry";
-  retryBtn.style.cssText = "margin-left:8px; background:#f59e0b; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;";
-  
-  retryBtn.onclick = async (e) => {
-    e.stopPropagation();
-    if (!confirm("Reîncerci trimiterea comenzii în SmartBill?")) return;
-    
-    retryBtn.disabled = true;
-    retryBtn.textContent = "⏳...";
-    
-    try {
-      const r = await fetch(`/api/orders/${o.id}/retry-smartbill`, { method: "POST" });
-      const data = await r.json();
-      
-      if (r.ok) {
-        alert(`✅ Trimis cu succes!\nSerie: ${data.smartbillSeries}\nNumăr: ${data.smartbillNumber}`);
-        o.status = "in_procesare";
-        o.smartbill_draft_sent = true;
-        renderTabs();
-        render();
-      } else {
-        alert(`❌ Eroare: ${data.error || "Necunoscută"}`);
-        retryBtn.textContent = "🔄 Reîncearcă SmartBill";
-        retryBtn.disabled = false;
-      }
-    } catch (err) {
-      alert("Eroare de conexiune");
-      retryBtn.textContent = "🔄 Reîncearcă SmartBill";
-      retryBtn.disabled = false;
-    }
-  };
-  
-  head.appendChild(retryBtn);
-  
-  // Afișează mesajul de eroare
-  const errorDiv = document.createElement("div");
-  errorDiv.style.cssText = "color:#ef4444; font-size:0.875rem; margin-top:4px;";
-  errorDiv.textContent = `Eroare: ${o.smartbill_error || "Trimitere eșuată"}`;
-  head.appendChild(errorDiv);
-}
-
+      // Body
       const body = document.createElement("div");
       body.className = "orderBody";
       body.style.display = "none";
 
-      // Items
-     // În interiorul funcției render(), înlocuiți bucla o.items.forEach cu:
-
-o.items.forEach(i => {
-  const row = document.createElement("div");
-  row.className = `orderItem ${getProductClass(i.name)}`;
-  
-  const gtin = i.gtin || "-";
-  const price = Number(i.price || i.unitPrice || 0);
-  const subtotal = price * (i.qty || 0);
-  
-  // Extrage informațiile de alocare - GRUPATE PE LINII SEPARATE
-  let allocInfoHtml = "";
-  if (Array.isArray(i.allocations) && i.allocations.length > 0) {
-    const grouped = {};
-    
-    i.allocations.forEach(a => {
-      const key = `${a.lot}|${a.location}|${a.expiresAt}`;
-      if (!grouped[key]) {
-        grouped[key] = {
-          lot: a.lot || "-",
-          loc: a.location || "-",
-          exp: a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('ro-RO') : "-",
-          qty: 0
-        };
+      const items = Array.isArray(o.items) ? o.items : [];
+      
+      if (items.length === 0) {
+        body.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center;">Nu există produse.</div>';
+      } else {
+        items.forEach(i => {
+          const row = document.createElement("div");
+          row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px;";
+          const price = Number(i?.price || i?.unitPrice || 0);
+          const qty = Number(i?.qty || 0);
+          const total = price * qty;
+          row.innerHTML = `
+            <div>
+              <div style="font-weight: 600;">${i?.name || 'Produs'}</div>
+              <div style="font-size: 0.875rem; color: var(--text-muted);">${i?.gtin || '-'} | ${qty} buc × ${price.toFixed(2)} RON</div>
+            </div>
+            <div style="font-weight: 700; color: var(--primary-400);">${total.toFixed(2)} RON</div>
+          `;
+          body.appendChild(row);
+        });
       }
-      grouped[key].qty += Number(a.qty || 0);
-    });
-
-    // Fiecare alloc pe câte o linie separată, flex-wrap pentru mobil
-    allocInfoHtml = Object.values(grouped).map(g => {
-      return `
-        <div style="
-          display: flex; 
-          flex-wrap: wrap; 
-          gap: 4px 8px; 
-          margin-top: 6px;
-          padding: 6px 10px;
-          background: rgba(59,130,246,0.1); 
-          border-radius: 6px;
-          border-left: 3px solid rgba(59,130,246,0.5);
-          font-size: 0.85rem;
-          align-items: center;
-        ">
-          <span style="white-space: nowrap;">📍 <b>${g.loc}</b></span>
-          <span style="color: var(--border-color);">•</span>
-          <span style="white-space: nowrap;"><b>LOT:</b> ${g.lot}</span>
-          <span style="color: var(--border-color);">•</span>
-          <span style="white-space: nowrap; color: var(--text-muted);">EXP: ${g.exp}</span>
-          <span style="color: var(--border-color);">•</span>
-          <span style="color: #60a5fa; font-weight: 700; white-space: nowrap;">${g.qty} buc</span>
-        </div>
-      `;
-    }).join("");
-  }
-
-  // HTML structurat pentru mobil - nume și preț pe prima linie, detalii sub
-  row.innerHTML = `
-    <div style="width: 100%;">
-      <!-- Linia 1: Nume produs și Preț total -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
-        <div style="flex: 1; min-width: 0;">
-          <strong style="word-break: break-word; line-height: 1.3;">${i.name}</strong>
-          <span style="color: var(--primary-400); font-weight: 600; margin-left: 6px;">× ${i.qty}</span>
-        </div>
-        <div style="font-weight: 700; color: var(--primary-400); white-space: nowrap; font-size: 1.05rem;">
-          ${subtotal.toFixed(2)} RON
-        </div>
-      </div>
-      
-      <!-- Linia 2: GTIN și Preț unitar -->
-      <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 4px; word-break: break-all;">
-        <span>GTIN: ${gtin}</span>
-        <span style="margin: 0 6px; color: var(--border-color);">|</span>
-        <span>Preț: ${price.toFixed(2)} RON</span>
-      </div>
-      
-      <!-- Linia 3+: Allocations (fiecare pe linie nouă) -->
-      ${allocInfoHtml}
-    </div>
-  `;
-
-  body.appendChild(row);
-});
 
       head.addEventListener("click", (e) => {
-        if (e.target.closest("button")) return;
+        if (e.target.closest("button") || e.target.closest("span")) return;
         body.style.display = body.style.display === "none" ? "block" : "none";
       });
 
       card.appendChild(head);
       card.appendChild(body);
-      fragment.appendChild(card);
+      list.appendChild(card);
     });
-
-    list.appendChild(fragment);
   }
 
-  // 6) SEARCH cu debounce pentru performanță
-  let searchTimeout;
+  // 6) SEARCH live
   if (searchInput && searchResults) {
-    searchInput.oninput = () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        const q = searchInput.value.toLowerCase().trim();
-        searchResults.innerHTML = "";
-        if (!q) return;
+    searchInput.addEventListener("input", () => {
+      render();
+      
+      const q = searchInput.value.toLowerCase().trim();
+      searchResults.innerHTML = "";
+      
+      if (!q) {
+        searchResults.classList.remove("show");
+        return;
+      }
 
-        const matches = [...new Set(orders.map(o => o.client?.name).filter(Boolean))]
-          .filter(name => name.toLowerCase().includes(q))
-          .slice(0, 10);
+      const matches = [...new Set(orders.map(o => o?.client?.name).filter(Boolean))]
+        .filter(name => name.toLowerCase().includes(q))
+        .slice(0, 10);
 
-        matches.forEach(name => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.textContent = name;
-          b.onclick = () => {
-            searchInput.value = name;
-            searchResults.innerHTML = "";
-            render();
-          };
-          searchResults.appendChild(b);
-        });
-      }, 300); // Debounce 300ms
-    };
+      matches.forEach(name => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = name;
+        b.onclick = () => {
+          searchInput.value = name;
+          searchResults.innerHTML = "";
+          searchResults.classList.remove("show");
+          render();
+        };
+        searchResults.appendChild(b);
+      });
+      
+      searchResults.classList.toggle("show", matches.length > 0);
+    });
   }
 
-  // 7) EVENTS - ✅ atașate o singură dată
+  // 7) EVENTS
   if (selGroup) {
     selGroup.onchange = () => {
       rebuildCategoryOptions();
@@ -2200,7 +2120,6 @@ o.items.forEach(i => {
     };
   }
   if (selCategory) selCategory.onchange = render;
-  if (selStatus) selStatus.onchange = render;
 
   if (btnReset) {
     btnReset.onclick = () => {
@@ -2219,7 +2138,6 @@ o.items.forEach(i => {
   // 8) INIT
   buildGroupOptions();
   rebuildCategoryOptions();
-  if (selStatus && !selStatus.value) selStatus.value = "";
   renderTabs();
   render();
 }
@@ -2507,13 +2425,12 @@ function selectProductByGTIN(gtin) {
 
 
 
-  async function initEditOrderPage() {
+ async function initEditOrderPage() {
     const meta = document.getElementById("editOrderMeta");
     const hint = document.getElementById("editOrderHint");
     const list = document.getElementById("editItemsList");
     const countEl = document.getElementById("editItemsCount");
     const totalEl = document.getElementById("editOrderTotal");
-
 
     const search = document.getElementById("editProductSearch");
     const results = document.getElementById("editProductResults");
@@ -2544,6 +2461,57 @@ function selectProductByGTIN(gtin) {
       return;
     }
 
+    // === VERIFICARE SMARTBILL ===
+    try {
+      const checkRes = await apiFetch("/api/orders");
+      const allOrders = await checkRes.json();
+      const freshOrder = allOrders.find(o => o.id === order.id);
+      
+      if (freshOrder && freshOrder.sentToSmartbill) {
+        document.body.innerHTML = `
+          <div style="
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+            text-align: center;
+          ">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🔒</div>
+            <h1 style="margin-bottom: 10px; color: #ef4444;">Factură emisă</h1>
+            <p style="color: #cbd5e1; margin-bottom: 20px; max-width: 500px;">
+              Această comandă a fost deja trimisă la SmartBill și nu poate fi modificată.
+            </p>
+            <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 30px; min-width: 300px;">
+              <div style="color: #22c55e; font-weight: 700; font-size: 1.2rem;">
+                ${freshOrder.smartbillSeries || 'FMD'} ${freshOrder.smartbillNumber || '-'}
+              </div>
+              <div style="color: #cbd5e1; font-size: 0.875rem; margin-top: 8px;">
+                Emisă la: ${new Date(freshOrder.createdAt).toLocaleDateString('ro-RO')}
+              </div>
+            </div>
+            <a href="client.html" style="
+              background: linear-gradient(135deg, #3b82f6, #2563eb);
+              color: white;
+              padding: 12px 24px;
+              border-radius: 8px;
+              text-decoration: none;
+              font-weight: 600;
+            ">
+              ← Înapoi la client
+            </a>
+          </div>
+        `;
+        return;
+      }
+    } catch (err) {
+      console.error("Eroare verificare SmartBill:", err);
+    }
+
     // protecție: doar în procesare
     const statusNow = order.status || "in_procesare";
     if (statusNow !== "in_procesare") {
@@ -2552,63 +2520,62 @@ function selectProductByGTIN(gtin) {
       return;
     }
 
-    // 2) luăm lista de produse ca să putem adăuga din catalog
+    // 2) luăm lista de produse (MUTAT AICI - înainte de resolvePrice)
     const prodRes = await apiFetch("/api/products-flat");
     const products = await prodRes.json();
-    // ===== PRICE MAPS (pentru total) =====
-  const priceById = new Map();
-  const priceByGtin = new Map();
 
-  products.forEach(p => {
-    const price = Number(p.price || 0);
+    // ===== PRICE MAPS =====
+    const priceById = new Map();
+    const priceByGtin = new Map();
 
-    if (p.id != null) priceById.set(String(p.id), price);
+    products.forEach(p => {
+      const price = Number(p.price || 0);
+      if (p.id != null) priceById.set(String(p.id), price);
+      
+      const all = []
+        .concat(p.gtin ? [p.gtin] : [])
+        .concat(Array.isArray(p.gtins) ? p.gtins : [])
+        .filter(Boolean);
+      
+      all.forEach(g => priceByGtin.set(normalizeGTIN(g), price));
+    });
 
-    const all = []
-      .concat(p.gtin ? [p.gtin] : [])
-      .concat(Array.isArray(p.gtins) ? p.gtins : [])
-      .filter(Boolean);
+    // 3) DEFINIRE resolvePrice (ACUM priceById există deja)
+    function resolvePrice(it) {
+      const pid = (it.id != null) ? String(it.id) : "";
+      if (pid && priceById.has(pid)) return priceById.get(pid);
 
-    all.forEach(g => priceByGtin.set(normalizeGTIN(g), price));
-  });
+      const g = normalizeGTIN(it.gtin);
+      if (g && priceByGtin.has(g)) return priceByGtin.get(g);
 
-  function resolvePrice(it) {
-    const pid = (it.id != null) ? String(it.id) : "";
-    if (pid && priceById.has(pid)) return priceById.get(pid);
-
-    const g = normalizeGTIN(it.gtin);
-    if (g && priceByGtin.has(g)) return priceByGtin.get(g);
-
-    return Number(it.price || 0);
-  }
-
-
-    // state local: items editabile (fără allocations; server le va recalcula)
-    let editItems = Array.isArray(order.items) ? order.items.map(it => ({
-    id: it.id,
-    name: it.name,
-    gtin: it.gtin,
-    qty: Number(it.qty || 1),
-    price: resolvePrice(it) // ✅ ia preț din catalog
-  })) : [];
-
-
-    function calcTotal() {
-    let total = 0;
-    for (const it of editItems) {
-      const price = Number(it.price || 0);
-      const qty = Number(it.qty || 0);
-      total += price * qty;
+      return Number(it.price || 0);
     }
-    return total;
-  }
 
-  function renderTotal() {
-    if (!totalEl) return;
-    const t = calcTotal();
-    totalEl.textContent = `${t.toFixed(2)} RON`;
-  }
+    // 4) ABIA ACUM editItems - resolvePrice e definită
+    let editItems = Array.isArray(order.items) ? order.items.map(it => ({
+      id: it.id,
+      name: it.name,
+      gtin: it.gtin,
+      qty: Number(it.qty || 1),
+      price: resolvePrice(it)
+    })) : [];
 
+    // ... restul funcțiilor (calcTotal, renderTotal, renderMeta, etc.) rămân la fel
+    function calcTotal() {
+      let total = 0;
+      for (const it of editItems) {
+        const price = Number(it.price || 0);
+        const qty = Number(it.qty || 0);
+        total += price * qty;
+      }
+      return total;
+    }
+
+    function renderTotal() {
+      if (!totalEl) return;
+      const t = calcTotal();
+      totalEl.textContent = `${t.toFixed(2)} RON`;
+    }
 
     function renderMeta() {
       if (!meta) return;
@@ -2619,100 +2586,84 @@ function selectProductByGTIN(gtin) {
       `;
     }
 
-  function renderItems() {
-    list.innerHTML = "";
+    function renderItems() {
+      list.innerHTML = "";
+      if (!editItems.length) {
+        list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
+        if (countEl) countEl.textContent = "0";
+        renderTotal();
+        return;
+      }
 
-    if (!editItems.length) {
-      list.innerHTML = `<div class="empty">Nu ai produse. Adaugă din dreapta.</div>`;
-      if (countEl) countEl.textContent = "0";
-      if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
+      editItems.forEach((it, idx) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const left = document.createElement("div");
+        left.className = "rowLeft";
+        const price = Number(it.price || 0);
+        const qtyNum = Number(it.qty || 0);
+        const line = price * qtyNum;
+
+        left.innerHTML = `
+          <div class="rowTitle">${it.name || "Produs"}</div>
+          <div class="muted small">GTIN: ${it.gtin || "-"}</div>
+          <div class="muted small">Preț: ${price.toFixed(2)} RON</div>
+          <div class="muted small">Subtotal: <b>${line.toFixed(2)} RON</b></div>
+        `;
+
+        const right = document.createElement("div");
+        right.className = "rowRight";
+
+        const btnMinus = document.createElement("button");
+        btnMinus.className = "iconBtn";
+        btnMinus.textContent = "−";
+        btnMinus.onclick = () => {
+          it.qty = Math.max(1, Number(it.qty || 1) - 1);
+          renderItems();
+        };
+
+        const qty = document.createElement("input");
+        qty.type = "number";
+        qty.min = "1";
+        qty.value = String(it.qty || 1);
+        qty.className = "qtyInput";
+        qty.onchange = () => {
+          const v = parseInt(qty.value, 10);
+          if (!Number.isFinite(v) || v <= 0) return;
+          it.qty = v;
+          renderItems();
+        };
+
+        const btnPlus = document.createElement("button");
+        btnPlus.className = "iconBtn";
+        btnPlus.textContent = "+";
+        btnPlus.onclick = () => {
+          it.qty = Number(it.qty || 1) + 1;
+          renderItems();
+        };
+
+        const btnDel = document.createElement("button");
+        btnDel.className = "iconBtn danger";
+        btnDel.textContent = "🗑";
+        btnDel.onclick = () => {
+          editItems.splice(idx, 1);
+          renderItems();
+        };
+
+        right.append(btnMinus, qty, btnPlus, btnDel);
+        row.append(left, right);
+        list.appendChild(row);
+      });
+
+      if (countEl) countEl.textContent = String(editItems.length);
       renderTotal();
-      return;
     }
 
-    editItems.forEach((it, idx) => {
-      const row = document.createElement("div");
-      row.className = "row";
-
-      const left = document.createElement("div");
-      left.className = "rowLeft";
-
-      const price = Number(it.price || 0);
-      const qtyNum = Number(it.qty || 0);
-      const line = price * qtyNum;
-
-      left.innerHTML = `
-        <div class="rowTitle">${it.name || "Produs"}</div>
-        <div class="muted small">GTIN: ${it.gtin || "-"}</div>
-        <div class="muted small">Preț: ${price.toFixed(2)} RON</div>
-        <div class="muted small">Subtotal: <b>${line.toFixed(2)} RON</b></div>
-      `;
-
-      const right = document.createElement("div");
-      right.className = "rowRight";
-
-      const btnMinus = document.createElement("button");
-      btnMinus.className = "iconBtn";
-      btnMinus.textContent = "−";
-      btnMinus.onclick = () => {
-        it.qty = Math.max(1, Number(it.qty || 1) - 1);
-        renderItems();
-      };
-
-      const qty = document.createElement("input");
-      qty.type = "number";
-      qty.min = "1";
-      qty.value = String(it.qty || 1);
-      qty.className = "qtyInput";
-      qty.onchange = () => {
-        const v = parseInt(qty.value, 10);
-        if (!Number.isFinite(v) || v <= 0) return;
-        it.qty = v;
-        renderItems();
-      };
-
-      const btnPlus = document.createElement("button");
-      btnPlus.className = "iconBtn";
-      btnPlus.textContent = "+";
-      btnPlus.onclick = () => {
-        it.qty = Number(it.qty || 1) + 1;
-        renderItems();
-      };
-
-      const btnDel = document.createElement("button");
-      btnDel.className = "iconBtn danger";
-      btnDel.textContent = "🗑";
-      btnDel.onclick = () => {
-        editItems.splice(idx, 1);
-        renderItems();
-      };
-
-      right.append(btnMinus, qty, btnPlus, btnDel);
-      row.append(left, right);
-      list.appendChild(row);
-    });
-
-    if (countEl) countEl.textContent = String(editItems.length);
-    if (hint) hint.textContent = "Modifici cantități, ștergi sau adaugi produse. La salvare se refac alocările.";
-    renderTotal(); // ✅ o singură dată, la final
-  }
-
-
-  // ================================
-// PRODUSE & PRETURI - ADD PRODUCT
-// ================================
-
-
-
     function addProduct(p) {
-      // GTIN principal = primul din gtins sau fallback
-      const primaryGTIN =
-        (Array.isArray(p.gtins) && p.gtins.length) ? p.gtins[0] : (p.gtin || "");
-
+      const primaryGTIN = (Array.isArray(p.gtins) && p.gtins.length) ? p.gtins[0] : (p.gtin || "");
       const g = normalizeGTIN(primaryGTIN);
-
-      // dacă produsul e deja în listă (după GTIN), creștem qty
       const found = editItems.find(x => normalizeGTIN(x.gtin) === g);
+      
       if (found) {
         found.qty = Number(found.qty || 1) + 1;
       } else {
@@ -2721,10 +2672,9 @@ function selectProductByGTIN(gtin) {
           name: p.name,
           gtin: primaryGTIN,
           qty: 1,
-  price: Number(p.price || 0)
+          price: Number(p.price || 0)
         });
       }
-
       renderItems();
     }
 
@@ -2732,8 +2682,7 @@ function selectProductByGTIN(gtin) {
       results.innerHTML = "";
       const query = String(q || "").toLowerCase().trim();
       if (!query) {
-        results.innerHTML = `<div class="empty">Scrie ceva ca să cauți produse…</div>`;
-        return;
+        
       }
 
       const matches = products
@@ -2768,7 +2717,6 @@ function selectProductByGTIN(gtin) {
         return;
       }
 
-      // trimitem doar ce are nevoie serverul să refacă allocations
       const payloadItems = editItems.map(it => ({
         id: it.id,
         name: it.name,
@@ -2795,11 +2743,10 @@ function selectProductByGTIN(gtin) {
       location.href = "orders.html";
     };
 
-    // init
     renderMeta();
     renderItems();
     renderProductResults("");
-  }
+}
 
 
 

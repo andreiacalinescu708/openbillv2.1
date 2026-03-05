@@ -312,6 +312,15 @@ await q(`CREATE INDEX IF NOT EXISTS idx_balances_client ON client_balances(clien
 await q(`CREATE INDEX IF NOT EXISTS idx_balances_cui ON client_balances(cui)`);
 await q(`CREATE INDEX IF NOT EXISTS idx_balances_uploaded ON client_balances(uploaded_at)`);
 
+
+// Coloane noi pentru fluxul SmartBill (comandă salvată local, trimisă manual)
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS sent_to_smartbill BOOLEAN NOT NULL DEFAULT false`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS due_date DATE`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_series TEXT`);
+await q(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS smartbill_number TEXT`);
+
+// Index pentru căutare rapidă comenzi netrimise
+await q(`CREATE INDEX IF NOT EXISTS orders_sent_idx ON orders (sent_to_smartbill) WHERE sent_to_smartbill = false`);
 }
 
 // ================= AUDIT LOG (DB) =================

@@ -61,6 +61,20 @@ async function sendDraftToSmartBill(order, clientCui) {
       throw new Error(`Produsul "${item.name}" nu are GTIN configurat`);
     }
   }
+  // Calculează data scadenței
+const today = new Date();
+const dueDate = new Date(today);
+dueDate.setDate(today.getDate() + (client.payment_terms || 30)); // default 30 zile
+
+// Formatează pentru SmartBill: AAAA-LL-ZZ
+const dueDateFormatted = dueDate.toISOString().split('T')[0];
+
+// În payload-ul pentru SmartBill, adaugă:
+const smartbillPayload = {
+  // ... celelalte câmpuri ...
+  dueDate: dueDateFormatted,  // <-- Data scadență calculată
+  // ...
+};
 
   const payload = {
     companyVatCode: company.cui,           // RO47095864 - Fast Medical Distribution
@@ -834,16 +848,14 @@ res.status(500).json({ error: "Eroare la produse", detail: e.message, code: e.co
 // ----- API ORDERS -----
 app.get("/api/orders", async (req, res) => {
   try {
-    const dbOn = db.hasDb();
-
-    if (!dbOn) {
-      // fallback JSON (local)
+    if (!db.hasDb()) {
       const orders = readJson(ORDERS_FILE, []);
       return res.json(orders);
     }
 
     const r = await db.q(
-      `SELECT id, client, items, status, created_at
+      `SELECT id, client, items, status, created_at, sent_to_smartbill, 
+              smartbill_series, smartbill_number, due_date, smartbill_error
        FROM orders
        ORDER BY created_at DESC`
     );
@@ -853,7 +865,12 @@ app.get("/api/orders", async (req, res) => {
       client: x.client,
       items: x.items,
       status: x.status,
-      createdAt: x.created_at
+      createdAt: x.created_at,
+      sentToSmartbill: x.sent_to_smartbill,
+      smartbillSeries: x.smartbill_series,
+      smartbillNumber: x.smartbill_number,
+      dueDate: x.due_date,
+      smartbillError: x.smartbill_error
     }));
 
     res.json(orders);
@@ -880,7 +897,7 @@ app.post("/api/orders", async (req, res) => {
     for (const item of items) {
       if (!item.gtin) {
         return res.status(400).json({ 
-          error: `Produsul "${item.name}" nu are GTIN configurat. Adăugați GTIN înainte de a trimite comanda.` 
+          error: `Produsul "${item.name}" nu are GTIN configurat.` 
         });
       }
     }
@@ -920,19 +937,43 @@ app.post("/api/orders", async (req, res) => {
       });
     }
 
+    // Citește payment_terms din DB pentru client
+    let paymentTerms = 0;
+    let dueDate = null;
+    
+    if (db.hasDb() && client.id) {
+      const clientRes = await db.q(
+        `SELECT payment_terms FROM clients WHERE id = $1`,
+        [client.id]
+      );
+      if (clientRes.rows.length > 0) {
+        paymentTerms = clientRes.rows[0].payment_terms || 0;
+      }
+    }
+    
+    // Calculează due_date (data scadență)
+    if (paymentTerms > 0) {
+      const today = new Date();
+      dueDate = new Date(today);
+      dueDate.setDate(today.getDate() + paymentTerms);
+      dueDate = dueDate.toISOString().split('T')[0];
+    }
+
     const newOrder = {
       id: Date.now().toString(),
       client,
       items: itemsWithAllocations,
       status: "in_procesare",
+      sent_to_smartbill: false,
       smartbill_draft_sent: false,
       smartbill_error: null,
       smartbill_series: null,
       smartbill_number: null,
+      payment_terms: paymentTerms,
+      due_date: dueDate,
       createdAt: new Date().toISOString()
     };
 
-    // Salvare inițială în DB
     if (!db.hasDb()) {
       const orders = readJson(ORDERS_FILE, []);
       orders.push(newOrder);
@@ -941,84 +982,185 @@ app.post("/api/orders", async (req, res) => {
     }
 
     await db.q(
-      `INSERT INTO orders (id, client, items, status, created_at, smartbill_draft_sent, smartbill_error)
-       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz, $6, $7)`,
-      [newOrder.id, JSON.stringify(client), JSON.stringify(itemsWithAllocations), 
-       newOrder.status, newOrder.createdAt, false, null]
+      `INSERT INTO orders (id, client, items, status, created_at, sent_to_smartbill, 
+       smartbill_draft_sent, smartbill_error, due_date, payment_terms)
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5::timestamptz, $6, $7, $8, $9, $10)`,
+      [
+        newOrder.id, 
+        JSON.stringify(client), 
+        JSON.stringify(itemsWithAllocations), 
+        newOrder.status, 
+        newOrder.createdAt, 
+        false, 
+        false, 
+        null,
+        dueDate,
+        paymentTerms
+      ]
     );
 
-    // Încercăm trimiterea la SmartBill
-    try {
-      const clientRes = await db.q(`SELECT cui FROM clients WHERE id = $1`, [client.id]);
-      const clientCui = clientRes.rows[0]?.cui || '';
-      
-      const smartbillResult = await sendDraftToSmartBill(newOrder, clientCui);
-      
-      if (smartbillResult.success) {
-        // Update succes
-        await db.q(
-          `UPDATE orders SET 
-            smartbill_draft_sent = true, 
-            smartbill_response = $1,
-            smartbill_series = $2,
-            smartbill_number = $3
-           WHERE id = $4`,
-          [
-            JSON.stringify(smartbillResult.data),
-            smartbillResult.data.series || null,
-            smartbillResult.data.number || null,
-            newOrder.id
-          ]
-        );
-        
-        await logAudit(req, "ORDER_CREATE_SMARTBILL_OK", "order", newOrder.id, {
-          clientName: client?.name,
-          smartbillSeries: smartbillResult.data.series,
-          smartbillNumber: smartbillResult.data.number
-        });
-        
-        return res.json({ 
-          ok: true, 
-          order: { 
-            ...newOrder, 
-            smartbill_draft_sent: true,
-            smartbill_series: smartbillResult.data.series,
-            smartbill_number: smartbillResult.data.number
-          },
-          message: "Comandă trimisă în SmartBill ca ciornă",
-          smartbillUrl: smartbillResult.data.url
-        });
-      } else {
-        throw new Error(smartbillResult.error);
-      }
-      
-    } catch (smartbillErr) {
-      // Eroare SmartBill - salvăm eroarea dar comanda rămâne în DB
-      await db.q(
-        `UPDATE orders SET 
-          smartbill_error = $1, 
-          smartbill_response = $2,
-          status = 'eroare_smartbill'
-         WHERE id = $3`,
-        [smartbillErr.message, JSON.stringify({error: smartbillErr.message}), newOrder.id]
-      );
-      
-      await logAudit(req, "ORDER_CREATE_SMARTBILL_FAIL", "order", newOrder.id, {
-        clientName: client?.name,
-        error: smartbillErr.message
-      });
-      
-      return res.json({ 
-        ok: true,
-        order: { ...newOrder, status: 'eroare_smartbill', smartbill_error: smartbillErr.message },
-        warning: `Comanda a fost salvată dar nu s-a putut trimite în SmartBill: ${smartbillErr.message}`,
-        requiresRetry: true
-      });
-    }
+    await logAudit(req, "ORDER_CREATE", "order", newOrder.id, {
+      clientName: client?.name,
+      paymentTerms,
+      dueDate
+    });
+
+    return res.json({ 
+      ok: true, 
+      order: newOrder,
+      message: "Comandă salvată. Poți să o trimiți la SmartBill când ești gata."
+    });
 
   } catch (e) {
     console.error("POST /api/orders error:", e);
     res.status(500).json({ error: "Eroare la salvare comandă" });
+  }
+});
+
+// TRIMITE COMANDA LA SMARTBILL (doar când userul confirmă manual)
+app.post("/api/orders/:id/send", async (req, res) => {
+  try {
+    const orderId = String(req.params.id);
+    
+    if (!db.hasDb()) {
+      return res.status(500).json({ error: "DB neconfigurat" });
+    }
+    
+    // 1. Ia comanda din DB
+    const orderRes = await db.q(
+      `SELECT * FROM orders WHERE id = $1`,
+      [orderId]
+    );
+    
+    if (!orderRes.rows.length) {
+      return res.status(404).json({ error: "Comandă inexistentă" });
+    }
+    
+    const order = orderRes.rows[0];
+    
+    // 2. Verifică dacă nu a fost deja trimisă
+    if (order.sent_to_smartbill) {
+      return res.status(400).json({ 
+        error: "Comanda a fost deja trimisă la SmartBill",
+        smartbillSeries: order.smartbill_series,
+        smartbillNumber: order.smartbill_number
+      });
+    }
+    
+    // 3. Pregătește datele pentru SmartBill
+    const clientRes = await db.q(`SELECT cui FROM clients WHERE id = $1`, [order.client?.id]);
+    const clientCui = clientRes.rows[0]?.cui || '';
+    
+    const company = await getCompanyDetails();
+    
+    const payload = {
+      companyVatCode: company.cui,
+      client: {
+        name: order.client?.name || 'Client',
+        vatCode: clientCui,
+        isTaxPayer: true,
+        country: 'Romania'
+      },
+      isDraft: true,
+      seriesName: company.smartbill_series,
+      issueDate: new Date().toISOString().split('T')[0],
+      dueDate: order.due_date,
+      useStock: true,
+      mentions: `Punct de lucru: ${order.client?.name || 'Client'}`,
+      products: (order.items || []).map(item => ({
+        name: item.name,
+        code: item.gtin,
+        measuringUnitName: "BUC",
+        currency: 'RON',
+        quantity: Number(item.qty || 0),
+        price: Number(item.unitPrice || item.price || 0),
+        isTaxIncluded: false,
+        taxName: 'Normala',
+        taxPercentage: 21,
+        isDiscount: false,
+        warehouseName: "DISTRIBUTIE",
+        isService: false,
+        saveToDb: false,
+        productDescription: (item.allocations || []).map(alloc => {
+          const lot = alloc.lot || '-';
+          const exp = alloc.expiresAt ? new Date(alloc.expiresAt).toLocaleDateString('ro-RO') : '-';
+          return `LOT: ${lot} | EXP: ${exp}`;
+        }).join('\n')
+      }))
+    };
+    
+    console.log('=== SMARTBILL SEND PAYLOAD ===');
+    console.log(JSON.stringify(payload, null, 2));
+    
+    // 4. Trimite la SmartBill
+    try {
+      const response = await fetch(`${SMARTBILL_BASE_URL}/invoice`, {
+        method: 'POST',
+        headers: getSmartbillAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
+      
+      const responseData = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || responseData.message || `Eroare HTTP ${response.status}`);
+      }
+      
+      // 5. Update DB - marchează ca trimis
+      await db.q(
+        `UPDATE orders SET 
+          sent_to_smartbill = true,
+          smartbill_draft_sent = true,
+          smartbill_response = $1,
+          smartbill_series = $2,
+          smartbill_number = $3,
+          status = 'facturata'
+         WHERE id = $4`,
+        [
+          JSON.stringify(responseData),
+          responseData.series || null,
+          responseData.number || null,
+          orderId
+        ]
+      );
+      
+      await logAudit(req, "ORDER_SEND_SMARTBILL", "order", orderId, {
+        clientName: order.client?.name,
+        smartbillSeries: responseData.series,
+        smartbillNumber: responseData.number
+      });
+      
+      return res.json({
+        success: true,
+        message: "Comandă trimisă cu succes în SmartBill",
+        smartbillSeries: responseData.series,
+        smartbillNumber: responseData.number,
+        smartbillUrl: responseData.url,
+        dueDate: order.due_date
+      });
+      
+    } catch (smartbillErr) {
+      await db.q(
+        `UPDATE orders SET 
+          smartbill_error = $1,
+          smartbill_response = $2
+         WHERE id = $3`,
+        [smartbillErr.message, JSON.stringify({error: smartbillErr.message}), orderId]
+      );
+      
+      await logAudit(req, "ORDER_SEND_SMARTBILL_FAIL", "order", orderId, {
+        error: smartbillErr.message
+      });
+      
+      return res.status(500).json({
+        error: `Eroare SmartBill: ${smartbillErr.message}`,
+        requiresRetry: true
+      });
+    }
+    
+  } catch (e) {
+    console.error("POST /api/orders/:id/send error:", e);
+    res.status(500).json({ error: e.message || "Eroare server" });
   }
 });
 
@@ -1036,19 +1178,24 @@ app.put("/api/orders/:id", async (req, res) => {
       return res.status(500).json({ error: "DB neconfigurat" });
     }
 
-    // 1) Luăm comanda existentă
-    const rOrder = await db.q(
-      `SELECT items FROM orders WHERE id=$1`,
+    // 1) Verifică dacă comanda există și nu e trimisă deja
+    const checkRes = await db.q(
+      `SELECT sent_to_smartbill, items FROM orders WHERE id=$1`,
       [orderId]
     );
 
-    if (!rOrder.rows.length) {
+    if (!checkRes.rows.length) {
       return res.status(404).json({ error: "Comandă inexistentă" });
     }
+    
+    if (checkRes.rows[0].sent_to_smartbill) {
+      return res.status(403).json({ 
+        error: "Comanda a fost deja trimisă la SmartBill și nu poate fi modificată"
+      });
+    }
 
-    const oldItems = rOrder.rows[0].items || [];
-
-    // 2) Returnăm stocul vechi în DB (din allocations)
+    // 2) Returnează stocul vechi
+    const oldItems = checkRes.rows[0].items || [];
     for (const oldItem of oldItems) {
       const allocs = oldItem.allocations || [];
       for (const alloc of allocs) {
@@ -1061,7 +1208,7 @@ app.put("/api/orders/:id", async (req, res) => {
       }
     }
 
-    // 3) Alocăm stoc nou pentru items actualizați
+    // 3) Alocă stoc nou
     const newItems = [];
     
     for (const it of items) {
@@ -1069,8 +1216,6 @@ app.put("/api/orders/:id", async (req, res) => {
       if (qty <= 0) continue;
 
       const unitPrice = Number(it.price || 0);
-      
-      // Alocare stoc din DB
       const allocations = await allocateStockFromDB(it.gtin, qty);
       
       newItems.push({
@@ -1084,7 +1229,7 @@ app.put("/api/orders/:id", async (req, res) => {
       });
     }
 
-    // 4) Salvăm comanda actualizată
+    // 4) Salvează
     await db.q(
       `UPDATE orders SET items=$1::jsonb WHERE id=$2`,
       [JSON.stringify(newItems), orderId]
@@ -1094,7 +1239,7 @@ app.put("/api/orders/:id", async (req, res) => {
       itemsCount: newItems.length
     });
 
-    res.json({ ok: true });
+    res.json({ ok: true, message: "Comandă actualizată" });
   } catch (e) {
     console.error("PUT /api/orders/:id error:", e);
     res.status(500).json({ error: e.message || "Eroare la actualizare" });
@@ -1246,6 +1391,53 @@ app.post("/api/orders/:id/status", async (req, res) => {
   } catch (e) {
     console.error("POST /api/orders/:id/status error:", e);
     res.status(500).json({ error: "Eroare DB status" });
+  }
+});
+
+app.delete("/api/orders/:id", async (req, res) => {
+  try {
+    const orderId = String(req.params.id);
+    
+    if (!db.hasDb()) {
+      return res.status(500).json({ error: "DB neconfigurat" });
+    }
+    
+    // Verifică mai întâi dacă e trimisă
+    const checkRes = await db.q(
+      `SELECT sent_to_smartbill, items FROM orders WHERE id = $1`,
+      [orderId]
+    );
+    
+    if (!checkRes.rows.length) {
+      return res.status(404).json({ error: "Comandă inexistentă" });
+    }
+    
+    if (checkRes.rows[0].sent_to_smartbill) {
+      return res.status(403).json({ 
+        error: "Comanda a fost deja trimisă la SmartBill și nu poate fi ștearsă",
+        smartbillSeries: checkRes.rows[0].smartbill_series,
+        smartbillNumber: checkRes.rows[0].smartbill_number
+      });
+    }
+    
+    // Returnează stocul înainte de ștergere
+    const items = checkRes.rows[0].items || [];
+    for (const item of items) {
+      for (const alloc of item.allocations || []) {
+        if (alloc.stockId && alloc.qty) {
+          await db.q(`UPDATE stock SET qty = qty + $1 WHERE id=$2`, [alloc.qty, alloc.stockId]);
+        }
+      }
+    }
+    
+    await db.q(`DELETE FROM orders WHERE id = $1`, [orderId]);
+    await logAudit(req, "ORDER_DELETE", "order", orderId, {});
+    
+    res.json({ ok: true, message: "Comandă ștearsă" });
+    
+  } catch (e) {
+    console.error("DELETE /api/orders/:id error:", e);
+    res.status(500).json({ error: e.message || "Eroare la ștergere" });
   }
 });
 
