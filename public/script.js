@@ -472,12 +472,18 @@ const nameKey = String(i.name).toLowerCase().trim();
           renderCart();
         }
       }
-    };
+    
+};
 
     box.appendChild(itemDiv);
   });
 
   if (totalBox) totalBox.textContent = `${total.toFixed(2)} RON`;
+  // Actualizeaza si sticky bar
+updateStickyTotals();
+
+
+
 }
 
   function initViewCurrentOrderButton() {
@@ -494,7 +500,26 @@ const nameKey = String(i.name).toLowerCase().trim();
 
       location.href = "comanda.html";
     };
-    
+      // ========== UPDATE STICKY TOTALS BAR ==========
+const cart = getCart();
+const totalProducts = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+let totalNoVat = 0;
+const VAT_RATE = 0.21;
+
+cart.forEach(item => {
+  totalNoVat += Number(item.price || 0) * Number(item.qty || 0);
+});
+
+const totalWithVat = totalNoVat * (1 + VAT_RATE);
+
+const elTP = document.getElementById('stickyTotalProducts');
+const elTfT = document.getElementById('stickyTotalNoVat');
+const elTb = document.getElementById('stickyTotalWithVat');
+
+if (elTP) elTP.textContent = totalProducts + ' buc';
+if (elTfT) elTfT.textContent = totalNoVat.toFixed(2) + ' RON';
+if (elTb) elTb.textContent = totalWithVat.toFixed(2) + ' RON';
+// ==============================================
 
   }
 
@@ -1190,12 +1215,9 @@ async function initCheckPricePage() {
  async function initOrderPage() {
   stockMap = {};
   const stock = await fetch("/api/stock").then(r => r.json());
-  // În initOrderPage, înlocuiește:
-stock.forEach(s => {
-  stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
-});
-
-
+  stock.forEach(s => {
+    stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
+  });
 
   const treeBox = document.getElementById("productsTree");
   const searchInput = document.getElementById("searchProduct");
@@ -1220,7 +1242,32 @@ stock.forEach(s => {
     if (meta) meta.textContent = "Selectează un client pentru a începe comanda";
   }
 
-  // Render categorii cu noul design
+  // Funcție helper: găsește produsul complet în flat după ID sau nume
+// Funcție helper: găsește produsul complet în flat
+function getFullProduct(item) {
+  if (!item) return null;
+  
+  let found = null;
+  
+  if (typeof item === "string") {
+    // Dacă e string (doar nume), caută după nume
+    found = flat.find(p => p.name === item);
+  } else if (typeof item === "object") {
+    // Dacă e obiect, caută mai întâi după ID
+    if (item.id) {
+      found = flat.find(p => String(p.id) === String(item.id));
+    }
+    // Dacă nu găsește după ID, caută după nume
+    if (!found && item.name) {
+      found = flat.find(p => p.name === item.name);
+    }
+  }
+  
+  // Dacă tot nu găsește, returnează item-ul original (dar o să aibă preț 0)
+  return found || item;
+}
+
+  // Render categorii
   function renderCategories(obj) {
     treeBox.innerHTML = "";
     
@@ -1241,18 +1288,18 @@ stock.forEach(s => {
         
         if (Array.isArray(items)) {
           items.forEach(item => {
-            let productData;
-            if (typeof item === "string") {
-              productData = flat.find(p => p.name === item || p.id === item);
-            } else if (typeof item === "object" && item.id) {
-  productData = flat.find(p => p.id === item.id) || item;  // <- IA din flat
-}
+            const productData = getFullProduct(item);
             
             if (productData) {
               const btn = document.createElement("button");
               btn.className = "product-btn";
               btn.textContent = productData.name;
-              btn.onclick = () => addToCart(productData);
+              // IMPORTANT: Folosim getFullProduct ca să avem prețul
+              btn.onclick = () => {
+                const fullProduct = getFullProduct(item);
+                console.log("Deschid modal cu produs:", fullProduct); // Debug
+                openProductModal(fullProduct);
+              };
               productsDiv.appendChild(btn);
             }
           });
@@ -1266,18 +1313,18 @@ stock.forEach(s => {
             
             if (Array.isArray(subItems)) {
               subItems.forEach(item => {
-                let productData;
-                if (typeof item === "string") {
-                  productData = flat.find(p => p.name === item || p.id === item);
-                } else if (typeof item === "object" && item.id) {
-                  productData = item;
-                }
+                const productData = getFullProduct(item);
                 
                 if (productData) {
                   const btn = document.createElement("button");
                   btn.className = "product-btn";
                   btn.textContent = productData.name;
-                  btn.onclick = () => addToCart(productData);
+                  // IMPORTANT: Folosim getFullProduct ca să avem prețul
+                  btn.onclick = () => {
+                    const fullProduct = getFullProduct(item);
+                    console.log("Deschid modal cu produs (subcat):", fullProduct); // Debug
+                    openProductModal(fullProduct);
+                  };
                   productsDiv.appendChild(btn);
                 }
               });
@@ -1298,7 +1345,7 @@ stock.forEach(s => {
 
   renderCategories(tree);
 
-  // Search produse
+  // Search produse - ia direct din flat care are prețurile
   if (searchInput && resultsBox) {
     searchInput.addEventListener("input", () => {
       const q = searchInput.value.toLowerCase().trim();
@@ -1327,7 +1374,7 @@ stock.forEach(s => {
           <div class="search-result-category">${p.path || p.category || "Produs"}</div>
         `;
         div.onclick = () => {
-          addToCart(p);
+          openProductModal(p); // p vine din flat, are preț
           searchInput.value = "";
           resultsBox.classList.remove("show");
         };
@@ -1337,7 +1384,6 @@ stock.forEach(s => {
       resultsBox.classList.add("show");
     });
 
-    // Închide search la click în afară
     document.addEventListener("click", (e) => {
       if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
         resultsBox.classList.remove("show");
@@ -1345,7 +1391,7 @@ stock.forEach(s => {
     });
   }
 
-  // Buton trimite comandă
+  // Restul codului rămâne la fel...
   if (sendBtn) {
     sendBtn.onclick = async () => {
       const client = getSelectedClient();
@@ -1385,6 +1431,7 @@ stock.forEach(s => {
 
   renderCart();
 }
+
 
 
   async function loadClientsAdmin() {
@@ -1661,6 +1708,8 @@ stock.forEach(s => {
     treeBox.innerHTML = "<p class='empty-state'>Eroare la încărcarea clienților</p>";
   }
 }
+
+
 
 
   function getProductClass(name) {
@@ -2067,10 +2116,15 @@ async function initOrdersPage() {
         });
       }
 
-      head.addEventListener("click", (e) => {
-        if (e.target.closest("button") || e.target.closest("span")) return;
-        body.style.display = body.style.display === "none" ? "block" : "none";
-      });
+     head.addEventListener("click", (e) => {
+  // Doar butoanele opresc propagarea, nu și textul/spanele normale
+  if (e.target.closest("button")) return;
+  
+  // Toggle accordion
+  const isHidden = body.style.display === "none";
+  body.style.display = isHidden ? "block" : "none";
+  head.style.borderBottom = isHidden ? "1px solid var(--border-color)" : "none";
+});
 
       card.appendChild(head);
       card.appendChild(body);
@@ -4491,10 +4545,183 @@ function parseExcelNumber(val) {
   // Load inițial
   await loadAllStock();
 }
+// ================= MODAL PRODUS - CORECTAT =================
+let currentModalProduct = null;
+const VAT_RATE = 0.19;
+function openProductModal(product) {
+  currentModalProduct = product;
+  
+  // ✅ FORȚEAZĂ conversia la număr
+  const unitPrice = Number(product?.price || 0);
+  
+  // Salvează în obiect
+  currentModalProduct.unitPrice = unitPrice;
+  currentModalProduct.basePriceNoVat = unitPrice / 1.21; // sau (1 + VAT_RATE)
+  
+  // UI
+  document.getElementById('modalProductName').textContent = product?.name || 'Produs';
+  document.getElementById('modalProductGtin').textContent = 'GTIN: ' + (product?.gtin || '-');
+  
+  // ✅ Setează valoarea cu "1" (nu gol!) ca să vadă prețul imediat
+  const qtyInput = document.getElementById('modalQty');
+  qtyInput.value = '1';
+  
+  // Calculează imediat
+  calculateModalPrices();
+  
+  // Afișează modal
+  document.getElementById('addProductModal').style.display = 'flex';
+  
+  // ✅ FIX: Atașează event listeners pe butoane
+  const btnMinus = document.getElementById('btnModalMinus'); // sau ID-ul tău
+  const btnPlus = document.getElementById('btnModalPlus');
+  
+  if (btnMinus) btnMinus.onclick = () => adjustQty(-1);
+  if (btnPlus) btnPlus.onclick = () => adjustQty(1);
+  
+  // ✅ Input manual recalculează
+  qtyInput.oninput = calculateModalPrices;
+  
+  // Focus
+  setTimeout(() => {
+    qtyInput.focus();
+    qtyInput.select();
+  }, 100);
+}
 
+function calculateModalPrices() {
+  if (!currentModalProduct) return;
+  
+  const qty = parseInt(document.getElementById('modalQty')?.value) || 0;
+  const unitPrice = currentModalProduct.unitPrice || 0;
+  
+  const priceWithVat = unitPrice * qty;
+  const priceNoVat = (currentModalProduct.basePriceNoVat || 0) * qty;
+  
+  // ✅ Actualizează UI
+  document.getElementById('modalUnitPrice').textContent = unitPrice.toFixed(2) + ' RON / buc';
+  document.getElementById('modalPriceWithVat').textContent = priceWithVat.toFixed(2) + ' RON';
+  document.getElementById('modalPriceNoVat').textContent = priceNoVat.toFixed(2) + ' RON';
+}
 
+function adjustQty(delta) {
+  const input = document.getElementById('modalQty');
+  let val = parseInt(input.value) || 0;
+  val = Math.max(1, val + delta); // Minim 1
+  input.value = val;
+  calculateModalPrices();
+} 
+function closeProductModal() {
+  document.getElementById('addProductModal').style.display = 'none';
+  currentModalProduct = null;
+}
 
+function confirmAddToCart() {
+  if (!currentModalProduct) return;
+  
+  const qty = parseInt(document.getElementById('modalQty').value) || 0;
+  
+  if (qty <= 0) {
+    alert("Introdu o cantitate (minim 1)");
+    document.getElementById('modalQty').focus();
+    return;
+  }
+  
+  // SALVĂM numele înainte să închidem modalul!
+  const prodName = currentModalProduct.name;
+  
+  addToCartWithQty(currentModalProduct, qty);
+  closeProductModal();
+  
+  // Folosim variabila salvată, nu currentModalProduct (care e acum null)
+  showToast(`✅ ${prodName} × ${qty} adăugat`);
+}
 
+function addToCartWithQty(product, qty) {
+  const cart = getCart();
+  const client = getSelectedClient();
+  const price = getProductPrice(product, client);
+  
+  const primaryGTIN = (Array.isArray(product.gtins) && product.gtins.length) ? product.gtins[0] : (product.gtin || "");
+  const g = normalizeGTIN(primaryGTIN);
+  
+  const found = cart.find(x => normalizeGTIN(x.gtin) === g);
+  
+  if (found) {
+    found.qty += qty;
+  } else {
+    cart.push({
+      id: product.id,
+      gtin: primaryGTIN,
+      gtins: product.gtins || [],
+      name: product.name,
+      qty: qty,
+      price: price,
+      isSpecial: client?.prices?.[String(product.id)] != null
+    });
+  }
+  
+  saveCart(cart);
+  renderCart();
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: rgba(34, 197, 94, 0.95); color: white; padding: 16px 24px; border-radius: 12px; font-weight: 600; z-index: 2000; animation: slideIn 0.3s ease;';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// Event listeners pentru modal
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('addProductModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) closeProductModal();
+    });
+  }
+  
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeProductModal();
+  });
+});
+
+// ================= STICKY TOTALS BAR =================
+function updateStickyTotals() {
+
+  
+  const cart = getCart();
+  
+  // TP (Total Produse) = suma cantitatilor
+  const totalProducts = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+  
+  // Calculam valorile
+  let totalNoVat = 0;
+  let totalWithVat = 0;
+  const VAT_RATE = 0.21; // 21% TVA
+  
+  cart.forEach(item => {
+    const qty = Number(item.qty || 0);
+    const unitPrice = Number(item.price || 0);
+    
+    // Presupunem ca pretul in cos este FARA TVA (asa cum trimite la SmartBill)
+    const lineNoVat = unitPrice * qty;
+    const lineWithVat = lineNoVat * (1 + VAT_RATE);
+    
+    totalNoVat += lineNoVat;
+    totalWithVat += lineWithVat;
+  });
+  
+  // Actualizam DOM
+  const elTP = document.getElementById('stickyTotalProducts');
+  const elTfT = document.getElementById('stickyTotalNoVat');
+  const elTb = document.getElementById('stickyTotalWithVat');
+  
+  if (elTP) elTP.textContent = `${totalProducts} buc`;
+  if (elTfT) elTfT.textContent = `${totalNoVat.toFixed(2)} RON`;
+  if (elTb) elTb.textContent = `${totalWithVat.toFixed(2)} RON`;
+}
   // ================= BOOT =================
   document.addEventListener("DOMContentLoaded", async () => {
 
