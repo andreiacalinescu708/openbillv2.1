@@ -2639,22 +2639,29 @@ app.post("/api/balances/upload", async (req, res) => {
   }
 });
 
-// GET /api/clients/:id/balances - Solduri pentru un client
 app.get("/api/clients/:id/balances", async (req, res) => {
   try {
     const clientId = String(req.params.id);
     
-    // Returnăm facturile (fără verificare de expirare)
+    // Luăm facturile pentru clientul specific
     const result = await db.q(`
       SELECT * FROM client_balances 
       WHERE client_id = $1 
       ORDER BY due_date ASC
     `, [clientId]);
     
+    // Luăm data ultimei încărcări din TOT tabelul (global pentru toți clienții)
+    const lastUploadRes = await db.q(`
+      SELECT MAX(uploaded_at) as last_upload 
+      FROM client_balances
+    `);
+    
+    const lastUpload = lastUploadRes.rows[0]?.last_upload || new Date().toISOString();
+    
     if (result.rows.length === 0) {
       return res.json({ 
         expired: false, 
-        lastUpload: null,
+        lastUpload: lastUpload,  // Data când s-a încărcat Excelul pentru toți
         invoices: [], 
         totalBalance: 0,
         message: "Nu sunt facturi scadente pentru acest client" 
@@ -2664,8 +2671,8 @@ app.get("/api/clients/:id/balances", async (req, res) => {
     const total = result.rows.reduce((sum, r) => sum + parseFloat(r.balance_due || 0), 0);
     
     res.json({
-      expired: false,  // Nu mai expiră niciodată
-      lastUpload: new Date().toISOString(),
+      expired: false,
+      lastUpload: lastUpload,  // Aceeași dată pentru toți clienții
       invoices: result.rows,
       totalBalance: total,
       count: result.rows.length
@@ -2676,8 +2683,100 @@ app.get("/api/clients/:id/balances", async (req, res) => {
   }
 });
 
+// POST adaugă preț special (folosește JSONB)
+app.post("/api/clients/:id/prices", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { product_id, special_price } = req.body;
+    
+    // Ia prețurile curente
+    const r = await db.q(
+      `SELECT prices FROM clients WHERE id = $1`,
+      [id]
+    );
+    
+    if (!r.rows.length) return res.status(404).json({ error: "Client negăsit" });
+    
+    const prices = r.rows[0].prices || {};
+    prices[String(product_id)] = Number(special_price);
+    
+    // Salvează
+    await db.q(
+      `UPDATE clients SET prices = $1::jsonb WHERE id = $2`,
+      [JSON.stringify(prices), id]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Eroare adăugare preț:", err);
+    res.status(500).json({ error: "Eroare server" });
+  }
+});
 
+// GET prețuri speciale pentru client
+app.get("/api/clients/:id/prices", async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    
+    // Ia prețurile din client
+    const r = await db.q(`SELECT prices FROM clients WHERE id = $1`, [id]);
+    if (!r.rows.length) return res.status(404).json({ error: "Client negăsit" });
+    
+    const prices = r.rows[0].prices || {};
+    const productIds = Object.keys(prices);
+    
+    if (productIds.length === 0) return res.json({ prices: [] });
+    
+    // Ia detaliile produselor din tabela products
+    const productsRes = await db.q(
+      `SELECT id, name, gtin, price as standard_price 
+       FROM products 
+       WHERE id = ANY($1::text[])`,
+      [productIds]
+    );
+    
+    const productsMap = {};
+    productsRes.rows.forEach(p => productsMap[p.id] = p);
+    
+    // Combină datele
+    const pricesWithDetails = Object.entries(prices).map(([productId, specialPrice]) => {
+      const prod = productsMap[productId] || {};
+      return {
+        product_id: productId,
+        product_name: prod.name || 'Produs necunoscut',
+        gtin: prod.gtin || '-',
+        standard_price: prod.standard_price || 0,
+        special_price: specialPrice
+      };
+    });
+    
+    res.json({ prices: pricesWithDetails });
+  } catch (err) {
+    console.error("Eroare GET prices:", err);
+    res.status(500).json({ error: "Eroare server" });
+  }
+});
 
+// GET căutare produse
+app.get("/api/products/search", async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) return res.json([]);
+    
+    const r = await db.q(
+      `SELECT id, name, gtin, price 
+       FROM products 
+       WHERE (name ILIKE $1 OR gtin ILIKE $1) AND active = true
+       LIMIT 10`,
+      [`%${q}%`]
+    );
+    
+    res.json(r.rows);
+  } catch (err) {
+    console.error("Eroare căutare:", err);
+    res.status(500).json({ error: "Eroare server" });
+  }
+});
 
 
 
