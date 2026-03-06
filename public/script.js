@@ -406,14 +406,57 @@ function renderCart() {
   let total = 0;
 
   cart.forEach(i => {
-    // ✅ Folosim DOAR GTIN-ul principal (nu suma tuturor ca să evităm duplicatele)
-    const primaryGtin = i.gtin || (i.gtins && i.gtins[0]);
-    const normalized = normalizeGTIN(primaryGtin);
+    // ✅ COLECTĂM TOATE GTIN-URILE POSIBILE DIN PRODUS (gtin + gtins)
+    const allGtins = [];
     
-    // Calculăm stocul total (depozit + magazin) pentru afișare
-    const depozitStock = window.stockMapDepozit?.[normalized] || 0;
-    const magazinStock = window.stockMapMagazin?.[normalized] || 0;
-    const available = depozitStock + magazinStock;
+    // Adăugăm gtin (coloana single)
+    if (i.gtin) {
+      allGtins.push(i.gtin.toString());
+    }
+    
+    // Adăugăm toate gtins din array
+    if (i.gtins && Array.isArray(i.gtins)) {
+      i.gtins.forEach(g => {
+        if (g) allGtins.push(g.toString());
+      });
+    }
+    
+    // Eliminăm duplicatele
+    const uniqueGtins = [...new Set(allGtins)];
+    
+    // ✅ CĂUTĂM STOCUL PENTRU FIECARE GTIN PÂNĂ GĂSIM UNUL CU STOC
+    let foundStock = null;
+    let depozitStock = 0;
+    let magazinStock = 0;
+    
+    for (const gtin of uniqueGtins) {
+      const normalized = normalizeGTIN(gtin);
+      
+      // Încercăm mai multe formate (normalizat, cu zerouri, fără zerouri)
+      const variations = [
+        normalized,
+        gtin.toString().padStart(14, '0'),
+        gtin.toString().replace(/^0+/, ''),
+        gtin.toString()
+      ];
+      
+      for (const variant of variations) {
+        const dStock = window.stockMapDepozit?.[variant] || 0;
+        const mStock = window.stockMapMagazin?.[variant] || 0;
+        
+        if (dStock > 0 || mStock > 0) {
+          depozitStock = dStock;
+          magazinStock = mStock;
+          foundStock = { depozit: dStock, magazin: mStock, total: dStock + mStock };
+          break;
+        }
+      }
+      
+      if (foundStock) break;
+    }
+    
+    // Dacă nu am găsit stoc pentru niciun GTIN, rămâne 0
+    const available = foundStock?.total || 0;
     
     const insufficient = i.qty > available;
     const price = Number(i.price) || 0;
@@ -434,6 +477,8 @@ function renderCart() {
         stockText = `<div class="stock-ok">✔️ Stoc OK (${available} - Depozit: ${depozitStock}, Magazin: ${magazinStock})</div>`;
       } else if (magazinStock > 0 && depozitStock === 0) {
         stockText = `<div class="stock-ok" style="color: #fbbf24;">✔️ Stoc OK (${available} - Doar în Magazin)</div>`;
+      } else if (depozitStock > 0) {
+        stockText = `<div class="stock-ok">✔️ Stoc OK (${available} - Depozit: ${depozitStock})</div>`;
       } else {
         stockText = `<div class="stock-ok">✔️ Stoc OK (${available})</div>`;
       }
