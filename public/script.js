@@ -369,7 +369,7 @@ function sortCategories(keys) {
     renderCart();
   }
 
- function renderCart() {
+function renderCart() {
   const box = document.getElementById("cartBox");
   const totalBox = document.getElementById("cartTotal");
   const countBadge = document.getElementById("cartCount");
@@ -378,21 +378,7 @@ function sortCategories(keys) {
   if (!box) return;
 
   const cart = getCart();
-  // DEBUG - vezi ce avem în stockMap vs coș
-  console.log("=== DEBUG STOCK ===");
-  console.log("StockMap keys:", Object.keys(stockMap));
-  console.log("StockMap values:", stockMap);
-  cart.forEach((item, idx) => {
-    const normalized = normalizeGTIN(item.gtin);
-    console.log(`Produs ${idx}: "${item.name}"`);
-    console.log(`  - GTIN raw in cos: "${item.gtin}"`);
-    console.log(`  - GTIN normalizat: "${normalized}"`);
-    console.log(`  - Stoc disponibil: ${stockMap[normalized] || 0}`);
-    console.log(`  - Cantitate ceruta: ${item.qty}`);
-  });
-  console.log("===================");
-
-
+  
   // Update counter și footer
   if (countBadge) {
     const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -420,15 +406,15 @@ function sortCategories(keys) {
   let total = 0;
 
   cart.forEach(i => {
-  const allGtins = [i.gtin, ...(i.gtins || [])];
-let available = 0;
-for (const g of allGtins) {
-  const normalized = normalizeGTIN(g);
-  if (stockMap[normalized]) {
-    available += stockMap[normalized];
-  }
-}
-const nameKey = String(i.name).toLowerCase().trim();
+    // ✅ Folosim DOAR GTIN-ul principal (nu suma tuturor ca să evităm duplicatele)
+    const primaryGtin = i.gtin || (i.gtins && i.gtins[0]);
+    const normalized = normalizeGTIN(primaryGtin);
+    
+    // Calculăm stocul total (depozit + magazin) pentru afișare
+    const depozitStock = window.stockMapDepozit?.[normalized] || 0;
+    const magazinStock = window.stockMapMagazin?.[normalized] || 0;
+    const available = depozitStock + magazinStock;
+    
     const insufficient = i.qty > available;
     const price = Number(i.price) || 0;
     const lineTotal = price * i.qty;
@@ -438,6 +424,21 @@ const nameKey = String(i.name).toLowerCase().trim();
     itemDiv.className = "cart-item";
     if (insufficient) itemDiv.style.borderColor = "var(--danger-500)";
 
+    // Text pentru stoc
+    let stockText = "";
+    if (insufficient) {
+      stockText = `<div class="stock-warning">❌ Stoc insuficient (disponibil: ${available})</div>`;
+    } else {
+      // Dacă are stoc în ambele locații, arătăm detaliile
+      if (depozitStock > 0 && magazinStock > 0) {
+        stockText = `<div class="stock-ok">✔️ Stoc OK (${available} - Depozit: ${depozitStock}, Magazin: ${magazinStock})</div>`;
+      } else if (magazinStock > 0 && depozitStock === 0) {
+        stockText = `<div class="stock-ok" style="color: #fbbf24;">✔️ Stoc OK (${available} - Doar în Magazin)</div>`;
+      } else {
+        stockText = `<div class="stock-ok">✔️ Stoc OK (${available})</div>`;
+      }
+    }
+
     itemDiv.innerHTML = `
       <div class="cart-item-header">
         <div class="cart-item-name">${escapeHtml(i.name)}</div>
@@ -445,10 +446,7 @@ const nameKey = String(i.name).toLowerCase().trim();
       </div>
       <div class="cart-item-details">
         <div>Preț: <span class="cart-item-price">${price.toFixed(2)} RON</span></div>
-        ${insufficient 
-          ? `<div class="stock-warning">❌ Stoc insuficient (disponibil: ${available})</div>`
-          : `<div class="stock-ok">✔️ Stoc OK (${available})</div>`
-        }
+        ${stockText}
       </div>
       <div class="cart-item-controls">
         <button class="qty-btn dec">−</button>
@@ -472,18 +470,13 @@ const nameKey = String(i.name).toLowerCase().trim();
           renderCart();
         }
       }
-    
-};
+    };
 
     box.appendChild(itemDiv);
   });
 
   if (totalBox) totalBox.textContent = `${total.toFixed(2)} RON`;
-  // Actualizeaza si sticky bar
-updateStickyTotals();
-
-
-
+  updateStickyTotals();
 }
 
   function initViewCurrentOrderButton() {
@@ -1213,10 +1206,38 @@ async function initCheckPricePage() {
   }
   // ================= COMANDA.HTML =================
  async function initOrderPage() {
+
+  // ✅ Încărcăm ambele gestiuni separat
+  const [depozitRes, magazinRes] = await Promise.all([
+    fetch("/api/stock?warehouse=depozit").then(r => r.json()),
+    fetch("/api/stock?warehouse=magazin").then(r => r.json())
+  ]);
+  
+  // Map-uri separate pentru fiecare gestiune
+  window.stockMapDepozit = {};
+  window.stockMapMagazin = {};
+  
+  depozitRes.forEach(s => {
+    const g = normalizeGTIN(s.gtin);
+    window.stockMapDepozit[g] = (window.stockMapDepozit[g] || 0) + Number(s.qty);
+  });
+  
+  magazinRes.forEach(s => {
+    const g = normalizeGTIN(s.gtin);
+    window.stockMapMagazin[g] = (window.stockMapMagazin[g] || 0) + Number(s.qty);
+  });
+  
+  // ✅ Stock total pentru afișare (suma ambelor)
   stockMap = {};
-  const stock = await fetch("/api/stock").then(r => r.json());
-  stock.forEach(s => {
-    stockMap[normalizeGTIN(s.gtin)] = (stockMap[normalizeGTIN(s.gtin)] || 0) + Number(s.qty);
+  const allGtins = new Set([
+    ...Object.keys(window.stockMapDepozit), 
+    ...Object.keys(window.stockMapMagazin)
+  ]);
+  
+  allGtins.forEach(gtin => {
+    const dep = window.stockMapDepozit[gtin] || 0;
+    const mag = window.stockMapMagazin[gtin] || 0;
+    stockMap[gtin] = dep + mag; // Total pentru afișare
   });
 
   const treeBox = document.getElementById("productsTree");
@@ -2027,58 +2048,112 @@ async function initOrdersPage() {
       head.appendChild(statusBadge);
 
       // Buton Modifică (doar netrimise)
-      if (!o.sentToSmartbill) {
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "✏️ Modifică";
-        editBtn.className = "btnEdit";
-        editBtn.onclick = (e) => {
-          e.stopPropagation();
-          localStorage.setItem("editOrder", JSON.stringify(o));
-          location.href = "editorder.html";
-        };
-        head.appendChild(editBtn);
-        
-        // Buton Trimite SB
-        const sendBtn = document.createElement("button");
+     // Butoane doar pentru comenzi netrimise (Modifică, Trimite SB, Șterge)
+if (!o.sentToSmartbill) {
+  // Buton Modifică
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "✏️ Modifică";
+  editBtn.className = "btnEdit";
+  editBtn.onclick = (e) => {
+    e.stopPropagation();
+    localStorage.setItem("editOrder", JSON.stringify(o));
+    location.href = "editorder.html";
+  };
+  head.appendChild(editBtn);
+  
+  // Buton Trimite SB
+  const sendBtn = document.createElement("button");
+  sendBtn.textContent = "📤 Trimite SB";
+  sendBtn.style.cssText = "background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; margin-left: 8px; font-weight: 600; font-size: 0.8125rem;";
+  sendBtn.onclick = async (e) => {
+    e.stopPropagation();
+    if (!confirm('Trimite comanda la SmartBill?')) return;
+    
+    sendBtn.disabled = true;
+    sendBtn.textContent = "⏳...";
+    
+    try {
+      const res = await fetch(`/api/orders/${o.id}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        alert(`✅ Trimis: ${data.smartbillSeries} ${data.smartbillNumber}`);
+        o.sentToSmartbill = true;
+        renderTabs();
+        render();
+      } else {
+        alert(`❌ Eroare: ${data.error || 'Necunoscută'}`);
+        sendBtn.disabled = false;
         sendBtn.textContent = "📤 Trimite SB";
-        sendBtn.style.cssText = "background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; margin-left: 8px; font-weight: 600; font-size: 0.8125rem;";
-        sendBtn.onclick = async (e) => {
-          e.stopPropagation();
-          if (!confirm('Trimite comanda la SmartBill?')) return;
-          
-          sendBtn.disabled = true;
-          sendBtn.textContent = "⏳...";
-          
-          try {
-            const res = await fetch(`/api/orders/${o.id}/send`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            const data = await res.json();
-            
-            if (res.ok && data.success) {
-              alert(`✅ Trimis: ${data.smartbillSeries} ${data.smartbillNumber}`);
-              o.sentToSmartbill = true;
-              renderTabs();
-              render();
-            } else {
-              alert(`❌ Eroare: ${data.error || 'Necunoscută'}`);
-              sendBtn.disabled = false;
-              sendBtn.textContent = "📤 Trimite SB";
-            }
-          } catch (err) {
-            alert('❌ Eroare de rețea');
-            sendBtn.disabled = false;
-            sendBtn.textContent = "📤 Trimite SB";
-          }
-        };
-        head.appendChild(sendBtn);
       }
+    } catch (err) {
+      alert('❌ Eroare de rețea');
+      sendBtn.disabled = false;
+      sendBtn.textContent = "📤 Trimite SB";
+    }
+  };
+  head.appendChild(sendBtn);
+  
+  // ✅ BUTON ȘTERGE (NOU)
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "🗑️ Șterge";
+  deleteBtn.style.cssText = "background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; margin-left: 8px; font-weight: 600; font-size: 0.8125rem;";
+  deleteBtn.onclick = async (e) => {
+    e.stopPropagation();
+    
+    if (!confirm(`⚠️ Sigur vrei să ștergi comanda pentru ${o.client?.name || 'client'}?\n\nAceastă acțiune nu poate fi anulată!`)) {
+      return;
+    }
+    
+    // Confirmare suplimentară
+    if (!confirm("Confirmi încă o dată ștergerea comenzii?")) {
+      return;
+    }
+    
+    try {
+      const res = await apiFetch(`/api/orders/${o.id}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        // Elimină cardul din DOM cu animație
+        card.style.transition = "all 0.3s ease";
+        card.style.opacity = "0";
+        card.style.transform = "translateX(-20px)";
+        
+        setTimeout(() => {
+          card.remove();
+          
+          // Dacă nu mai sunt comenzi, re-render
+          const remaining = list.querySelectorAll('.orderCard');
+          if (remaining.length === 0) {
+            render();
+          }
+          
+          // Update tabs counts
+          renderTabs();
+        }, 300);
+        
+        showToast(`🗑️ Comanda pentru ${o.client?.name || 'client'} a fost ștearsă`);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(`❌ Eroare la ștergere: ${data.error || 'Nu s-a putut șterge comanda'}`);
+      }
+    } catch (err) {
+      console.error('Eroare ștergere:', err);
+      alert('❌ Eroare de rețea la ștergere');
+    }
+  };
+  head.appendChild(deleteBtn);
+}
 
       // Buton Detalii (toate)
       const pickBtn = document.createElement("button");
-      pickBtn.textContent = "📦 Detalii";
+      pickBtn.textContent = "📦 Pregateste Comanda";
       pickBtn.className = "btnPick";
       pickBtn.style.marginLeft = "8px";
       pickBtn.onclick = (e) => {
@@ -3491,142 +3566,18 @@ const resultsBox = document.getElementById("stockProductResults");
 
     if (!list) return;
 
-    async function loadStock() {
-      list.innerHTML = "<p class='hint'>Se încarcă stocul...</p>";
-
-      const stock = await apiFetch("/api/stock").then(r => r.json());
-
-      if (!stock.length) {
-        list.innerHTML = "<p class='hint'>Nu există stoc.</p>";
-        return;
-      }
-
-      // 🔥 GRUPARE CORECTĂ PE PRODUS
-      
-
-    // 🔥 GRUPARE CORECTĂ PE GTIN
-  const grouped = {};
-
-  stock.forEach(s => {
-    const key = normalizeGTIN(s.gtin);
-    if (!key) return;
-
-    if (!grouped[key]) {
-      grouped[key] = {
-        gtin: key,
-        productName: s.productName,
-        totalQty: 0,
-        lots: []
-      };
+   async function loadStock() {
+  const res = await fetch('/api/stock?warehouse=depozit');  // ✅ Doar depozit
+  const data = await res.json();
+  
+  stockMap = {};
+  data.forEach(item => {
+    // ✅ Verificare dublă: doar depozit
+    if (item.warehouse === 'depozit' || !item.warehouse) {
+      stockMap[item.gtin] = (stockMap[item.gtin] || 0) + item.qty;
     }
-
-    grouped[key].totalQty += Number(s.qty) || 0;
-    grouped[key].lots.push(s);
   });
-
-
-      list.innerHTML = "";
-      // 🔔 ALERTĂ STOC MIC (GLOBAL)
-  const lowProducts = Object.values(grouped)
-    .filter(p => p.totalQty < LOW_STOCK_LIMIT);
-
-  if (lowProducts.length) {
-    const alert = document.createElement("div");
-    alert.className = "alert-low-stock";
-    alert.innerHTML = `
-      ⚠️ <strong>Atenție!</strong>
-      ${lowProducts.length} produse au stoc sub ${LOW_STOCK_LIMIT} buc.
-    `;
-    list.appendChild(alert);
-  }
-
-
-      Object.values(grouped).forEach(prod => {
-        const header = document.createElement("div");
-        header.className = "inventory-row";
-
-      const isLow = prod.totalQty < LOW_STOCK_LIMIT;
-
-  header.innerHTML = `
-    <strong>${prod.productName}</strong>
-    <span class="${isLow ? "low-stock" : ""}">
-      TOTAL: ${prod.totalQty} buc
-      ${isLow ? "⚠️ STOC MIC" : ""}
-    </span>
-    <button class="btnToggle">✏️</button>
-  `;
-
-
-        list.appendChild(header);
-
-        const details = document.createElement("div");
-        details.style.display = "none";
-        details.style.marginLeft = "20px";
-
-        prod.lots.forEach(lot => {
-          const row = document.createElement("div");
-          row.className = "inventory-lot";
-
-        row.innerHTML = `
-    LOT: ${lot.lot} | EXP: ${lot.expiresAt}
-    <br/>
-    Locație:
-    <select id="loc-${lot.id}">
-      ${["A","B","C","R1","R2","R3"].map(x =>
-        `<option value="${x}" ${String(lot.location||"A")===x ? "selected":""}>${x}</option>`
-      ).join("")}
-    </select>
-    Qty:
-    <input type="number" value="${lot.qty}" id="qty-${lot.id}">
-    <button class="btnSave" data-id="${lot.id}">💾</button>
-    <button class="btnDelete" data-id="${lot.id}">🗑</button>
-  `;
-
-
-          details.appendChild(row);
-        });
-
-        list.appendChild(details);
-
-        header.querySelector(".btnToggle").onclick = () => {
-          details.style.display =
-            details.style.display === "none" ? "block" : "none";
-        };
-      });
-
-      // 💾 SAVE
-      document.querySelectorAll(".btnSave").forEach(btn => {
-        btn.onclick = async () => {
-          const id = btn.dataset.id;
-          const qty = document.getElementById(`qty-${id}`).value;
-  const location = document.getElementById(`loc-${id}`).value;
-
-  await apiFetch(`/api/stock/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ qty, location })
-  });
-
-
-          loadStock();
-        };
-      });
-
-      // 🗑 DELETE
-      document.querySelectorAll(".btnDelete").forEach(btn => {
-        btn.onclick = async () => {
-          const id = btn.dataset.id;
-
-          if (!confirm("Ștergi acest lot?")) return;
-
-          await apiFetch(`/api/stock/${id}`, {
-            method: "DELETE"
-          });
-
-          loadStock();
-        };
-      });
-    }
+}
 
     if (btnRefresh) btnRefresh.onclick = loadStock;
     loadStock();
@@ -4548,60 +4499,145 @@ function parseExcelNumber(val) {
 // ================= MODAL PRODUS - CORECTAT =================
 let currentModalProduct = null;
 const VAT_RATE = 0.19;
+
+
 function openProductModal(product) {
   currentModalProduct = product;
   
-  // ✅ FORȚEAZĂ conversia la număr
+  // ✅ COLECTĂM TOATE GTIN-URILE POSIBILE DIN PRODUS
+  const allGtins = [];
+  
+  // Adăugăm gtin (coloana single)
+  if (product.gtin) {
+    allGtins.push(product.gtin.toString());
+  }
+  
+  // Adăugăm toate gtins din array
+  if (product.gtins && Array.isArray(product.gtins)) {
+    product.gtins.forEach(g => {
+      if (g) allGtins.push(g.toString());
+    });
+  }
+  
+  // Eliminăm duplicatele
+  const uniqueGtins = [...new Set(allGtins)];
+  
+  console.log('Toate GTIN-urile produsului:', uniqueGtins);
+  
+  // ✅ CĂUTĂM STOCUL PENTRU FIECARE GTIN PÂNĂ GĂSIM UNUL CU STOC
+  let foundStock = null;
+  let usedGtin = null;
+  let totalStock = 0;
+  let depozitStock = 0;
+  let magazinStock = 0;
+  
+  for (const gtin of uniqueGtins) {
+    const normalized = normalizeGTIN(gtin);
+    
+    // Încercăm mai multe formate
+    const variations = [
+      normalized,
+      gtin.toString().padStart(14, '0'),
+      gtin.toString().replace(/^0+/, ''),
+      gtin.toString()
+    ];
+    
+    for (const variant of variations) {
+      const dStock = window.stockMapDepozit?.[variant] || 0;
+      const mStock = window.stockMapMagazin?.[variant] || 0;
+      
+      if (dStock > 0 || mStock > 0) {
+        depozitStock = dStock;
+        magazinStock = mStock;
+        totalStock = dStock + mStock;
+        usedGtin = gtin;
+        foundStock = { depozit: dStock, magazin: mStock, total: totalStock };
+        console.log(`✅ Găsit stoc pentru GTIN ${gtin} (varianta: ${variant}):`, foundStock);
+        break;
+      }
+    }
+    
+    if (foundStock) break;
+  }
+  
+  // Dacă nu am găsit stoc pentru niciun GTIN, luăm primul pentru afișare
+  const displayGtin = usedGtin || uniqueGtins[0] || '-';
+  
+  console.log('GTIN folosit pentru afișare:', displayGtin);
+  console.log('Stoc final:', { totalStock, depozitStock, magazinStock });
+  
+  // UI elements
+  const nameEl = document.getElementById('modalProductName');
+  const gtinEl = document.getElementById('modalProductGtin');
+  const unitPriceEl = document.getElementById('modalUnitPrice');
+  const stockEl = document.getElementById('modalStock');
+  const modal = document.getElementById('addProductModal');
+  
+  if (!modal) {
+    console.error("Lipseste elementul #addProductModal");
+    return;
+  }
+  
+  if (nameEl) nameEl.textContent = product?.name || 'Produs';
+  if (gtinEl) gtinEl.textContent = 'GTIN: ' + displayGtin;
+  
   const unitPrice = Number(product?.price || 0);
+  if (unitPriceEl) unitPriceEl.textContent = unitPrice.toFixed(2) + ' RON / buc';
   
-  // Salvează în obiect
-  currentModalProduct.unitPrice = unitPrice;
-  currentModalProduct.basePriceNoVat = unitPrice / 1.21; // sau (1 + VAT_RATE)
+  // ✅ Afișare stoc
+  if (stockEl) {
+    if (totalStock > 0) {
+      let stockText = `Stoc disponibil: <strong>${totalStock} buc</strong>`;
+      
+      if (depozitStock > 0 && magazinStock > 0) {
+        stockText += `<br><small style="font-size: 0.85rem; opacity: 0.8;">(Depozit: ${depozitStock}, Magazin: ${magazinStock})</small>`;
+      } else if (magazinStock > 0 && depozitStock === 0) {
+        stockText += `<br><small style="font-size: 0.85rem; color: #fbbf24;">(Doar în Magazin: ${magazinStock})</small>`;
+      } else if (depozitStock > 0) {
+        stockText += `<br><small style="font-size: 0.85rem; opacity: 0.8;">(Depozit: ${depozitStock})</small>`;
+      }
+      
+      stockEl.innerHTML = stockText;
+      stockEl.style.color = totalStock > 10 ? '#22c55e' : '#fbbf24';
+    } else {
+      stockEl.innerHTML = `Stoc disponibil: <strong>0 buc</strong>`;
+      stockEl.style.color = '#ef4444';
+    }
+  }
   
-  // UI
-  document.getElementById('modalProductName').textContent = product?.name || 'Produs';
-  document.getElementById('modalProductGtin').textContent = 'GTIN: ' + (product?.gtin || '-');
-  
-  // ✅ Setează valoarea cu "1" (nu gol!) ca să vadă prețul imediat
+  // Setăm cantitatea default
   const qtyInput = document.getElementById('modalQty');
-  qtyInput.value = '1';
+  if (qtyInput) {
+    qtyInput.value = '1';
+    qtyInput.focus();
+  }
   
-  // Calculează imediat
+  // Calculăm prețurile inițiale
   calculateModalPrices();
   
-  // Afișează modal
-  document.getElementById('addProductModal').style.display = 'flex';
-  
-  // ✅ FIX: Atașează event listeners pe butoane
-  const btnMinus = document.getElementById('btnModalMinus'); // sau ID-ul tău
-  const btnPlus = document.getElementById('btnModalPlus');
-  
-  if (btnMinus) btnMinus.onclick = () => adjustQty(-1);
-  if (btnPlus) btnPlus.onclick = () => adjustQty(1);
-  
-  // ✅ Input manual recalculează
-  qtyInput.oninput = calculateModalPrices;
-  
-  // Focus
-  setTimeout(() => {
-    qtyInput.focus();
-    qtyInput.select();
-  }, 100);
+  // Afișăm modalul
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
 }
 
 function calculateModalPrices() {
   if (!currentModalProduct) return;
   
-  const qty = parseInt(document.getElementById('modalQty')?.value) || 0;
-  const unitPrice = currentModalProduct.unitPrice || 0;
+  const qtyInput = document.getElementById('modalQty');
+  const withVatEl = document.getElementById('modalPriceWithVat');
+  const noVatEl = document.getElementById('modalPriceNoVat');
+  
+  if (!qtyInput) return;
+  
+  const qty = parseInt(qtyInput.value) || 0;
+  const unitPrice = Number(currentModalProduct?.price || 0);
+  const VAT_RATE = 0.21;
   
   const priceWithVat = unitPrice * qty;
-  const priceNoVat = (currentModalProduct.basePriceNoVat || 0) * qty;
+  const priceNoVat = priceWithVat / (1 + VAT_RATE);
   
-  // ✅ Actualizează UI
-  document.getElementById('modalUnitPrice').textContent = unitPrice.toFixed(2) + ' RON / buc';
-  document.getElementById('modalPriceWithVat').textContent = priceWithVat.toFixed(2) + ' RON';
-  document.getElementById('modalPriceNoVat').textContent = priceNoVat.toFixed(2) + ' RON';
+  if (withVatEl) withVatEl.textContent = priceWithVat.toFixed(2) + ' RON';
+  if (noVatEl) noVatEl.textContent = priceNoVat.toFixed(2) + ' RON';
 }
 
 function adjustQty(delta) {

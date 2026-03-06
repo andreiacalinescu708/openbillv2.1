@@ -292,10 +292,7 @@
           <span>🏷️</span>
           <span id="clientCategory">-</span>
         </div>
-        <div class="client-meta-item">
-          <span>💰</span>
-          <span id="clientPrices">0 prețuri speciale</span>
-        </div>
+        
       </div>
     </div>
 
@@ -370,10 +367,10 @@
               <div id="totalProducts" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-400);">0</div>
               <div class="hint">Produse</div>
             </div>
-            <div class="sold-box" style="text-align: center;">
-              <div id="totalValue" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-400);">0</div>
-              <div class="hint">Valoare (RON)</div>
-            </div>
+          <div class="sold-box" style="text-align: center;">
+  <div id="lastSentOrderTotal" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-400);">-</div>
+  <div class="hint">Total ultima comandă trimisă</div>
+</div>
           </div>
         </div>
         
@@ -394,10 +391,7 @@
   <div class="content-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6);">
       <h3 style="color: var(--accent-gold); margin: 0;">💲 Prețuri Speciale</h3>
-      <button onclick="openPriceModal('add')" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px;">
-        <span>➕</span>
-        <span>Adaugă Preț Special</span>
-      </button>
+     
     </div>
 
     <!-- Search bar elegant -->
@@ -610,13 +604,25 @@ async function loadComenzi() {
     const totalProducts = clientOrders.reduce((sum, o) => 
       sum + (o.items || []).reduce((s, i) => s + (i.qty || 0), 0), 0
     );
-    const totalValue = clientOrders.reduce((sum, o) => 
-      sum + (o.items || []).reduce((s, i) => s + ((i.price || i.unitPrice || 0) * (i.qty || 0)), 0), 0
-    );
+    // Găsim ultima comandă trimisă la SmartBill
+const sentOrders = clientOrders.filter(o => o.sentToSmartbill);
+const lastSentOrder = sentOrders.length > 0 ? sentOrders[0] : null; // [0] pentru că sunt sortate descrescător
+
+let lastOrderTotal = 0;
+if (lastSentOrder) {
+  lastOrderTotal = (lastSentOrder.items || []).reduce((sum, item) => 
+    sum + ((item.price || item.unitPrice || 0) * (item.qty || 0)), 0
+  );
+}
+
+// Afișăm
+document.getElementById('lastSentOrderTotal').textContent = lastOrderTotal > 0 
+  ? lastOrderTotal.toFixed(2) + ' RON' 
+  : '-';
 
     document.getElementById('totalOrders').textContent = clientOrders.length;
     document.getElementById('totalProducts').textContent = totalProducts;
-    document.getElementById('totalValue').textContent = totalValue.toFixed(0);
+
     document.getElementById('comenzi-stats').style.display = 'block';
 
     // Listează comenzile
@@ -635,9 +641,7 @@ async function loadComenzi() {
       if (order.sentToSmartbill) {
         statusBadge = `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">✅ Trimis</span>`;
         actionButtons = `
-          <button class="btn btn-sm btn-secondary" onclick="alert('Factura ${order.smartbillSeries || 'FMD'} ${order.smartbillNumber || ''}')" style="padding: 6px 12px;">
-            👁️ Vezi
-          </button>
+          
         `;
       } else {
         statusBadge = `<span style="background: rgba(234, 179, 8, 0.2); color: #fbbf24; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">❌ Netrimis</span>`;
@@ -669,7 +673,7 @@ async function loadComenzi() {
             
             <div style="display: flex; align-items: center; gap: 10px;">
               ${statusBadge}
-              <span style="font-weight: 800; color: var(--primary-400);">${orderTotal.toFixed(2)} RON</span>
+            
             </div>
           </div>
           
@@ -692,10 +696,7 @@ async function loadComenzi() {
               </div>
             `).join('')}
             
-            <div class="order-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4); padding-top: var(--space-4); border-top: 2px solid var(--border-color);">
-              <span>Total:</span>
-              <span class="order-total-value" style="font-size: 1.25rem; font-weight: 800; color: var(--primary-400);">${orderTotal.toFixed(2)} RON</span>
-            </div>
+           
           </div>
         </div>
       `;

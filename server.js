@@ -1253,7 +1253,7 @@ async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozi
   const g = normalizeGTIN(gtin);
   if (!g) throw new Error("GTIN invalid");
 
-  // 1. Găsim produsul după GTIN - FIX pentru JSONB
+  // 1. Găsim produsul după GTIN
   const productRes = await db.q(
     `SELECT id, gtin, gtins FROM products 
      WHERE gtin = $1 OR gtins::jsonb @> to_jsonb($1) 
@@ -1270,10 +1270,8 @@ async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozi
   // 2. Construim lista tuturor GTIN-urilor produsului
   let allGtins = [];
   
-  // Adăugăm gtin-ul principal
   if (product.gtin) allGtins.push(product.gtin);
   
-  // Adăugăm gtins din array JSONB
   if (product.gtins) {
     try {
       const gtinsArray = typeof product.gtins === 'string' 
@@ -1286,7 +1284,7 @@ async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozi
       console.error('Eroare parsing gtins:', e);
     }
   }
-  
+
   // Normalizăm și eliminăm duplicatele
   const uniqueGtins = [...new Set(allGtins.map(normalizeGTIN))].filter(Boolean);
   
@@ -1297,6 +1295,7 @@ async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozi
   const allocated = [];
 
   // 3. Încercăm să alocăm din stocul oricărui GTIN al produsului
+  // Mai întâi din Depozit (preferredWarehouse)
   for (const productGtin of uniqueGtins) {
     if (remaining <= 0) break;
     
@@ -1308,17 +1307,6 @@ async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozi
        FOR UPDATE`,
       [productGtin, preferredWarehouse]
     );
-
-    if (r.rows.length === 0 && preferredWarehouse === 'depozit') {
-      r = await db.q(
-        `SELECT id, gtin, lot, expires_at, qty, location, warehouse
-         FROM stock
-         WHERE gtin=$1 AND warehouse='magazin' AND qty > 0
-         ORDER BY expires_at ASC
-         FOR UPDATE`,
-        [productGtin]
-      );
-    }
 
     for (const s of r.rows) {
       if (remaining <= 0) break;
@@ -1344,8 +1332,49 @@ async function allocateStockFromDB(gtin, neededQty, preferredWarehouse = 'depozi
     }
   }
 
+  // 4. ✅ FALLBACK: Dacă nu a ajuns stocul din Depozit, luăm din Magazin
   if (remaining > 0) {
-    throw new Error(`Stoc insuficient în ${preferredWarehouse}. Lipsă ${remaining} buc`);
+    console.log(`[Stock] Fallback Magazin pentru ${gtin}, mai lipsesc ${remaining} buc`);
+    
+    for (const productGtin of uniqueGtins) {
+      if (remaining <= 0) break;
+      
+      let r = await db.q(
+        `SELECT id, gtin, lot, expires_at, qty, location, warehouse
+         FROM stock
+         WHERE gtin=$1 AND warehouse='magazin' AND qty > 0
+         ORDER BY expires_at ASC
+         FOR UPDATE`,
+        [productGtin]
+      );
+
+      for (const s of r.rows) {
+        if (remaining <= 0) break;
+
+        const avail = Number(s.qty || 0);
+        if (avail <= 0) continue;
+
+        const take = Math.min(avail, remaining);
+
+        await db.q(`UPDATE stock SET qty = qty - $1 WHERE id=$2`, [take, s.id]);
+
+        allocated.push({
+          stockId: s.id,
+          lot: s.lot,
+          expiresAt: s.expires_at ? s.expires_at.toISOString().slice(0, 10) : null,
+          location: s.location || 'MAGAZIN',
+          warehouse: 'magazin',
+          qty: take,
+          gtinUsed: s.gtin
+        });
+
+        remaining -= take;
+      }
+    }
+  }
+
+  if (remaining > 0) {
+    throw new Error(`Stoc insuficient. Lipsă ${remaining} buc în Depozit și Magazin`);
   }
 
   return allocated;
