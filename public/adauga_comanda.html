@@ -442,7 +442,7 @@
         renderExteriorTab(tree[exteriorKey], flat);
         
         // Actualizăm numerele în tab-uri
-        const craiovaCount = Object.keys(tree[craiovaKey] || {}).length;
+const craiovaCount = Object.values(tree[craiovaKey] || {}).flat().length;
         const exteriorCount = Object.values(tree[exteriorKey] || {}).reduce((sum, county) => {
           return sum + Object.keys(county || {}).length;
         }, 0);
