@@ -3840,61 +3840,45 @@ const PORT = process.env.PORT || 3000;
 async function ensureDefaultCompany() {
   if (!db.hasDb()) return;
 
-  // Creează compania default dacă nu există nicio companie
-  const r = await db.q("SELECT COUNT(*)::int AS n FROM companies");
-  const n = r.rows?.[0]?.n ?? 0;
-  
-  if (n > 0) return;
+  try {
+    // Creează compania default dacă nu există nicio companie
+    // Folosim masterQuery pentru că suntem în Master DB
+    const r = await db.masterQuery("SELECT COUNT(*)::int AS n FROM companies");
+    const n = r.rows?.[0]?.n ?? 0;
+    
+    if (n > 0) {
+      console.log("ℹ️ Exista deja companii în Master DB");
+      return;
+    }
 
-  const companyId = crypto.randomUUID();
-  
-  await db.q(
-    `INSERT INTO companies (id, code, name, plan, plan_price, max_users, subscription_status, subscription_expires_at)
-     VALUES ($1, 'DEMO', 'Demo Company', 'enterprise', 59.99, 999, 'active', NOW() + INTERVAL '1 year')`,
-    []
-  );
+    const companyId = crypto.randomUUID();
+    
+    await db.masterQuery(
+      `INSERT INTO companies (id, code, name, plan, plan_price, max_users, subscription_status, subscription_expires_at, subdomain, status)
+       VALUES ($1, 'DEMO', 'Demo Company', 'enterprise', 59.99, 999, 'active', NOW() + INTERVAL '1 year', 'demo', 'active')`,
+      [companyId]
+    );
 
-  await db.q(
-    `INSERT INTO company_settings (name, cui, smartbill_series)
-     VALUES ($1, 'Demo Company', 'RO47095864', 'OB')`,
-    []
-  );
+    await db.masterQuery(
+      `INSERT INTO company_settings (company_id, name, cui, smartbill_series)
+       VALUES ($1, 'Demo Company', 'RO47095864', 'OB')`,
+      [companyId]
+    );
 
-  console.log(`✅ Companie default creată: DEMO (${companyId})`);
-  
-  return companyId;
+    console.log(`✅ Companie default creată: DEMO (${companyId})`);
+    
+    return companyId;
+  } catch (e) {
+    console.error("❌ Eroare ensureDefaultCompany:", e.message);
+    return null;
+  }
 }
 
 async function ensureDefaultAdmin() {
-  if (!db.hasDb()) return;
-
-  const r = await db.q("SELECT COUNT(*)::int AS n FROM users");
-  const n = r.rows?.[0]?.n ?? 0;
-  
-  if (n > 0) return;
-
-  const username = String(process.env.ADMIN_USER || "admin").trim();
-  const password = String(process.env.ADMIN_PASS || "admin").trim();
-
-  if (!username || !password) {
-    console.warn("⚠️ ADMIN_USER/ADMIN_PASS lipsesc");
-    return;
-  }
-
-  // Găsește sau creează compania default
-  let companyId = null;
-  const companyRes = await db.q(`SELECT id FROM companies WHERE code = 'DEMO' LIMIT 1`);
-  if (companyRes.rows.length > 0) {
-    companyId = companyRes.rows[0].id;
-  }
-
-  const hash = await bcrypt.hash(password, 10);
-  await db.q(
-    "INSERT INTO users (username, password_hash, role, is_approved, active) VALUES ($2, $3, 'admin', true, true)",
-    [username, hash]
-  );
-
-  console.log(`✅ Admin implicit creat: ${username} (companie: ${companyId || 'fără'})`);
+  // În noua arhitectură, users sunt în DB-uri separate per companie
+  // Nu mai creăm admin global - fiecare companie își creează adminii proprii
+  console.log("ℹ️ ensureDefaultAdmin: Skipped (users sunt în DB-uri per companie)");
+  return;
 }
 
 async function seedInitialData(companyId) {
@@ -3956,11 +3940,12 @@ async function seedInitialData(companyId) {
     const companyId = await ensureDefaultCompany();
     await ensureDefaultAdmin();
     
-    if (companyId) {
-      await seedClientsFromFileIfEmpty(companyId);
-      await seedProductsFromFileIfEmpty(companyId);
-      await seedInitialData(companyId);
-    }
+    // Seeding temporar dezactivat - se face manual per companie
+    // if (companyId) {
+    //   await seedClientsFromFileIfEmpty(companyId);
+    //   await seedProductsFromFileIfEmpty(companyId);
+    //   await seedInitialData(companyId);
+    // }
   } catch (e) {
     console.error("❌ DB init error:", e?.message || e);
   }
