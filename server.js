@@ -5335,38 +5335,46 @@ app.post("/api/join-company", async (req, res) => {
 
 // ===== PASSWORD RESET API =====
 
-// POST /api/forgot-password - Cere resetare parolă
+// POST /api/forgot-password - Cere resetare parolă (multi-tenant)
 app.post("/api/forgot-password", async (req, res) => {
   try {
-    const { username } = req.body;
+    const { email } = req.body;
     
-    if (!username) {
-      return res.status(400).json({ error: "Username obligatoriu" });
+    if (!email) {
+      return res.status(400).json({ error: "Email obligatoriu" });
     }
     
-    // Căutăm utilizatorul (după username SAU email)
-    const userRes = await db.q(
-      `SELECT id, username, email, company_id FROM users 
-       WHERE (username = $1 OR LOWER(email) = LOWER($1)) AND active = true`,
-      [username]
-    );
+    // Căutăm utilizatorul în TOATE companiile (după email)
+    const companiesRes = await db.masterQuery(`SELECT id, subdomain FROM companies WHERE status = 'active'`);
+    let foundUser = null;
+    let foundCompany = null;
     
-    if (userRes.rows.length === 0) {
+    for (const company of companiesRes.rows) {
+      try {
+        db.setCompanyContext(company);
+        const userRes = await db.q(
+          `SELECT id, username, email FROM users 
+           WHERE LOWER(email) = LOWER($1) AND active = true`,
+          [email]
+        );
+        
+        if (userRes.rows.length > 0) {
+          foundUser = userRes.rows[0];
+          foundCompany = company;
+          break;
+        }
+      } catch (e) { /* ignoră erori */ }
+    }
+    db.resetCompanyContext();
+    
+    if (!foundUser) {
       // Nu dezvăluim dacă utilizatorul există (securitate)
       return res.json({ success: true, message: "Dacă contul există, vei primi un email cu instrucțiuni." });
     }
     
-    const user = userRes.rows[0];
+    // Generăm token în contextul companiei găsite
+    db.setCompanyContext(foundCompany);
     
-    // Verificăm dacă are email
-    if (!user.email) {
-      return res.status(400).json({ 
-        error: "Nu există email asociat acestui cont", 
-        message: "Contactează administratorul companiei pentru resetarea parolei."
-      });
-    }
-    
-    // Generăm token
     const resetToken = generateToken(32);
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // Valabil 1 oră
@@ -5374,18 +5382,20 @@ app.post("/api/forgot-password", async (req, res) => {
     await db.q(
       `INSERT INTO password_resets (user_id, reset_token, expires_at)
        VALUES ($1, $2, $3)`,
-      [user.id, resetToken, expiresAt]
+      [foundUser.id, resetToken, expiresAt]
     );
     
+    db.resetCompanyContext();
+    
     // Trimitem email
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password.html?token=${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL || 'https://' + foundCompany.subdomain + '.openbillv21-production.up.railway.app'}/reset-password.html?token=${resetToken}`;
     
     await emailService.sendMail({
-      to: user.email,
+      to: foundUser.email,
       subject: 'Resetare parolă OpenBill',
       html: `
         <h2>🔐 Resetare parolă</h2>
-        <p>Ai cerut resetarea parolei pentru contul <strong>${user.username}</strong>.</p>
+        <p>Ai cerut resetarea parolei pentru contul <strong>${foundUser.username}</strong>.</p>
         <p>Click mai jos pentru a seta o parolă nouă:</p>
         <a href="${resetLink}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Resetează parola</a>
         <p style="color: #666;">Link-ul este valabil 1 oră.</p>
