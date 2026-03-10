@@ -696,6 +696,65 @@ app.get("/api/debug/subdomain", (req, res) => {
   });
 });
 
+// DEBUG: Deblocare cont utilizator (temporar)
+app.post("/admin/unlock-user", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email obligatoriu" });
+    }
+    
+    // Căutăm utilizatorul în toate companiile
+    const companiesRes = await db.masterQuery(`SELECT id, subdomain FROM companies WHERE status = 'active'`);
+    let foundUser = null;
+    let foundCompany = null;
+    
+    for (const company of companiesRes.rows) {
+      try {
+        db.setCompanyContext(company);
+        const userRes = await db.q(
+          `SELECT id, username, email, failed_attempts, unlock_at FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+          [email]
+        );
+        if (userRes.rows.length > 0) {
+          foundUser = userRes.rows[0];
+          foundCompany = company;
+          break;
+        }
+      } catch (e) { /* ignoră */ }
+    }
+    db.resetCompanyContext();
+    
+    if (!foundUser) {
+      return res.status(404).json({ error: "Utilizator negăsit" });
+    }
+    
+    // Deblocăm contul
+    db.setCompanyContext(foundCompany);
+    
+    await db.q(
+      `UPDATE users SET failed_attempts = 0, unlock_at = null, last_failed_at = null WHERE id = $1`,
+      [foundUser.id]
+    );
+    
+    db.resetCompanyContext();
+    
+    res.json({
+      success: true,
+      message: "Cont deblocat cu succes!",
+      user: foundUser.username,
+      company: foundCompany.subdomain,
+      previousAttempts: foundUser.failed_attempts,
+      wasLocked: !!foundUser.unlock_at
+    });
+    
+  } catch (error) {
+    console.error("[UNLOCK] Eroare:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DEBUG: Resetare parolă pentru utilizator (temporar)
 app.post("/admin/reset-password-direct", async (req, res) => {
   try {
