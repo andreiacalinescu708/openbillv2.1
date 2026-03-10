@@ -3073,6 +3073,27 @@ app.post("/api/register", async (req, res) => {
 
 // ===== DEMO SIGNUP & EMAIL VERIFICATION =====
 
+// GET /admin/check-import - Verifică statusul importului (temporar)
+app.get("/admin/check-import", async (req, res) => {
+  try {
+    const masterPool = db.getMasterPool();
+    
+    // Verificăm companiile
+    const companies = await masterPool.query(`SELECT id, name, subdomain, status FROM companies`);
+    
+    // Verificăm dacă există DB-ul fastmedical
+    const dbs = await masterPool.query(`SELECT datname FROM pg_database WHERE datname LIKE 'railway_%'`);
+    
+    res.json({
+      companies: companies.rows,
+      databases: dbs.rows.map(r => r.datname),
+      message: companies.rows.length > 2 ? 'Import reușit!' : 'Doar companiile default există'
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/demo-signup - DEPRECAT: Folosește /api/register
 app.post("/api/demo-signup", async (req, res) => {
   return res.status(410).json({ 
