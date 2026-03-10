@@ -696,6 +696,64 @@ app.get("/api/debug/subdomain", (req, res) => {
   });
 });
 
+// DEBUG: Resetare parolă pentru utilizator (temporar)
+app.post("/admin/reset-password-direct", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: "Email și parolă nouă obligatorii" });
+    }
+    
+    // Căutăm utilizatorul în toate companiile
+    const companiesRes = await db.masterQuery(`SELECT id, subdomain FROM companies WHERE status = 'active'`);
+    let foundUser = null;
+    let foundCompany = null;
+    
+    for (const company of companiesRes.rows) {
+      try {
+        db.setCompanyContext(company);
+        const userRes = await db.q(
+          `SELECT id, username, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+          [email]
+        );
+        if (userRes.rows.length > 0) {
+          foundUser = userRes.rows[0];
+          foundCompany = company;
+          break;
+        }
+      } catch (e) { /* ignoră */ }
+    }
+    db.resetCompanyContext();
+    
+    if (!foundUser) {
+      return res.status(404).json({ error: "Utilizator negăsit" });
+    }
+    
+    // Resetăm parola
+    db.setCompanyContext(foundCompany);
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    
+    await db.q(
+      `UPDATE users SET password_hash = $1 WHERE id = $2`,
+      [passwordHash, foundUser.id]
+    );
+    
+    db.resetCompanyContext();
+    
+    res.json({
+      success: true,
+      message: "Parola a fost resetată cu succes!",
+      user: foundUser.username,
+      company: foundCompany.subdomain
+    });
+    
+  } catch (error) {
+    console.error("[RESET-PASS] Eroare:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DEBUG: Listează toate companiile și utilizatorii (temporar)
 app.get("/api/debug/companies", async (req, res) => {
   try {
