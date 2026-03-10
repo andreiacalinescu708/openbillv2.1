@@ -3033,24 +3033,21 @@ app.post("/api/login", async (req, res) => {
         plan: req.company.plan,
         subdomain: req.company.subdomain
       };
-    } else {
-      // Suntem pe localhost - căutăm compania userului în master DB
+    } else if (companyData) {
+      // Avem deja compania din findUserByEmailInAllCompanies
+      // Obținem info completă despre companie din master DB
       try {
         const host = req.headers.host || '';
         const baseDomain = host.includes(':') ? host.split(':')[0] : host;
         const port = host.includes(':') ? ':' + host.split(':')[1] : '';
         
-        // Căutăm toate companiile și verificăm care are acest user
-        const companiesRes = await db.masterQuery(
-          `SELECT c.id, c.name, c.code, c.plan, c.subdomain 
-           FROM companies c
-           JOIN users u ON u.company_id = c.id
-           WHERE u.id = $1 AND c.status = 'active'`,
-          [u.id]
+        const compRes = await db.masterQuery(
+          `SELECT id, name, code, plan, subdomain FROM companies WHERE id = $1 AND status = 'active'`,
+          [companyData.id]
         );
         
-        if (companiesRes.rows.length > 0) {
-          const comp = companiesRes.rows[0];
+        if (compRes.rows.length > 0) {
+          const comp = compRes.rows[0];
           companyInfo = {
             id: comp.id,
             name: comp.name,
@@ -3062,7 +3059,7 @@ app.post("/api/login", async (req, res) => {
           redirectUrl = `http://${comp.subdomain}.${baseDomain}${port}`;
         }
       } catch (e) {
-        console.error('[Login] Eroare căutare companie:', e.message);
+        console.error('[Login] Eroare obținere info companie:', e.message);
       }
     }
     
