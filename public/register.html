@@ -72,19 +72,14 @@
     <form id="registerForm" class="authForm" autocomplete="on">
       <div class="two-columns">
         <label class="authLabel">
-          Nume
-          <input id="regFirstName" class="authInput" type="text" placeholder="Prenume" />
+          Nume *
+          <input id="regLastName" class="authInput" type="text" required placeholder="Popescu" />
         </label>
         <label class="authLabel">
-          Prenume
-          <input id="regLastName" class="authInput" type="text" placeholder="Nume" />
+          Prenume *
+          <input id="regFirstName" class="authInput" type="text" required placeholder="Ion" />
         </label>
       </div>
-
-      <label class="authLabel">
-        Username *
-        <input id="regUser" class="authInput" type="text" autocomplete="username" required placeholder="Alege un username" />
-      </label>
 
       <label class="authLabel">
         Email *
@@ -133,14 +128,14 @@
       const msg = document.getElementById('registerMsg');
       
       const data = {
-        username: document.getElementById('regUser').value.trim(),
+        email: document.getElementById('regEmail').value.trim(),
         password: document.getElementById('regPass').value,
         confirmPassword: document.getElementById('regConfirmPass').value,
-        email: document.getElementById('regEmail').value.trim(),
         firstName: document.getElementById('regFirstName').value.trim(),
         lastName: document.getElementById('regLastName').value.trim(),
         companyName: document.getElementById('regCompany').value.trim(),
-        phone: document.getElementById('regPhone').value.trim()
+        phone: document.getElementById('regPhone').value.trim(),
+        position: 'Administrator'
       };
       
       // Validare client-side
@@ -150,8 +145,8 @@
         return;
       }
       
-      if (data.password.length < 6) {
-        msg.textContent = "Parola trebuie să aibă cel puțin 6 caractere!";
+      if (data.password.length < 8) {
+        msg.textContent = "Parola trebuie să aibă cel puțin 8 caractere!";
         msg.className = "authMsg";
         return;
       }
