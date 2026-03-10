@@ -3752,6 +3752,173 @@ async function seedInitialData(companyId) {
   // Inițializăm tabelul pentru categorii per companie
   await initCompanyCategoriesTable();
 
+  // ============================================
+  // ENDPOINT TEMPORAR: Import date din backup
+  // ============================================
+  app.post("/admin/import-backup", async (req, res) => {
+    const fs = require('fs');
+    const crypto = require('crypto');
+    
+    try {
+      console.log('[IMPORT] Încep importul din backup...');
+      
+      // Verificăm dacă există backup-ul
+      if (!fs.existsSync('backup-data.json')) {
+        return res.status(404).json({ error: 'Fișierul backup-data.json nu există' });
+      }
+      
+      const backupData = JSON.parse(fs.readFileSync('backup-data.json', 'utf8'));
+      const data = backupData.data;
+      
+      console.log(`[IMPORT] Backup conține: ${data.companies?.length || 0} companii, ${data.users?.length || 0} utilizatori`);
+      
+      // Găsim compania Fast Medical
+      const fastMedical = data.companies.find(c => 
+        c.name.toLowerCase().includes('fast') && c.name.toLowerCase().includes('medical')
+      );
+      
+      if (!fastMedical) {
+        return res.status(404).json({ error: 'Compania Fast Medical nu a fost găsită', companies: data.companies.map(c => c.name) });
+      }
+      
+      console.log(`[IMPORT] Companie găsită: ${fastMedical.name}`);
+      
+      // Creăm compania în Master DB
+      const newCompanyId = crypto.randomUUID();
+      const subdomain = 'fastmedical';
+      
+      const masterPool = db.getMasterPool();
+      await masterPool.query(`
+        INSERT INTO companies (id, code, name, cui, address, phone, email,
+                             plan, plan_price, max_users, subscription_status,
+                             subscription_expires_at, subdomain, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'enterprise', 59.99, 999, 'active',
+                NOW() + INTERVAL '1 year', $8, 'active', $9)
+        ON CONFLICT (subdomain) DO UPDATE SET
+          name = EXCLUDED.name,
+          status = 'active'
+      `, [newCompanyId, 'FMD', fastMedical.name, fastMedical.cui, fastMedical.address, 
+          fastMedical.phone, fastMedical.email, subdomain, fastMedical.created_at || new Date()]);
+      
+      console.log(`[IMPORT] Companie creată în Master DB: ${newCompanyId}`);
+      
+      // Creăm DB-ul companiei
+      const masterUrl = new URL(process.env.DATABASE_URL);
+      const companyDbName = `${masterUrl.pathname.replace('/', '')}_${subdomain}`;
+      
+      const adminPool = new (require('pg').Pool)({
+        connectionString: process.env.DATABASE_URL.replace(/\/[^/]+$/, '/postgres'),
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      try {
+        await adminPool.query(`CREATE DATABASE "${companyDbName}"`);
+        console.log(`[IMPORT] DB creat: ${companyDbName}`);
+      } catch (e) {
+        if (!e.message.includes('already exists')) throw e;
+        console.log(`[IMPORT] DB existent: ${companyDbName}`);
+      }
+      await adminPool.end();
+      
+      // Creăm tabelele
+      const companyPool = new (require('pg').Pool)({
+        connectionString: process.env.DATABASE_URL.replace(/\/[^/]+$/, `/${companyDbName}`),
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      await db.ensureCompanyTables(companyPool);
+      console.log('[IMPORT] Tabele create');
+      
+      // Importăm utilizatorii
+      const users = data.users.filter(u => u.company_id === fastMedical.id || u.email?.includes('fastmedical'));
+      for (const user of users) {
+        try {
+          await companyPool.query(`
+            INSERT INTO users (id, username, password_hash, email, first_name, last_name, role, active, is_approved, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, true, true, $8)
+            ON CONFLICT (username) DO NOTHING
+          `, [user.id || crypto.randomUUID(), user.username || user.email, user.password_hash,
+              user.email || user.username, user.first_name || 'Admin', user.last_name || 'FastMedical',
+              user.role || 'admin', user.created_at || new Date()]);
+        } catch (e) {}
+      }
+      console.log(`[IMPORT] ${users.length} utilizatori importați`);
+      
+      // Importăm clienții
+      const clients = data.clients?.filter(c => c.company_id === fastMedical.id) || [];
+      for (const client of clients) {
+        try {
+          await companyPool.query(`
+            INSERT INTO clients (id, name, cui, address, city, county, phone, email, prices, is_active, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (id) DO NOTHING
+          `, [client.id || crypto.randomUUID(), client.name, client.cui, client.address, client.city,
+              client.county, client.phone, client.email, 
+              typeof client.prices === 'string' ? client.prices : JSON.stringify(client.prices || {}),
+              client.is_active !== false, client.created_at || new Date()]);
+        } catch (e) {}
+      }
+      console.log(`[IMPORT] ${clients.length} clienți importați`);
+      
+      // Importăm produsele
+      const products = data.products?.filter(p => p.company_id === fastMedical.id) || [];
+      for (const prod of products) {
+        try {
+          await companyPool.query(`
+            INSERT INTO products (id, name, gtin, gtins, category, price, stock, active, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (id) DO NOTHING
+          `, [prod.id || crypto.randomUUID(), prod.name, prod.gtin, 
+              JSON.stringify(prod.gtins || [prod.gtin]), prod.category, prod.price || 0, 
+              prod.stock || 0, prod.active !== false, prod.created_at || new Date()]);
+        } catch (e) {}
+      }
+      console.log(`[IMPORT] ${products.length} produse importate`);
+      
+      // Importăm stocul
+      const stock = data.stock?.filter(s => s.company_id === fastMedical.id) || [];
+      for (const item of stock) {
+        try {
+          await companyPool.query(`
+            INSERT INTO stock (id, gtin, product_name, lot, expires_at, qty, location, warehouse, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (id) DO NOTHING
+          `, [item.id || crypto.randomUUID(), item.gtin, item.product_name, item.lot || 'N/A',
+              item.expires_at || '2025-12-31', item.qty || 0, item.location || 'A', 
+              item.warehouse || 'depozit', item.created_at || new Date()]);
+        } catch (e) {}
+      }
+      console.log(`[IMPORT] ${stock.length} intrări stoc importate`);
+      
+      await companyPool.end();
+      
+      console.log('[IMPORT] ✅ COMPLET!');
+      
+      res.json({
+        success: true,
+        message: 'Import complet!',
+        company: {
+          name: fastMedical.name,
+          subdomain: subdomain,
+          url: `https://${subdomain}.openbillv21-production.up.railway.app`
+        },
+        stats: {
+          users: users.length,
+          clients: clients.length,
+          products: products.length,
+          stock: stock.length
+        }
+      });
+      
+    } catch (error) {
+      console.error('[IMPORT] Eroare:', error);
+      res.status(500).json({ error: error.message, stack: error.stack });
+    }
+  });
+  // ============================================
+  // SFÂRȘIT ENDPOINT IMPORT
+  // ============================================
+
   app.listen(PORT, () => console.log("Server pornit pe port", PORT));
 })();
 
