@@ -696,6 +696,37 @@ app.get("/api/debug/subdomain", (req, res) => {
   });
 });
 
+// DEBUG: Listează toate companiile și utilizatorii (temporar)
+app.get("/api/debug/companies", async (req, res) => {
+  try {
+    const masterPool = db.getMasterPool();
+    const companies = await masterPool.query(`SELECT id, name, subdomain, status FROM companies ORDER BY name`);
+    
+    const result = [];
+    for (const company of companies.rows) {
+      try {
+        db.setCompanyContext(company);
+        const usersRes = await db.q(`SELECT id, username, email, role, active FROM users LIMIT 5`);
+        result.push({
+          ...company,
+          users: usersRes.rows
+        });
+      } catch (e) {
+        result.push({
+          ...company,
+          users: [],
+          error: e.message
+        });
+      }
+    }
+    db.resetCompanyContext();
+    
+    res.json({ companies: result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/api/me", async (req, res) => {
   if (!req.session.user) return res.json({ loggedIn: false });
   
