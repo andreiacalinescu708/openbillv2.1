@@ -183,6 +183,108 @@ async function withTransaction(callback) {
 // CREARE ȘI MIGRARE BAZE DE DATE
 // ============================================================
 
+// Inițializează tabelele în baza de date master (companies, etc.)
+async function initMasterDatabase() {
+  try {
+    const pool = getMasterPool();
+    if (!pool) {
+      console.error("❌ Nu pot inițializa master DB - conexiunea lipsește");
+      return false;
+    }
+    
+    // Verificăm dacă tabela companies există
+    const checkResult = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'companies'
+      )
+    `);
+    
+    if (checkResult.rows[0].exists) {
+      console.log("✅ Master DB deja inițializat");
+      return true;
+    }
+    
+    console.log("🔄 Inițializăm Master DB...");
+    
+    // Creăm tabela companies
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS companies (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        code TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        cui TEXT,
+        address TEXT,
+        phone TEXT,
+        email TEXT,
+        plan TEXT NOT NULL DEFAULT 'starter',
+        plan_price NUMERIC(10,2) DEFAULT 29.99,
+        max_users INTEGER DEFAULT 3,
+        subscription_status TEXT DEFAULT 'trial',
+        subscription_expires_at TIMESTAMPTZ,
+        subdomain TEXT UNIQUE,
+        status TEXT DEFAULT 'active',
+        settings JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    
+    // Creăm tabela company_settings (opțional, pentru setări globale)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS company_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+        name TEXT DEFAULT 'OpenBill',
+        cui TEXT,
+        smartbill_token TEXT,
+        smartbill_series TEXT DEFAULT 'OB',
+        address TEXT,
+        city TEXT,
+        county TEXT,
+        country TEXT DEFAULT 'Romania',
+        phone TEXT,
+        email TEXT,
+        bank_name TEXT,
+        bank_iban TEXT,
+        registration_number TEXT,
+        vat_number TEXT,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    
+    // Creăm indexuri
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_companies_subdomain ON companies(subdomain)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_companies_code ON companies(code)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_companies_status ON companies(status)`);
+    
+    // Inserăm o companie demo default
+    await pool.query(`
+      INSERT INTO companies (id, code, name, plan, plan_price, max_users, subscription_status, subscription_expires_at, subdomain, status)
+      VALUES (
+        gen_random_uuid(), 
+        'DEMO', 
+        'Demo Company', 
+        'enterprise', 
+        59.99, 
+        999, 
+        'active', 
+        NOW() + INTERVAL '1 year',
+        'demo',
+        'active'
+      )
+      ON CONFLICT (code) DO NOTHING
+    `);
+    
+    console.log("✅ Master DB inițializat cu succes!");
+    return true;
+    
+  } catch (e) {
+    console.error("❌ Eroare inițializare Master DB:", e.message);
+    return false;
+  }
+}
+
 // Creează baza de date pentru o companie nouă
 async function createCompanyDatabase(company) {
   const masterUrl = new URL(MASTER_DB_URL);
@@ -569,6 +671,7 @@ module.exports = {
   createCompanyDatabase,
   ensureCompanyTables,
   buildCompanyDbUrl,
+  initMasterDatabase,
   
   // Compatibilitate cu codul vechi
   setRLSContext,
