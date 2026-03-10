@@ -266,14 +266,18 @@
     <a href="#features">Funcționalități</a>
     <a href="#pricing">Prețuri</a>
     <a href="/login.html">Login</a>
-    <a href="/demo-signup.html" class="cta-button" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">Începe demo 7 zile</a>
+    <a href="/register.html" class="cta-button" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">Începe trial 14 zile</a>
   </div>
 </nav>
 
 <section class="hero">
   <h1>ERP Inteligent pentru<br>Distribuția Farmaceutică</h1>
   <p>Gestionează stocurile, comenzile, livrările și facturarea într-o singură platformă. Integrare completă cu SmartBill.</p>
-  <a href="#pricing" class="cta-button">Vezi planurile și prețurile →</a>
+  <div style="display: inline-flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+    <a href="/register.html" class="cta-button">Începe trial 14 zile gratuit →</a>
+    <a href="#pricing" style="color: var(--text-muted); text-decoration: none; padding: 1rem; display: inline-flex; align-items: center;">Vezi planurile</a>
+  </div>
+  <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--success);">✓ Nu necesită card de credit &nbsp;•&nbsp; ✓ Anulezi oricând</p>
 </section>
 
 <section class="features" id="features">
@@ -311,6 +315,21 @@
 
 <section class="pricing" id="pricing">
   <h2>Alege planul potrivit</h2>
+  
+  <!-- Trial Gratuit Banner -->
+  <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05)); border: 2px solid var(--success); border-radius: 16px; padding: 2rem; margin-bottom: 3rem; text-align: center; max-width: 800px; margin-left: auto; margin-right: auto;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">🎁</div>
+    <h3 style="font-size: 1.75rem; margin-bottom: 0.5rem; color: var(--success);">14 Zile Trial Gratuit</h3>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Testează toate funcționalitățile fără obligații. Fără card de credit necesar.</p>
+    <ul style="list-style: none; display: inline-block; text-align: left; margin-bottom: 1.5rem; color: var(--text);">
+      <li style="margin-bottom: 0.5rem;">✓ Toate funcționalitățile incluse</li>
+      <li style="margin-bottom: 0.5rem;">✓ Până la 3 utilizatori</li>
+      <li style="margin-bottom: 0.5rem;">✓ Suport tehnic inclus</li>
+      <li>✓ Date tale rămân după trial</li>
+    </ul>
+    <br>
+    <a href="/register.html" class="cta-button" style="font-size: 1.1rem; padding: 1rem 2rem;">Începe Trial Gratuit →</a>
+  </div>
   
   <div class="pricing-grid">
     <!-- Starter -->
@@ -373,32 +392,15 @@
 </footer>
 
 <script>
-async function startCheckout(plan) {
-  // Verifică dacă e logat
-  const meRes = await fetch('/api/me');
-  const me = await meRes.json();
-  
-  if (!me.loggedIn) {
-    window.location.href = '/register.html?redirect=landing.html&plan=' + plan;
-    return;
-  }
-  
+function startCheckout(plan) {
   // Pentru Enterprise, contactează-ne
   if (plan === 'enterprise') {
     contactSales();
     return;
   }
   
-  // Afișăm opțiuni de plată
-  const paymentMethod = confirm('Alege metoda de plată:\n\nOK = Plată prin OP (Ordin de Plată)\nAnulează = Vezi detalii abonament');
-  
-  if (paymentMethod) {
-    // Redirect către billing cu parametru OP
-    window.location.href = '/billing.html?method=op&plan=' + plan;
-  } else {
-    // Redirect către billing
-    window.location.href = '/billing.html';
-  }
+  // Redirecționează la înregistrare cu planul selectat
+  window.location.href = '/register.html?plan=' + plan;
 }
 
 function contactSales() {
