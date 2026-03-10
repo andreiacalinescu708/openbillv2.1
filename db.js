@@ -194,6 +194,14 @@ async function initMasterDatabase() {
     
     // Forțăm crearea tabelelor (cu IF NOT EXISTS pentru siguranță)
     console.log("🔄 Creăm/verificăm tabelele Master DB...");
+    console.log("📡 Conectat la:", MASTER_DB_URL?.replace(/:\/\/[^:]+:/, '://***:***@'));
+    
+    // DEBUG: Verificăm ce tabele există înainte
+    const beforeCheck = await pool.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public' ORDER BY table_name
+    `);
+    console.log("📋 Tabele existente înainte:", beforeCheck.rows.map(r => r.table_name));
     
     // Creăm tabela companies
     await pool.query(`
@@ -262,6 +270,13 @@ async function initMasterDatabase() {
       )
       ON CONFLICT (code) DO NOTHING
     `);
+    
+    // DEBUG: Verificăm ce tabele există după
+    const afterCheck = await pool.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public' ORDER BY table_name
+    `);
+    console.log("📋 Tabele existente după:", afterCheck.rows.map(r => r.table_name));
     
     console.log("✅ Master DB inițializat/verificat cu succes!");
     return true;
