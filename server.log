@@ -1,0 +1,6 @@
+[dotenv@17.3.1] injecting env (15) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+DATABASE_URL exists: true
+DATABASE_URL value: postgresql://postgres:meRdITcr...
+✅ DB ready (multi-tenant)
+✅ Email service ready
+Server pornit pe port 3000

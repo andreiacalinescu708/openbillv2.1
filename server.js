@@ -892,21 +892,20 @@ app.get("/api/companies", requireAuth, async (req, res) => {
   try {
     const userId = req.session.user.id;
     const isAdmin = req.session.user.role === 'admin' || req.session.user.role === 'superadmin';
+    const userCompanyId = req.session.user.company_id;
     
     let companies;
     if (isAdmin) {
-      // Admin/SuperAdmin vede toate companiile
-      const r = await db.q(`SELECT * FROM companies ORDER BY created_at DESC`);
+      // Admin/SuperAdmin vede toate companiile (din master DB)
+      const r = await db.masterQuery(`SELECT * FROM companies ORDER BY created_at DESC`);
+      companies = r.rows;
+    } else if (userCompanyId) {
+      // User obișnuit vede doar compania lui (folosind company_id din session)
+      const r = await db.masterQuery(`SELECT * FROM companies WHERE id = $1`, [userCompanyId]);
       companies = r.rows;
     } else {
-      // User obișnuit vede doar compania lui
-      const userRes = await db.q(`SELECT company_id FROM users WHERE id = $1`, [userId]);
-      if (userRes.rows.length === 0 || !userRes.rows[0].company_id) {
-        return res.json([]);
-      }
-      const companyId = userRes.rows[0].company_id;
-      const r = await db.q(`SELECT * FROM companies WHERE id = $1`);
-      companies = r.rows;
+      // Fallback: încearcă să obțină compania din contextul curent
+      companies = req.company ? [req.company] : [];
     }
     
     res.json(companies);
@@ -4526,8 +4525,13 @@ app.get("/api/products/search", requireAuth, requireCompany, async (req, res) =>
 // ----- API SUBSCRIPTION -----
 app.get("/api/subscription-status", requireAuth, async (req, res) => {
   try {
-    // Use company from subdomain middleware
-    if (!req.company) {
+    // Get company from subdomain middleware OR from session
+    let companyId;
+    if (req.company) {
+      companyId = req.company.id;
+    } else if (req.session.user && req.session.user.company_id) {
+      companyId = req.session.user.company_id;
+    } else {
       return res.status(404).json({ error: "Companie necunoscută" });
     }
     
@@ -4535,7 +4539,7 @@ app.get("/api/subscription-status", requireAuth, async (req, res) => {
     const result = await db.masterQuery(
       `SELECT plan, subscription_status, subscription_expires_at, max_users
        FROM companies WHERE id = $1`,
-      [req.company.id]
+      [companyId]
     );
     
     if (result.rows.length === 0) {
@@ -5101,16 +5105,21 @@ app.post("/api/clients/:id/import-prices", requireAuth, requireCompany, async (r
 // GET /api/company-settings - Obține setările companiei curente
 app.get("/api/company-settings", requireAuth, async (req, res) => {
   try {
-    // Use company from subdomain middleware
-    if (!req.company) {
+    // Get company from subdomain middleware OR from session
+    let companyId;
+    let companyInfo = null;
+    
+    if (req.company) {
+      companyId = req.company.id;
+    } else if (req.session.user && req.session.user.company_id) {
+      companyId = req.session.user.company_id;
+    } else {
       return res.status(404).json({ error: "Companie necunoscută" });
     }
     
-    const companyId = req.company.id;
-    
     // Get company info from master DB
     const companyResult = await db.masterQuery(
-      `SELECT name, cui, plan, subscription_status, subscription_expires_at, max_users
+      `SELECT id, name, cui, plan, subscription_status, subscription_expires_at, max_users, subdomain
        FROM companies WHERE id = $1`,
       [companyId]
     );
@@ -5119,7 +5128,10 @@ app.get("/api/company-settings", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Companie negăsită" });
     }
     
-    const companyInfo = companyResult.rows[0];
+    companyInfo = companyResult.rows[0];
+    
+    // Set company context for DB queries
+    db.setCompanyContext(companyInfo);
     
     // Get company settings from company DB
     let settings = null;
@@ -5188,6 +5200,19 @@ app.post("/api/company-settings", requireAuth, async (req, res) => {
     // Superadmin poate modifica setările oricărei companii
     const targetCompanyId = isSuperAdmin && req.body.companyId ? req.body.companyId : companyId;
     
+    // Get company info and set context for DB queries
+    const companyResult = await db.masterQuery(
+      `SELECT * FROM companies WHERE id = $1`,
+      [targetCompanyId]
+    );
+    
+    if (companyResult.rows.length === 0) {
+      return res.status(404).json({ error: "Companie negăsită" });
+    }
+    
+    // Set company context for company DB queries
+    db.setCompanyContext(companyResult.rows[0]);
+    
     const {
       name, cui, registration_number, vat_number,
       address, city, county, country, phone, email,
@@ -5220,18 +5245,49 @@ app.post("/api/company-settings", requireAuth, async (req, res) => {
     
     updates.push(`updated_at = NOW()`);
     
-    // Adăugăm company_id la final pentru WHERE
-    values.push(targetCompanyId);
-    
+    // Construim query UPSERT pentru tabela company_settings (id=1 este singurul rând permis)
+    // Folosim valorile primului și al doilea parametru pentru name și cui în VALUES
     const query = `
-      INSERT INTO company_settings (name, cui, updated_at)
-      VALUES ($${paramIndex}, 'Firma Noua', 'RO00000000', NOW())
-      ON CONFLICT (company_id) DO UPDATE SET
-        ${updates.join(', ')}
-      RETURNING company_id
+      INSERT INTO company_settings (id, name, cui, registration_number, vat_number, address, city, county, country, phone, email, bank_name, bank_iban, smartbill_series, smartbill_token, updated_at)
+      VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        cui = EXCLUDED.cui,
+        registration_number = EXCLUDED.registration_number,
+        vat_number = EXCLUDED.vat_number,
+        address = EXCLUDED.address,
+        city = EXCLUDED.city,
+        county = EXCLUDED.county,
+        country = EXCLUDED.country,
+        phone = EXCLUDED.phone,
+        email = EXCLUDED.email,
+        bank_name = EXCLUDED.bank_name,
+        bank_iban = EXCLUDED.bank_iban,
+        smartbill_series = EXCLUDED.smartbill_series,
+        smartbill_token = CASE WHEN EXCLUDED.smartbill_token IS NOT NULL AND EXCLUDED.smartbill_token != '' THEN EXCLUDED.smartbill_token ELSE company_settings.smartbill_token END,
+        updated_at = NOW()
+      RETURNING id
     `;
     
-    await db.q(query, values);
+    // Pregătim valorile în ordinea parametrilor
+    const upsertValues = [
+      name || '',
+      cui || '',
+      registration_number || '',
+      vat_number || '',
+      address || '',
+      city || '',
+      county || '',
+      country || 'Romania',
+      phone || '',
+      email || '',
+      bank_name || '',
+      bank_iban || '',
+      smartbill_series || '',
+      smartbill_token ? encrypt(smartbill_token) : null
+    ];
+    
+    await db.q(query, upsertValues);
     
     // Dacă e superadmin și trimite date de plan, actualizăm și tabela companies
     if (isSuperAdmin && (plan !== undefined || subscription_status !== undefined || subscription_expires_at !== undefined)) {
@@ -5264,7 +5320,7 @@ app.post("/api/company-settings", requireAuth, async (req, res) => {
           SET ${planUpdates.join(', ')}
           WHERE id = $${planParamIndex}
         `;
-        await db.q(planQuery, planValues);
+        await db.masterQuery(planQuery, planValues);
         
         // Invalidăm cache-ul companiei
         companyCache.delete(targetCompanyId);

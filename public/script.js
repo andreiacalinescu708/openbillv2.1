@@ -85,7 +85,7 @@ async function initLoginPage() {
       }
 
       // Login reușit
-      localStorage.setItem('username', username);
+      localStorage.setItem('username', email);
       
       // Dacă serverul returnează redirectUrl (suntem pe localhost), folosim acela
       if (data.redirectUrl) {
