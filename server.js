@@ -4620,8 +4620,8 @@ app.post("/api/public-signup", async (req, res) => {
 
       await db.q("COMMIT");
 
-      // Seed date DEMO pentru testare (async, nu blocăm răspunsul)
-      seedDemoData(companyId).catch(err => console.error('Eroare seeding date demo:', err));
+      // Nu mai populăm cu date demo - utilizatorul adaugă manual clienți și produse
+      // Listele încep goale, exact ca în Fast Medical
 
       // Log pentru audit
       await db.auditLog({
