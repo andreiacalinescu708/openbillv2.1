@@ -190,6 +190,11 @@ async function initMasterDatabase() {
   console.log("========================================");
   try {
     const pool = getMasterPool();
+    
+    // DEBUG: Verificăm ce baza de date și schema suntem
+    const dbInfo = await pool.query(`SELECT current_database(), current_schema()`);
+    console.log("📍 Baza de date:", dbInfo.rows[0].current_database);
+    console.log("📍 Schema curentă:", dbInfo.rows[0].current_schema);
     if (!pool) {
       console.error("❌ Nu pot inițializa master DB - conexiunea lipsește");
       return false;
@@ -269,12 +274,40 @@ async function initMasterDatabase() {
     console.log("✅ Compania demo inserată");
     
     console.log("✅✅✅ Master DB inițializat complet!");
+    
+    // DEBUG: Verificăm ce tabele există în TOATE schemenile
+    const allTables = await pool.query(`
+      SELECT table_schema, table_name 
+      FROM information_schema.tables 
+      WHERE table_type = 'BASE TABLE' 
+      AND table_schema NOT IN ('pg_catalog', 'information_schema')
+      ORDER BY table_schema, table_name
+    `);
+    console.log("📋 Toate tabelele găsite:");
+    allTables.rows.forEach(row => {
+      console.log(`   - ${row.table_schema}.${row.table_name}`);
+    });
+    
     return true;
     
   } catch (e) {
     // Dacă tabelele există deja, e ok
     if (e.message.includes('already exists')) {
       console.log("ℹ️ Tabelele există deja (eroare așteptată)");
+      
+      // DEBUG: Verificăm ce tabele există în TOATE schemenile
+      const allTables = await pool.query(`
+        SELECT table_schema, table_name 
+        FROM information_schema.tables 
+        WHERE table_type = 'BASE TABLE' 
+        AND table_schema NOT IN ('pg_catalog', 'information_schema')
+        ORDER BY table_schema, table_name
+      `);
+      console.log("📋 Toate tabelele găsite:");
+      allTables.rows.forEach(row => {
+        console.log(`   - ${row.table_schema}.${row.table_name}`);
+      });
+      
       return true;
     }
     console.error("❌ Eroare inițializare Master DB:", e.message);
