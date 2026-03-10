@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Politica de Confidențialitate - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+    
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      margin-left: 2rem;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+    
+    .nav-links a:hover { color: var(--primary); }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 8rem 2rem 4rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .last-updated {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-size: 0.9rem;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 2.5rem 0 1rem;
+      color: var(--primary);
+    }
+    
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.5rem;
+    }
+    
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+    
+    ul {
+      margin: 1rem 0 1rem 2rem;
+      color: var(--text-muted);
+    }
+    
+    li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .highlight-box {
+      background: var(--surface);
+      border-left: 4px solid var(--primary);
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .highlight-box p {
+      margin: 0;
+    }
+    
+    .footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      margin-top: 4rem;
+      text-align: center;
+    }
+    
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+    
+    .footer-copyright {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="landing.html" class="logo">OpenBill</a>
+    <div class="nav-links">
+      <a href="landing.html">Acasă</a>
+      <a href="login.html">Autentificare</a>
+      <a href="demo-signup.html" style="color: var(--primary);">Cont Demo</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>Politica de Confidențialitate</h1>
+    <p class="last-updated">Ultima actualizare: 8 Martie 2026</p>
+
+    <div class="highlight-box">
+      <p>🔒 <strong>Angajamentul nostru:</strong> Protecția datelor dumneavoastră este prioritatea noastră. OpenBill procesează datele cu maximă responsabilitate, conform GDPR și legislației în vigoare.</p>
+    </div>
+
+    <h2>1. Operatorul de Date</h2>
+    <p>Operatorul responsabil cu prelucrarea datelor personale este:</p>
+    <ul>
+      <li><strong>Denumire:</strong> OpenBill SRL</li>
+      <li><strong>CUI:</strong> [Număr CUI]</li>
+      <li><strong>Sediul:</strong> [Adresă]</li>
+      <li><strong>Email:</strong> <a href="mailto:support@openbill.ro" style="color: var(--primary);">support@openbill.ro</a></li>
+    </ul>
+
+    <h2>2. Ce Date Colectăm</h2>
+    <h3>2.1 Datele Companiei</h3>
+    <ul>
+      <li>Denumirea companiei și CUI</li>
+      <li>Adresă și date de contact</li>
+      <li>Datele bancare (pentru facturare)</li>
+      <li>Configurații ale sistemului</li>
+    </ul>
+
+    <h3>2.2 Datele Utilizatorilor</h3>
+    <ul>
+      <li>Nume și prenume</li>
+      <li>Adresă de email</li>
+      <li>Număr de telefon (opțional)</li>
+      <li>Parolă (criptată)</li>
+      <li>Log-uri de activitate</li>
+    </ul>
+
+    <h3>2.3 Datele Clienților și Comenzilor</h3>
+    <p>Utilizatorul introduce în sistem datele clienților săi (nume, CUI, adrese, etc.) și informații despre comenzi și stocuri. Aceste date aparțin utilizatorului și sunt procesate conform instrucțiunilor acestuia.</p>
+
+    <h2>3. Scopurile Prelucrării</h2>
+    <p>Prelucrăm datele personale pentru:</p>
+    <ul>
+      <li><strong>Furnizarea serviciului:</strong> gestionarea comenzilor, clienților și stocurilor</li>
+      <li><strong>Facturare:</strong> emiterea facturilor pentru serviciile prestate</li>
+      <li><strong>Suport tehnic:</strong> asistență pentru utilizatori</li>
+      <li><strong>Securitate:</strong> protecția împotriva fraudelor și accesului neautorizat</li>
+      <li><strong>Îmbunătățire:</strong> analiza utilizării pentru dezvoltarea platformei</li>
+    </ul>
+
+    <h2>4. Temeiul Legal</h2>
+    <p>Prelucrarea datelor se bazează pe:</p>
+    <ul>
+      <li><strong>Executarea contractului:</strong> furnizarea serviciilor conform Termenilor și Condițiilor</li>
+      <li><strong>Obligații legale:</strong> păstrarea documentelor conform legislației fiscale</li>
+      <li><strong>Interesul legitim:</strong> securitatea sistemului și prevenirea fraudelor</li>
+      <li><strong>Consimțământ:</strong> pentru marketing (doar cu acord explicit)</li>
+    </ul>
+
+    <h2>5. Stocarea și Securitatea Datelor</h2>
+    <h3>5.1 Unde Stocăm Datele</h3>
+    <p>Datele sunt stocate în centre de date securizate din Uniunea Europeană, cu backup-uri zilnice în multiple locații geografice.</p>
+
+    <h3>5.2 Măsuri de Securitate</h3>
+    <ul>
+      <li>Criptare SSL/TLS pentru toate comunicațiile</li>
+      <li>Parole stocate cu bcrypt (hash + salt)</li>
+      <li>Autentificare cu sesiuni securizate</li>
+      <li>Control acces bazat pe roluri</li>
+      <li>Monitorizare continuă a securității</li>
+      <li>Backup-uri criptate și testate regulat</li>
+    </ul>
+
+    <h2>6. Drepturile Dumneavoastră</h2>
+    <p>Conform GDPR, aveți următoarele drepturi:</p>
+    <ul>
+      <li><strong>Drept de acces:</strong> puteți solicita o copie a datelor personale</li>
+      <li><strong>Drept de rectificare:</strong> puteți corecta datele inexacte</li>
+      <li><strong>Drept de ștergere:</strong> puteți solicita ștergerea datelor („dreptul de a fi uitat")</li>
+      <li><strong>Drept de restricționare:</strong> puteți limita prelucrarea datelor</li>
+      <li><strong>Drept la portabilitate:</strong> puteți primi datele într-un format structurat</li>
+      <li><strong>Drept de opoziție:</strong> puteți refuza prelucrarea pentru marketing</li>
+      <li><strong>Drept de retragere a consimțământului:</strong> în orice moment</li>
+    </ul>
+    <p>Pentru exercitarea acestor drepturi, contactați-ne la <a href="mailto:support@openbill.ro" style="color: var(--primary);">support@openbill.ro</a></p>
+
+    <h2>7. Perioada de Păstrare</h2>
+    <ul>
+      <li><strong>Datele contului:</strong> pe durata existenței contului + 30 de zile după ștergere</li>
+      <li><strong>Datele clienților:</strong> conform instrucțiunilor utilizatorului sau până la ștergerea contului</li>
+      <li><strong>Facturile:</strong> 10 ani (conform legislației fiscale)</li>
+      <li><strong>Log-uri de securitate:</strong> 12 luni</li>
+    </ul>
+
+    <h2>8. Transferul Datelor</h2>
+    <p>Nu vindem și nu închiriem datele personale către terți. Transferăm datele doar în următoarele situații:</p>
+    <ul>
+      <li><strong>Furnizori de servicii:</strong> hosting, procesare plăți (doar sub contract de confidențialitate)</li>
+      <li><strong>Obligații legale:</strong> la solicitarea autorităților competente</li>
+      <li><strong>Consimțământ explicit:</strong> în alte cazuri, doar cu acordul dumneavoastră</li>
+    </ul>
+
+    <h2>9. Cookie-uri și Tehnologii Similare</h2>
+    <p>Folosim cookie-uri esențiale pentru funcționarea platformei și cookie-uri analitice pentru îmbunătățirea serviciului. Puteți gestiona preferințele din setările browser-ului.</p>
+
+    <h2>10. Notificarea Breșelor de Securitate</h2>
+    <p>În cazul unei breșe de securitate care vă afectează datele personale, veți fi notificați în maximum 72 de ore de la descoperirea incidentului.</p>
+
+    <h2>11. Modificări ale Politicii</h2>
+    <p>Ne rezervăm dreptul de a actualiza această Politică. Modificările semnificative vor fi anunțate prin email cu 30 de zile înainte de intrarea în vigoare.</p>
+
+    <h2>12. Autoritatea de Supraveghere</h2>
+    <p>Dacă considerați că drepturile dumneavoastră privind protecția datelor au fost încălcate, puteți depune o plângere la:</p>
+    <p><strong>Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal</strong><br>
+    B-dul G-ral. Gheorghe Magheru nr. 28-30, Sector 1, București<br>
+    Email: <a href="mailto:anspdcp@dataprotection.ro" style="color: var(--primary);">anspdcp@dataprotection.ro</a></p>
+
+    <h2>13. Contact</h2>
+    <p>Pentru orice întrebări privind protecția datelor, contactați Responsabilul cu Protecția Datelor:</p>
+    <p>📧 <a href="mailto:support@openbill.ro" style="color: var(--primary);">support@openbill.ro</a></p>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="termeni-si-conditii.html">Termeni și Condiții</a>
+      <a href="politica-confidentialitate.html">Politica de Confidențialitate</a>
+      <a href="landing.html">Acasă</a>
+    </div>
+    <p class="footer-copyright">© 2026 OpenBill. Toate drepturile rezervate.</p>
+  </footer>
+</body>
+</html>

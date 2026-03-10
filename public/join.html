@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alătură-te echipei - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 2rem;
+      border: 1px solid var(--border);
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .header p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .company-info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    .company-info strong {
+      color: var(--primary);
+      display: block;
+      font-size: 1.125rem;
+      margin-top: 0.25rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .form-group input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .password-requirements {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+    
+    .password-requirements ul {
+      margin: 0.25rem 0 0 1rem;
+      padding: 0;
+    }
+    
+    .password-requirements li {
+      margin: 0.125rem 0;
+    }
+    
+    .password-requirements li.valid {
+      color: var(--success);
+    }
+    
+    .password-requirements li.invalid {
+      color: var(--text-secondary);
+    }
+    
+    .btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .alert {
+      padding: 0.875rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .alert.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    
+    .alert.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .login-link {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    
+    .login-link a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loading" class="card">
+      <div class="header">
+        <h1>⏳ Se verifică invitația...</h1>
+      </div>
+    </div>
+    
+    <div id="error" class="card hidden">
+      <div class="header">
+        <h1>❌ Invitație invalidă</h1>
+        <p id="errorMessage">Linkul de invitație este expirat sau invalid.</p>
+      </div>
+      <div class="login-link">
+        <a href="/login.html">← Înapoi la login</a>
+      </div>
+    </div>
+    
+    <div id="form" class="card hidden">
+      <div class="header">
+        <h1>🎉 Bun venit în OpenBill!</h1>
+        <p>Completează datele pentru a-ți crea contul</p>
+      </div>
+      
+      <div class="company-info">
+        Te alături echipei<br>
+        <strong id="companyName">-</strong>
+      </div>
+      
+      <div id="alert"></div>
+      
+      <form id="joinForm">
+        <input type="hidden" id="inviteToken" name="token">
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" readonly style="opacity: 0.6;">
+        </div>
+        
+        <div class="form-group">
+          <label for="username">Username *</label>
+          <input type="text" id="username" name="username" required placeholder="alege un username">
+        </div>
+        
+        <div class="form-group">
+          <label for="firstName">Prenume</label>
+          <input type="text" id="firstName" name="firstName" placeholder="Prenumele tău">
+        </div>
+        
+        <div class="form-group">
+          <label for="lastName">Nume</label>
+          <input type="text" id="lastName" name="lastName" placeholder="Numele tău">
+        </div>
+        
+        <div class="form-group">
+          <label for="position">Funcție</label>
+          <input type="text" id="position" name="position" placeholder="ex: Farmacist, Șofer, Manager">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Parolă *</label>
+          <input type="password" id="password" name="password" required placeholder="••••••••">
+          <div class="password-requirements">
+            Parola trebuie să conțină:
+            <ul>
+              <li id="req-length" class="invalid">minim 8 caractere</li>
+              <li id="req-upper" class="invalid">minim o literă mare</li>
+              <li id="req-lower" class="invalid">minim o literă mică</li>
+              <li id="req-number" class="invalid">minim un număr</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirmPassword">Confirmă parola *</label>
+          <input type="password" id="confirmPassword" required placeholder="••••••••">
+        </div>
+        
+        <button type="submit" class="btn">Creează contul</button>
+      </form>
+      
+      <div class="login-link">
+        Ai deja cont? <a href="/login.html">Autentifică-te</a>
+      </div>
+    </div>
+    
+    <div id="success" class="card hidden">
+      <div class="header">
+        <h1>✅ Cont creat cu succes!</h1>
+        <p>Contul tău a fost creat și este gata de utilizare.</p>
+      </div>
+      <a href="/login.html" class="btn" style="display: inline-block; text-align: center; text-decoration: none;">Mergi la login</a>
+    </div>
+  </div>
+  
+  <script>
+    // Verificăm invitația la încărcare
+    async function checkInvitation() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      
+      if (!token) {
+        showError('Link de invitație lipsă.');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/invite-verify?token=${token}`);
+        const data = await res.json();
+        
+        if (!res.ok) {
+          showError(data.error || 'Invitație invalidă sau expirată.');
+          return;
+        }
+        
+        // Afișăm formularul
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('form').classList.remove('hidden');
+        
+        // Populăm datele
+        document.getElementById('inviteToken').value = token;
+        document.getElementById('email').value = data.email;
+        document.getElementById('companyName').textContent = data.companyName;
+        
+      } catch (err) {
+        console.error('Eroare:', err);
+        showError('Eroare la verificarea invitației. Încearcă din nou.');
+      }
+    }
+    
+    function showError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('errorMessage').textContent = message;
+    }
+    
+    // Validare parolă în timp real
+    document.getElementById('password').addEventListener('input', function() {
+      const password = this.value;
+      
+      document.getElementById('req-length').className = password.length >= 8 ? 'valid' : 'invalid';
+      document.getElementById('req-upper').className = /[A-Z]/.test(password) ? 'valid' : 'invalid';
+      document.getElementById('req-lower').className = /[a-z]/.test(password) ? 'valid' : 'invalid';
+      document.getElementById('req-number').className = /[0-9]/.test(password) ? 'valid' : 'invalid';
+    });
+    
+    // Submit formular
+    document.getElementById('joinForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      // Validare parolă
+      if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+        showAlert('Parola nu îndeplinește toate cerințele.', 'error');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showAlert('Parolele nu coincid.', 'error');
+        return;
+      }
+      
+      const formData = {
+        token: document.getElementById('inviteToken').value,
+        username: document.getElementById('username').value,
+        password: password,
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        position: document.getElementById('position').value
+      };
+      
+      try {
+        const res = await fetch('/api/join-company', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('form').classList.add('hidden');
+          document.getElementById('success').classList.remove('hidden');
+        } else {
+          showAlert(data.error || 'Eroare la crearea contului.', 'error');
+        }
+        
+      } catch (err) {
+        console.error('Eroare:', err);
+        showAlert('Eroare de conexiune. Încearcă din nou.', 'error');
+      }
+    });
+    
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = 'alert ' + type;
+    }
+    
+    // Inițializare
+    checkInvitation();
+  </script>
+</body>
+</html>

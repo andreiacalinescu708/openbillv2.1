@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenBill - ERP pentru distribuția farmaceutică</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    
+    /* Navbar */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      margin-left: 2rem;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+    
+    .nav-links a:hover { color: var(--primary); }
+    
+    /* Hero */
+    .hero {
+      padding: 10rem 2rem 6rem;
+      text-align: center;
+      background: radial-gradient(ellipse at top, rgba(59, 130, 246, 0.15), transparent 50%);
+    }
+    
+    .hero h1 {
+      font-size: 4rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      line-height: 1.1;
+    }
+    
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 1rem 2.5rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transition: transform 0.3s, box-shadow 0.3s;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Features */
+    .features {
+      padding: 6rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: transform 0.3s;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+    }
+    
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .feature-card p {
+      color: var(--text-muted);
+    }
+    
+    /* Pricing */
+    .pricing {
+      padding: 6rem 2rem;
+      background: radial-gradient(ellipse at bottom, rgba(59, 130, 246, 0.1), transparent 50%);
+    }
+    
+    .pricing h2 {
+      text-align: center;
+      font-size: 3rem;
+      margin-bottom: 3rem;
+    }
+    
+    .pricing-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+    }
+    
+    .pricing-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem;
+      position: relative;
+      transition: transform 0.3s;
+    }
+    
+    .pricing-card.popular {
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
+    
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      right: 2rem;
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 700;
+    }
+    
+    .plan-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .plan-price {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    
+    .plan-price span {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    
+    .plan-description {
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+    
+    .plan-features {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+    
+    .plan-features li {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .plan-features li:before {
+      content: "✓";
+      color: var(--success);
+      font-weight: 700;
+    }
+    
+    .plan-button {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 2px solid var(--primary);
+      background: transparent;
+      color: var(--primary);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .plan-button:hover, .plan-button.primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.5rem; }
+      .nav-links { display: none; }
+      .pricing-card.popular { transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg>OpenBill</div>
+  <div class="nav-links">
+    <a href="#features">Funcționalități</a>
+    <a href="#pricing">Prețuri</a>
+    <a href="/login.html">Login</a>
+    <a href="/demo-signup.html" class="cta-button" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">Începe demo 7 zile</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1>ERP Inteligent pentru<br>Distribuția Farmaceutică</h1>
+  <p>Gestionează stocurile, comenzile, livrările și facturarea într-o singură platformă. Integrare completă cu SmartBill.</p>
+  <a href="#pricing" class="cta-button">Vezi planurile și prețurile →</a>
+</section>
+
+<section class="features" id="features">
+  <div class="feature-card">
+    <div class="feature-icon">📦</div>
+    <h3>Gestiune Stoc Multi-Depozit</h3>
+    <p>Evidență în timp real pentru depozit și magazin. Trasabilitate loturi și date expirare.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🚚</div>
+    <h3>Rute și Livrări</h3>
+    <p>Planificare rute, foi de parcurs digitale, semnături electronice și tracking livrări.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📱</div>
+    <h3>Scanare QR & RFID</h3>
+    <p>Picking rapid cu scanare coduri GS1. Reducere erori cu 90% la pregătirea comenzilor.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📄</div>
+    <h3>Integrare SmartBill</h3>
+    <p>Facturare automată ANAF. Solduri clienți în timp real. Rapoarte fiscale complete.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">👥</div>
+    <h3>Clienți și Prețuri Speciale</h3>
+    <p>Gestionare grupuri clienți, liste de preț personalizate și istoric comenzi.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🔐</div>
+    <h3>Securitate și Roluri</h3>
+    <p>Administrare utilizatori cu aprobare admin. Audit log complet pentru conformitate.</p>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <h2>Alege planul potrivit</h2>
+  
+  <div class="pricing-grid">
+    <!-- Starter -->
+    <div class="pricing-card">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">29€<span>/lună</span></div>
+      <div class="plan-description">Pentru firme mici care încep digitalizarea</div>
+      <ul class="plan-features">
+        <li>Până la 3 utilizatori</li>
+        <li>1 depozit + 1 magazin</li>
+        <li>Până la 500 produse</li>
+        <li>Integrare SmartBill Basic</li>
+        <li>Support email</li>
+      </ul>
+      <button class="plan-button" onclick="startCheckout('starter')">Începe cu Starter</button>
+    </div>
+
+    <!-- Pro (Popular) -->
+    <div class="pricing-card popular">
+      <div class="popular-badge">Cel mai popular</div>
+      <div class="plan-name">Professional</div>
+      <div class="plan-price">59€<span>/lună</span></div>
+      <div class="plan-description">Pentru distribuitori în creștere</div>
+      <ul class="plan-features">
+        <li>Până la 10 utilizatori</li>
+        <li>3 depozite multiple</li>
+        <li>Produse nelimitate</li>
+        <li>API SmartBill complet</li>
+        <li>Rapoarte avansate</li>
+        <li>Support prioritar</li>
+      </ul>
+      <button class="plan-button primary" onclick="startCheckout('pro')">Alege Professional</button>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="pricing-card">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price">Custom</div>
+      <div class="plan-description">Soluții dedicate pentru distribuitori mari</div>
+      <ul class="plan-features">
+        <li>Utilizatori nelimitați</li>
+        <li>Depozite nelimitate</li>
+        <li>White-label disponibil</li>
+        <li>API dedicat</li>
+        <li>Implementare asistată</li>
+        <li>Support 24/7 telefonic</li>
+      </ul>
+      <button class="plan-button" onclick="contactSales()">Contactează-ne</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 OpenBill. Toate drepturile rezervate.</p>
+  <p style="margin-top: 0.5rem; font-size: 0.9rem;">| Craiova, România |</p>
+  <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+    <a href="termeni-si-conditii.html" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">Termeni și Condiții</a>
+    <a href="politica-confidentialitate.html" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">Politica de Confidențialitate</a>
+  </div>
+</footer>
+
+<script>
+async function startCheckout(plan) {
+  // Verifică dacă e logat
+  const meRes = await fetch('/api/me');
+  const me = await meRes.json();
+  
+  if (!me.loggedIn) {
+    window.location.href = '/register.html?redirect=landing.html&plan=' + plan;
+    return;
+  }
+  
+  // Pentru Enterprise, contactează-ne
+  if (plan === 'enterprise') {
+    contactSales();
+    return;
+  }
+  
+  // Afișăm opțiuni de plată
+  const paymentMethod = confirm('Alege metoda de plată:\n\nOK = Plată prin OP (Ordin de Plată)\nAnulează = Vezi detalii abonament');
+  
+  if (paymentMethod) {
+    // Redirect către billing cu parametru OP
+    window.location.href = '/billing.html?method=op&plan=' + plan;
+  } else {
+    // Redirect către billing
+    window.location.href = '/billing.html';
+  }
+}
+
+function contactSales() {
+  window.location.href = 'mailto:support@openbill.ro?subject=Enterprise Inquiry';
+}
+
+// Check URL params pentru mesaje
+const params = new URLSearchParams(window.location.search);
+if (params.get('canceled')) {
+  alert('Plată anulată. Poți reveni oricând pentru a activa abonamentul.');
+}
+</script>
+
+</body>
+</html>

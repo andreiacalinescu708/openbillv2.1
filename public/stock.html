@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Recepție Marfă - Fast Medical Distribution</title>
+  <title>Receptie Marfa - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="global.css" />
   <style>
     .scan-section {
@@ -317,28 +318,29 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-brand">
-        <div class="navbar-brand-icon">⚕️</div>
-        <span>FMD</span>
+        <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>Pagina Principala</span>
       </a>
-      <div class="navbar-actions"><div id="userBar"></div>
-        <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
+      <div class="navbar-actions">
+        <div id="userBar"></div>
+        <a href="index.html" class="btn btn-ghost btn-sm">&larr; Inapoi</a>
       </div>
     </div>
   </nav>
 
   <main class="container">
-    <!-- Scanare și Adăugare -->
+    <!-- Scanare si Adaugare -->
     <div class="scan-section">
       <div class="scan-header">
         <div class="scan-title">
-          <div class="scan-icon">📷</div>
+          <div class="scan-icon">&#128247;</div>
           <div>
             <h2 style="margin: 0; font-size: 1.25rem;">Scanare Cod</h2>
-            <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Scanează codul de pe produs</p>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Scaneaza codul de pe produs</p>
           </div>
         </div>
         <button class="btn btn-scan" id="btnScanQR">
-          📷 Scanează
+          &#128247; Scaneaza
         </button>
       </div>
 
@@ -347,28 +349,32 @@
     <label class="form-label">Cod scanat</label>
     <div class="input-wrap">
       <input type="text" id="qrInput" class="form-input" placeholder="Apropie camera de cod..." />
-      <div class="auto-detect-indicator" id="stockAutoOk">✓</div>
+      <div class="auto-detect-indicator" id="stockAutoOk">&#10003;</div>
     </div>
   </div>
 
   <div class="form-group form-group-full">
     <label class="form-label">Gestiune</label>
     <select id="warehouseSelect" class="form-select">
-      <option value="depozit">🏭 Depozit</option>
-      <option value="magazin">🏪 Magazin</option>
+      <option value="depozit">&#127981; Depozit</option>
+      <option value="magazin">&#127978; Magazin</option>
     </select>
   </div>
 
   <!-- Acesta e singurul dropdown pentru locatie - apare doar pt Depozit -->
   <div class="form-group" id="locationGroup">
-    <label class="form-label">Locație Depozit</label>
+    <label class="form-label">Locatie Depozit</label>
     <select id="stockLocation" class="form-select">
-      <option value="A">📍 Locație A</option>
-      <option value="B">📍 Locație B</option>
-      <option value="C">📍 Locație C</option>
-      <option value="R1">📦 Raft R1</option>
-      <option value="R2">📦 Raft R2</option>
-      <option value="R3">📦 Raft R3</option>
+      <option value="D1">&#128205; Depozit D1</option>
+      <option value="D2">&#128205; Depozit D2</option>
+      <option value="D3">&#128205; Depozit D3</option>
+      <option value="R1">&#128230; Raft R1</option>
+      <option value="R2">&#128230; Raft R2</option>
+      <option value="R3">&#128230; Raft R3</option>
+      <option value="M1">&#127978; Magazin M1</option>
+      <option value="M2">&#127978; Magazin M2</option>
+      <option value="M3">&#127978; Magazin M3</option>
+      <option value="R3">&#128230; Raft R3</option>
     </select>
   </div>
 
@@ -380,16 +386,16 @@
           type="text" 
           id="stockProductSearch" 
           class="form-input" 
-          placeholder="Caută produs după nume..."
+          placeholder="Cauta produs dupa nume..."
           autocomplete="off"
         />
-        <div class="auto-detect-indicator" id="productSelectOk" style="display: none;">✓</div>
+        <div class="auto-detect-indicator" id="productSelectOk" style="display: none;">&#10003;</div>
       </div>
       <div id="stockProductResults" class="product-results"></div>
       <input type="hidden" id="stockProduct" value="" data-name="" data-gtins="[]" />
       
       <div id="selectedProductDisplay" class="selected-product-display">
-        <span class="check">✓</span>
+        <span class="check">&#10003;</span>
         <span class="name" id="selectedProductName"></span>
       </div>
     </div>
@@ -409,7 +415,7 @@
       placeholder="dd.mm.yyyy" 
       maxlength="10"
     />
-    <div class="date-hint">Format: zi.lună.an (ex: 31.12.2025)</div>
+    <div class="date-hint">Format: zi.luna.an (ex: 31.12.2025)</div>
   </div>
 
   <div class="form-group">
@@ -419,7 +425,7 @@
 
   <div class="form-group form-group-full">
     <button class="btn btn-primary btn-lg w-full" id="btnAddStock">
-      ➕ Adaugă în stoc
+      &#10133; Adauga in stoc
     </button>
   </div>
 </div>
@@ -429,9 +435,9 @@
       <div class="card-header">
         <div>
           <h3 class="card-title">Stoc Existent</h3>
-          <div class="card-subtitle">Ultimele intrări în depozit</div>
+          <div class="card-subtitle">Ultimele intrari in depozit</div>
         </div>
-        <button class="btn btn-ghost btn-sm" id="btnRefreshStock">🔄 Refresh</button>
+        <button class="btn btn-ghost btn-sm" id="btnRefreshStock">ðŸ”„ Refresh</button>
       </div>
       <div class="stock-list" id="stockList">
         <!-- Populat din JS -->
@@ -443,7 +449,7 @@
   <div class="scanner-overlay" id="scannerModal">
     <div class="scanner-header">
       <span class="scanner-title">Scanare cod</span>
-      <button class="scanner-close" id="btnCloseScan">✕</button>
+      <button class="scanner-close" id="btnCloseScan">aœ•</button>
     </div>
     <div class="scanner-video-container">
       <video id="scanVideo" autoplay playsinline muted></video>

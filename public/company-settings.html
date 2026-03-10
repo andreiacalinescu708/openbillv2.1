@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setari Companie - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .header h1 { font-size: 1.75rem; font-weight: 600; }
+    
+    .btn-back {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-back:hover { background: var(--bg-input); }
+    
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    
+    .form-group label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .form-group input[type="password"] {
+      font-family: monospace;
+    }
+    
+    .form-group small {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    
+    .btn-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .btn-save:hover { background: var(--primary-hover); }
+    
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    
+    .alert.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+      display: block;
+    }
+    
+    .alert.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      display: block;
+    }
+    
+    .readonly {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .badge-success { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .info-box strong { color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ Setari Companie</h1>
+      <a href="index.html" class="btn-back">← Inapoi</a>
+    </div>
+    
+    <div id="alert" class="alert"></div>
+    
+    <div class="info-box">
+      <strong>ℹ️ Informatii:</strong> Aceste setari sunt specifice companiei tale. 
+      Token-ul SmartBill este criptat si nu poate fi vazut de altcineva.
+    </div>
+    
+    <!-- Selector companie pentru SuperAdmin -->
+    <div id="companySelector" class="card" style="display: none;">
+      <div class="card-title">🌐 Selectare Companie (SuperAdmin)</div>
+      <div class="form-group">
+        <label for="selectCompany">Companie de editat</label>
+        <select id="selectCompany" class="form-control" style="width: 100%; padding: 0.75rem; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px;">
+          <option value="">Se incarca...</option>
+        </select>
+      </div>
+    </div>
+    
+    <form id="settingsForm">
+      <!-- Date Firmă -->
+      <div class="card">
+        <div class="card-title">🏢 Date Firma</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Denumire Firma *</label>
+            <input type="text" id="name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="cui">CUI / CIF *</label>
+            <input type="text" id="cui" name="cui" placeholder="RO12345678" required>
+          </div>
+          <div class="form-group">
+            <label for="registration_number">Numar Inregistrare (Reg. Com.)</label>
+            <input type="text" id="registration_number" name="registration_number" placeholder="J40/1234/2024">
+          </div>
+          <div class="form-group">
+            <label for="vat_number">Numar TVA (optional)</label>
+            <input type="text" id="vat_number" name="vat_number" placeholder="RO12345678">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Adresă -->
+      <div class="card">
+        <div class="card-title">📍 Adresa</div>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="address">Adresa</label>
+            <input type="text" id="address" name="address" placeholder="Str. Exemplu nr. 123">
+          </div>
+          <div class="form-group">
+            <label for="city">Oras</label>
+            <input type="text" id="city" name="city" placeholder="Bucuresti">
+          </div>
+          <div class="form-group">
+            <label for="county">Judet</label>
+            <input type="text" id="county" name="county" placeholder="Ilfov">
+          </div>
+          <div class="form-group">
+            <label for="country">Tara</label>
+            <input type="text" id="country" name="country" value="Romania">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Contact -->
+      <div class="card">
+        <div class="card-title">📞 Contact</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="phone">Telefon</label>
+            <input type="tel" id="phone" name="phone" placeholder="0712 345 678">
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="contact@firma.ro">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Date Bancare -->
+      <div class="card">
+        <div class="card-title">🏦 Date Bancare</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="bank_name">Banca</label>
+            <input type="text" id="bank_name" name="bank_name" placeholder="Banca Transilvania">
+          </div>
+          <div class="form-group">
+            <label for="bank_iban">IBAN</label>
+            <input type="text" id="bank_iban" name="bank_iban" placeholder="RO49AAAA1B31007593840000">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Plan și Abonament (doar SuperAdmin) -->
+      <div class="card" id="planCard" style="display: none;">
+        <div class="card-title">⭐ Plan și Abonament</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="plan">Plan Curent</label>
+            <select id="plan" name="plan">
+              <option value="starter">Starter (29€/lună) - 3 utilizatori</option>
+              <option value="pro">Pro (39€/lună) - 10 utilizatori + Foi Parcurs</option>
+              <option value="enterprise">Enterprise (59€/lună) - Nelimitat + API</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="subscription_status">Status Abonament</label>
+            <select id="subscription_status" name="subscription_status">
+              <option value="active">Activ</option>
+              <option value="trial">Trial</option>
+              <option value="suspended">Suspendat</option>
+              <option value="cancelled">Anulat</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="subscription_expires_at">Expiră la</label>
+            <input type="date" id="subscription_expires_at" name="subscription_expires_at">
+          </div>
+          <div class="form-group">
+            <label for="max_users">Maxim Utilizatori</label>
+            <input type="number" id="max_users" name="max_users" min="1" max="999" readonly>
+            <small>Se actualizează automat în funcție de plan</small>
+          </div>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: 8px; font-size: 0.875rem; color: var(--text-secondary);">
+          <strong style="color: var(--warning);">⚠️ Notă:</strong> Schimbarea planului afectează imediat funcționalitățile disponibile. Dacă reduci la Starter și compania are utilizatori > 3 sau folosește funcții Pro, aceștia vor pierde accesul.
+        </div>
+      </div>
+      
+      <!-- Activare Companie (doar SuperAdmin, doar pentru companii pending) -->
+      <div class="card" id="activationCard" style="display: none;">
+        <div class="card-title">🚀 Activare Companie</div>
+        <div id="activationInfo">
+          <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Status: <span id="companyStatus" class="badge badge-warning">-</span>
+          </p>
+          <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Compania este în așteptare de activare. Apasă butonul de mai jos pentru a activa contul și a trimite email de confirmare utilizatorului.
+          </p>
+          <button type="button" id="btnActivate" class="btn-save" style="background: var(--success);">
+            ✅ Activează Compania
+          </button>
+        </div>
+        <div id="activationSuccess" style="display: none; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
+          <strong style="color: var(--success);">✅ Companie Activată!</strong>
+          <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">
+            Compania a fost activată cu succes. Datele au fost copiate în company_settings și un email de confirmare a fost trimis utilizatorului.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Trasee Clienți -->
+      <div class="card" id="categoriesCard">
+        <div class="card-title">📂 Trasee Clienți</div>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+          Gestionează traseele în care îți organizezi clienții. Acestea apar ca tab-uri în lista de clienți.
+        </p>
+        
+        <div id="categoriesList" style="margin-bottom: 1rem;">
+          <p style="color: var(--text-secondary);">Se încarcă...</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; align-items: end; flex-wrap: wrap;">
+          <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="newCategoryName">Nume traseu nou</label>
+            <input type="text" id="newCategoryName" placeholder="Ex: București, Sinaia, etc.">
+          </div>
+          <div class="form-group" style="width: 100px;">
+            <label for="newCategoryEmoji">Emoji</label>
+            <input type="text" id="newCategoryEmoji" value="📍" maxlength="2" style="text-align: center;">
+          </div>
+          <button type="button" class="btn-save" onclick="addCategory()" style="margin-top: 0; padding: 0.75rem 1.5rem;">+ Adaugă</button>
+        </div>
+      </div>
+      
+      <!-- Integrare SmartBill -->
+      <div class="card">
+        <div class="card-title">🔗 Integrare SmartBill <span id="sbStatus"></span></div>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="smartbill_token">Token SmartBill</label>
+            <input type="password" id="smartbill_token" name="smartbill_token" 
+                   placeholder="email|token_sau_lasa_gol_daca_nu_ai">
+            <small>Token-ul se obtine din contul SmartBill → Contul Meu → Setari API</small>
+          </div>
+          <div class="form-group">
+            <label for="smartbill_series">Serie Facturi</label>
+            <input type="text" id="smartbill_series" name="smartbill_series" placeholder="FMD" value="FMD">
+            <small>Seria configurata in SmartBill pentru facturi</small>
+          </div>
+        </div>
+      </div>
+      
+      <button type="submit" class="btn-save">💾 Salveaza Setarile</button>
+    </form>
+  </div>
+  
+  <script>
+    let currentCompanyId = null;
+    let currentUser = null;
+    
+    // Verifică autentificarea
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        
+        if (!data.loggedIn) {
+          window.location.href = '/login.html';
+          return null;
+        }
+        
+        // Doar admin poate vedea aceasta pagina
+        if (data.user.role !== 'admin' && data.user.role !== 'superadmin') {
+          showAlert('Acces interzis! Doar administratorii pot accesa aceasta pagina.', 'error');
+          setTimeout(() => window.location.href = '/index.html', 2000);
+          return null;
+        }
+        
+        currentCompanyId = data.user.company_id;
+        currentUser = data.user;
+        
+        // Daca e superadmin, arata selectorul de companie si cardul de plan
+        if (data.user.role === 'superadmin') {
+          await loadCompaniesForSuperAdmin();
+          document.getElementById('planCard').style.display = 'block';
+        }
+        
+        return data.user;
+      } catch (err) {
+        console.error('Eroare verificare autentificare:', err);
+        window.location.href = '/login.html';
+        return null;
+      }
+    }
+    
+    // Incarcă lista de companii pentru superadmin
+    async function loadCompaniesForSuperAdmin() {
+      try {
+        const res = await fetch('/api/companies');
+        const companies = await res.json();
+        
+        const select = document.getElementById('selectCompany');
+        select.innerHTML = '<option value="">Selecteaza o companie...</option>';
+        
+        companies.forEach(comp => {
+          const option = document.createElement('option');
+          option.value = comp.id;
+          option.textContent = `${comp.name} (${comp.code})`;
+          if (comp.id === currentCompanyId) option.selected = true;
+          select.appendChild(option);
+        });
+        
+        document.getElementById('companySelector').style.display = 'block';
+        
+        // Event listener pentru schimbare companie
+        select.addEventListener('change', async (e) => {
+          if (e.target.value) {
+            currentCompanyId = e.target.value;
+            await loadSettings(currentCompanyId);
+          }
+        });
+      } catch (err) {
+        console.error('Eroare incarcare companii:', err);
+      }
+    }
+    
+    // Incarcă statusul companiei pentru SuperAdmin
+    async function checkCompanyStatus(companyId) {
+      if (!companyId || currentUser?.role !== 'superadmin') return;
+      
+      try {
+        const res = await fetch('/api/admin/companies');
+        const companies = await res.json();
+        const company = companies.find(c => c.id === companyId);
+        
+        if (company) {
+          const statusEl = document.getElementById('companyStatus');
+          const activationCard = document.getElementById('activationCard');
+          const activationInfo = document.getElementById('activationInfo');
+          const activationSuccess = document.getElementById('activationSuccess');
+          
+          statusEl.textContent = company.status || 'active';
+          
+          if (company.status === 'pending') {
+            activationCard.style.display = 'block';
+            activationInfo.style.display = 'block';
+            activationSuccess.style.display = 'none';
+            statusEl.className = 'badge badge-warning';
+          } else {
+            activationCard.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error('Eroare verificare status:', err);
+      }
+    }
+    
+    // Activează compania
+    async function activateCompany() {
+      if (!currentCompanyId) return;
+      
+      const btn = document.getElementById('btnActivate');
+      btn.disabled = true;
+      btn.textContent = 'Se procesează...';
+      
+      try {
+        const res = await fetch(`/api/admin/companies/${currentCompanyId}/activate`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('activationInfo').style.display = 'none';
+          document.getElementById('activationSuccess').style.display = 'block';
+          showAlert('Compania a fost activată cu succes!', 'success');
+        } else {
+          showAlert(result.error || 'Eroare la activare', 'error');
+          btn.disabled = false;
+          btn.textContent = '✅ Activează Compania';
+        }
+      } catch (err) {
+        console.error('Eroare activare:', err);
+        showAlert('Eroare la activare: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '✅ Activează Compania';
+      }
+    }
+    
+    // Incarcă setările
+    async function loadSettings(companyId = null) {
+      try {
+        const targetId = companyId || currentCompanyId;
+        
+        // Pentru SuperAdmin, verifică și statusul companiei
+        if (currentUser?.role === 'superadmin' && targetId) {
+          await checkCompanyStatus(targetId);
+        }
+        
+        const url = currentUser?.role === 'superadmin' && targetId 
+          ? `/api/company-settings?companyId=${targetId}`
+          : '/api/company-settings';
+        
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error('Nu s-au putut incarca setarile');
+        }
+        
+        const settings = await res.json();
+        
+        // Populează formularul
+        document.getElementById('name').value = settings.name || '';
+        document.getElementById('cui').value = settings.cui || '';
+        document.getElementById('registration_number').value = settings.registration_number || '';
+        document.getElementById('vat_number').value = settings.vat_number || '';
+        document.getElementById('address').value = settings.address || '';
+        document.getElementById('city').value = settings.city || '';
+        document.getElementById('county').value = settings.county || '';
+        document.getElementById('country').value = settings.country || 'Romania';
+        document.getElementById('phone').value = settings.phone || '';
+        document.getElementById('email').value = settings.email || '';
+        document.getElementById('bank_name').value = settings.bank_name || '';
+        document.getElementById('bank_iban').value = settings.bank_iban || '';
+        document.getElementById('smartbill_series').value = settings.smartbill_series || 'FMD';
+        
+        // Token - afișăm doar dacă există (ca placeholder mascat)
+        if (settings.has_smartbill_token) {
+          document.getElementById('smartbill_token').placeholder = '•••••••• Configurat';
+          document.getElementById('sbStatus').innerHTML = '<span class="badge badge-success">Configurat</span>';
+        } else {
+          document.getElementById('smartbill_token').placeholder = 'email|token_sau_lasa_gol_daca_nu_ai';
+          document.getElementById('sbStatus').innerHTML = '<span class="badge badge-warning">Neconfigurat</span>';
+        }
+        
+        // Populează câmpurile de plan (doar pentru superadmin)
+        if (currentUser?.role === 'superadmin') {
+          document.getElementById('plan').value = settings.plan || 'starter';
+          document.getElementById('subscription_status').value = settings.subscription_status || 'trial';
+          document.getElementById('subscription_expires_at').value = settings.subscription_expires_at 
+            ? settings.subscription_expires_at.split('T')[0] 
+            : '';
+          document.getElementById('max_users').value = settings.max_users || 3;
+        }
+        
+      } catch (err) {
+        console.error('Eroare incarcare setari:', err);
+        showAlert('Eroare la incarcarea setarilor: ' + err.message, 'error');
+      }
+    }
+    
+    // Salvează setările
+    async function saveSettings(e) {
+      e.preventDefault();
+      
+      const formData = {
+        name: document.getElementById('name').value,
+        cui: document.getElementById('cui').value,
+        registration_number: document.getElementById('registration_number').value,
+        vat_number: document.getElementById('vat_number').value,
+        address: document.getElementById('address').value,
+        city: document.getElementById('city').value,
+        county: document.getElementById('county').value,
+        country: document.getElementById('country').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+        bank_name: document.getElementById('bank_name').value,
+        bank_iban: document.getElementById('bank_iban').value,
+        smartbill_series: document.getElementById('smartbill_series').value,
+        smartbill_token: document.getElementById('smartbill_token').value || undefined
+      };
+      
+      // Pentru superadmin, trimitem si companyId si datele de plan
+      if (currentUser?.role === 'superadmin' && currentCompanyId) {
+        formData.companyId = currentCompanyId;
+        formData.plan = document.getElementById('plan').value;
+        formData.subscription_status = document.getElementById('subscription_status').value;
+        formData.subscription_expires_at = document.getElementById('subscription_expires_at').value || null;
+      }
+      
+      // Daca token-ul e gol, nu-l trimitem (sa nu suprascriem cu gol)
+      if (!formData.smartbill_token) {
+        delete formData.smartbill_token;
+      }
+      
+      try {
+        const res = await fetch('/api/company-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          showAlert('Setarile au fost salvate cu succes!', 'success');
+          // Reincarcă sa vedem statusul actualizat
+          await loadSettings(currentCompanyId);
+          // Golește câmpul token
+          document.getElementById('smartbill_token').value = '';
+        } else {
+          showAlert(result.error || 'Eroare la salvare', 'error');
+        }
+      } catch (err) {
+        console.error('Eroare salvare:', err);
+        showAlert('Eroare la salvare: ' + err.message, 'error');
+      }
+    }
+    
+    // Afișează alertă
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = 'alert ' + type;
+      setTimeout(() => alert.className = 'alert', 5000);
+    }
+    
+    // ========== GESTIONARE CATEGORII ==========
+    
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/admin/categories');
+        const categories = await res.json();
+        
+        const container = document.getElementById('categoriesList');
+        
+        if (categories.length === 0) {
+          container.innerHTML = '<p style="color: var(--text-secondary);">Nu există categorii definite.</p>';
+          return;
+        }
+        
+        container.innerHTML = `
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="text-align: left; padding: 0.5rem;">Emoji</th>
+                <th style="text-align: left; padding: 0.5rem;">Nume</th>
+                <th style="text-align: center; padding: 0.5rem;">Ordine</th>
+                <th style="text-align: right; padding: 0.5rem;">Acțiuni</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${categories.map((cat, index) => `
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 0.5rem;">${cat.emoji || '📍'}</td>
+                  <td style="padding: 0.5rem;">${cat.name}</td>
+                  <td style="text-align: center; padding: 0.5rem;">${cat.sort_order}</td>
+                  <td style="text-align: right; padding: 0.5rem;">
+                    <button onclick="moveCategory(${cat.id}, ${index - 1})" ${index === 0 ? 'disabled' : ''} style="padding: 0.25rem 0.5rem; margin-right: 0.25rem;" title="Sus">↑</button>
+                    <button onclick="moveCategory(${cat.id}, ${index + 1})" ${index === categories.length - 1 ? 'disabled' : ''} style="padding: 0.25rem 0.5rem; margin-right: 0.25rem;" title="Jos">↓</button>
+                    <button onclick="deleteCategory(${cat.id}, '${cat.name.replace(/'/g, "\\'")}')" style="padding: 0.25rem 0.5rem; background: var(--danger); color: white; border: none; border-radius: 4px;" title="Șterge">🗑️</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (e) {
+        console.error('Eroare încărcare categorii:', e);
+        document.getElementById('categoriesList').innerHTML = '<p style="color: var(--danger);">Eroare la încărcarea categoriilor.</p>';
+      }
+    }
+    
+    async function addCategory() {
+      const nameInput = document.getElementById('newCategoryName');
+      const emojiInput = document.getElementById('newCategoryEmoji');
+      const name = nameInput.value.trim();
+      const emoji = emojiInput.value.trim() || '📍';
+      
+      if (!name) {
+        showAlert('Introdu un nume pentru categorie!', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/admin/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, emoji })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          showAlert('Categoria a fost adăugată!', 'success');
+          nameInput.value = '';
+          await loadCategories();
+        } else {
+          showAlert(result.error || 'Eroare la adăugare', 'error');
+        }
+      } catch (e) {
+        console.error(e);
+        showAlert('Eroare la adăugarea categoriei', 'error');
+      }
+    }
+    
+    async function moveCategory(id, newOrder) {
+      if (newOrder < 0) return;
+      
+      try {
+        const res = await fetch(`/api/admin/categories/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sort_order: newOrder })
+        });
+        
+        if (res.ok) {
+          await loadCategories();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    
+    async function deleteCategory(id, name) {
+      if (!confirm(`Ești sigur că vrei să ștergi categoria "${name}"?\n\nClienții din această categorie trebuie mutați în altă categorie înainte de ștergere.`)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/admin/categories/${id}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          showAlert('Categoria a fost ștearsă!', 'success');
+          await loadCategories();
+        } else {
+          showAlert(result.error || 'Eroare la ștergere', 'error');
+        }
+      } catch (e) {
+        console.error(e);
+        showAlert('Eroare la ștergerea categoriei', 'error');
+      }
+    }
+    
+    // Inițializare
+    document.addEventListener('DOMContentLoaded', async () => {
+      const user = await checkAuth();
+      if (user) {
+        await loadSettings();
+        await loadCategories();
+      }
+    });
+    
+    document.getElementById('settingsForm').addEventListener('submit', saveSettings);
+    document.getElementById('btnActivate')?.addEventListener('click', activateCompany);
+  </script>
+</body>
+</html>

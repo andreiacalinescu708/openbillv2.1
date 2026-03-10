@@ -3,54 +3,191 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Comandă Nouă - Fast Medical Distribution</title>
+  <title>Comanda Noua - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="global.css" />
   <style>
-
-    
+    /* Layout principal */
     .order-layout {
-      display: grid;
-      grid-template-columns: 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-4);
+    }
+
+    /* Header cu logo și nav */
+    .order-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .header-logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+      font-size: 1.1rem;
+    }
+
+    .header-logo-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      border-color: var(--primary-500);
+      background: var(--primary-500/10);
+    }
+
+    /* Top Bar cu Total și Verifică Comanda */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-3) var(--space-4);
+      margin-bottom: var(--space-4);
+      position: sticky;
+      top: var(--space-4);
+      z-index: 50;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .totals-group {
+      display: flex;
+      align-items: center;
       gap: var(--space-6);
     }
 
-    @media (min-width: 1024px) {
-      .order-layout {
-        grid-template-columns: 1fr 420px;
-      }
+    .total-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
     }
 
-    /* Header Client */
+    .total-label {
+      font-size: 0.625rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .total-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .total-value.tb {
+      color: var(--warning-400);
+    }
+
+    .btn-verify {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: none;
+    }
+
+    .btn-verify.visible {
+      display: flex;
+    }
+
+    .btn-verify:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-verify-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+    }
+
+    /* Client Banner */
     .client-banner {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 197, 94, 0.1));
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.05));
       border: 1px solid rgba(59, 130, 246, 0.2);
       border-radius: var(--radius-xl);
-      padding: var(--space-5);
-      margin-bottom: var(--space-6);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: var(--space-4);
+      gap: var(--space-3);
     }
 
     .client-info h2 {
-      margin: 0 0 var(--space-2) 0;
-      font-size: 1.375rem;
+      margin: 0 0 var(--space-1) 0;
+      font-size: 1.125rem;
+      font-weight: 600;
     }
 
     .client-info p {
       margin: 0;
       color: var(--text-muted);
-      font-size: 0.9375rem;
+      font-size: 0.8125rem;
     }
 
     .order-badge {
       background: var(--primary-600);
       color: white;
-      padding: var(--space-2) var(--space-4);
+      padding: var(--space-1) var(--space-3);
       border-radius: var(--radius-full);
-      font-size: 0.8125rem;
+      font-size: 0.6875rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.03em;
@@ -58,820 +195,1293 @@
 
     /* Search */
     .search-section {
-      margin-bottom: var(--space-6);
+      margin-bottom: var(--space-4);
     }
 
-    .search-box {
+    .search-wrapper {
       position: relative;
-    }
-
-    .search-box input {
-      padding-left: var(--space-12);
-      font-size: 1rem;
-      height: 56px;
+      display: flex;
+      align-items: center;
     }
 
     .search-icon {
       position: absolute;
       left: var(--space-4);
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       color: var(--text-muted);
+      pointer-events: none;
     }
 
-    .search-results {
-      position: absolute;
-      top: calc(100% + var(--space-2));
-      left: 0;
-      right: 0;
+    .search-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-4) var(--space-3) var(--space-12);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-xl);
-      max-height: 400px;
-      overflow-y: auto;
-      z-index: 50;
-      box-shadow: var(--shadow-xl);
-      display: none;
+      font-size: 1rem;
+      color: var(--text-primary);
+      transition: all 0.2s;
     }
 
-    .search-results.show {
-      display: block;
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-500);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
-    .search-result-item {
-      padding: var(--space-4) var(--space-5);
-      border-bottom: 1px solid var(--border-color);
-      cursor: pointer;
-      transition: background var(--transition-fast);
-    }
-
-    .search-result-item:hover {
-      background: rgba(59, 130, 246, 0.1);
-    }
-
-    .search-result-name {
-      font-weight: 600;
-      margin-bottom: var(--space-1);
-    }
-
-    .search-result-category {
-      font-size: 0.875rem;
+    .search-input::placeholder {
       color: var(--text-muted);
     }
 
-    /* Categories */
+    /* Categories Accordion */
     .categories-container {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xl);
-      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
     }
 
     .category-section {
-      margin-bottom: var(--space-4);
-    }
-
-    .category-section:last-child {
-      margin-bottom: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
     }
 
     .category-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: var(--space-4);
-      background: var(--bg-tertiary);
-      border-radius: var(--radius-lg);
+      padding: var(--space-3) var(--space-4);
+      background: rgba(59, 130, 246, 0.08);
+      border-bottom: 1px solid var(--border-color);
       cursor: pointer;
-      font-weight: 700;
-      font-size: 1rem;
-      transition: all var(--transition-fast);
-      border: 1px solid transparent;
+      transition: all 0.2s;
+      user-select: none;
     }
 
     .category-header:hover {
-      border-color: var(--border-color);
+      background: rgba(59, 130, 246, 0.12);
     }
 
-    .category-header.expanded {
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      border-bottom-color: var(--border-color);
+    .category-header.collapsed {
+      border-bottom: none;
     }
 
-    .category-toggle {
-      transition: transform var(--transition-fast);
-      color: var(--text-muted);
-    }
-
-    .category-header.expanded .category-toggle {
-      transform: rotate(180deg);
-    }
-
-    .category-products {
-      display: none;
-      padding: var(--space-3);
-      background: rgba(148, 163, 184, 0.05);
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-      border: 1px solid var(--border-color);
-      border-top: none;
-    }
-
-    .category-header.expanded + .category-products {
+    .category-title {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       gap: var(--space-2);
     }
 
-    .product-btn {
-      padding: var(--space-3) var(--space-4);
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      font-size: 0.9375rem;
-      color: var(--text-primary);
+    .category-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
       font-weight: 500;
     }
 
-    .product-btn:hover {
-      background: var(--primary-600);
-      border-color: var(--primary-600);
-      color: white;
-    }
-
-    /* Cart Panel */
-    .cart-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-xl);
-      padding: var(--space-6);
-      position: sticky;
-      top: 100px;
-      box-shadow: var(--shadow-lg);
-    }
-
-    .cart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-5);
-      padding-bottom: var(--space-4);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .cart-title {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .cart-count {
-      background: var(--primary-600);
-      color: white;
-      width: 28px;
-      height: 28px;
-      border-radius: var(--radius-full);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .category-toggle {
       font-size: 0.875rem;
-      font-weight: 700;
+      color: var(--text-muted);
+      transition: transform 0.2s;
     }
 
-    .cart-items {
-      display: flex;
-      flex-direction: column;
+    .category-header.collapsed .category-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .category-products {
+      padding: var(--space-3);
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: var(--space-3);
-      max-height: 400px;
-      overflow-y: auto;
-      margin-bottom: var(--space-5);
     }
 
-    .cart-item {
-      background: var(--bg-tertiary);
+    .category-products.hidden {
+      display: none;
+    }
+
+    @media (max-width: 640px) {
+      .category-products {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-2);
+      }
+    }
+
+    /* Uncategorized section */
+    .category-section.uncategorized .category-header {
+      background: rgba(107, 114, 128, 0.08);
+    }
+
+    .category-section.uncategorized .category-header:hover {
+      background: rgba(107, 114, 128, 0.12);
+    }
+
+    .product-card {
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
+      padding: var(--space-3);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .product-card:hover {
+      border-color: var(--primary-500);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .product-card:active {
+      transform: translateY(0);
+    }
+
+    .product-name {
+      font-weight: 600;
+      font-size: 0.875rem;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 2.5em;
+    }
+
+    .product-category {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    /* Quantity Modal - New Design */
+    .qty-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
       padding: var(--space-4);
     }
 
-    .cart-item-header {
+    .qty-modal-overlay.visible {
       display: flex;
+    }
+
+    .qty-modal {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 380px;
+      overflow: hidden;
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header Orange */
+    .qty-modal-header-orange {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: var(--space-3);
-    }
-
-    .cart-item-name {
-      font-weight: 600;
-      font-size: 0.9375rem;
-      flex: 1;
-      padding-right: var(--space-3);
-    }
-
-    .cart-item-remove {
-      background: rgba(239, 68, 68, 0.1);
-      border: none;
-      color: var(--danger-500);
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.125rem;
-      transition: all var(--transition-fast);
-    }
-
-    .cart-item-remove:hover {
-      background: var(--danger-500);
-      color: white;
-    }
-
-    .cart-item-details {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      margin-bottom: var(--space-3);
-    }
-
-    .cart-item-price {
-      color: var(--primary-400);
-      font-weight: 600;
-    }
-
-    .stock-warning {
-      color: var(--danger-500);
-      font-size: 0.8125rem;
-      display: flex;
-      align-items: center;
-      gap: var(--space-1);
-      margin-top: var(--space-1);
-    }
-
-    .stock-ok {
-      color: var(--success-400);
-      font-size: 0.8125rem;
-      display: flex;
-      align-items: center;
-      gap: var(--space-1);
-      margin-top: var(--space-1);
-    }
-
-    .cart-item-controls {
-      display: flex;
-      align-items: center;
       gap: var(--space-3);
     }
 
-    .qty-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color);
-      background: var(--bg-input);
-      color: var(--text-primary);
+    .qty-modal-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .qty-modal-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      font-size: 1.5rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 600;
-      transition: all var(--transition-fast);
+      line-height: 1;
     }
 
-    .qty-btn:hover {
-      background: var(--primary-600);
-      border-color: var(--primary-600);
+    .qty-modal-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Body */
+    .qty-modal-body {
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .qty-gtin {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .qty-stock {
+      font-size: 0.875rem;
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .qty-stock span {
+      color: #ef4444;
+    }
+
+    /* Price Box */
+    .qty-price-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin: var(--space-2) 0;
+    }
+
+    .qty-price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+    }
+
+    .qty-price-row.highlight {
+      padding: var(--space-2) 0;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      margin: var(--space-1) 0;
+    }
+
+    .qty-price-row .qty-price-label {
+      color: var(--text-muted);
+    }
+
+    .qty-price-row .qty-price-value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .qty-price-row.highlight .qty-price-value.total {
+      color: #f59e0b;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    /* Quantity Controls */
+    .qty-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+    }
+
+    .qty-control-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .qty-control-btn:hover {
+      background: var(--primary-500);
+      border-color: var(--primary-500);
       color: white;
     }
 
-    .qty-input {
-      width: 60px;
-      height: 36px;
+    .qty-control-input {
+      width: 70px;
+      height: 44px;
       text-align: center;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background: var(--bg-input);
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
       color: var(--text-primary);
+    }
+
+    .qty-control-input:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+
+    /* Footer */
+    .qty-modal-footer-orange {
+      padding: var(--space-4);
+      display: flex;
+      gap: var(--space-3);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-cancel-gray {
+      flex: 1;
+      padding: var(--space-3) var(--space-4);
+      background: #4b5563;
+      border: none;
+      border-radius: var(--radius-lg);
+      color: white;
       font-weight: 600;
-      font-size: 1rem;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel-gray:hover {
+      background: #6b7280;
+    }
+
+    .btn-add-orange {
+      flex: 1;
+      padding: var(--space-3) var(--space-4);
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border: none;
+      border-radius: var(--radius-lg);
+      color: white;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+
+    .btn-add-orange:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    /* Cart Modal */
+    .cart-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: var(--space-4);
+    }
+
+    .cart-modal-overlay.visible {
+      display: flex;
+    }
+
+    .cart-modal {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 600px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cart-modal-header {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cart-modal-header h3 {
+      margin: 0;
+      font-size: 1.125rem;
+    }
+
+    .cart-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: var(--space-1);
+      line-height: 1;
+    }
+
+    .cart-close-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .cart-modal-body {
+      padding: var(--space-4);
+      overflow-y: auto;
+      flex: 1;
     }
 
     .cart-empty {
       text-align: center;
-      padding: var(--space-10) var(--space-4);
+      padding: var(--space-8);
       color: var(--text-muted);
     }
 
     .cart-empty-icon {
-      font-size: 4rem;
-      margin-bottom: var(--space-4);
-      opacity: 0.3;
+      font-size: 3rem;
+      margin-bottom: var(--space-3);
+      opacity: 0.5;
+    }
+
+    .cart-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: var(--space-3);
+      align-items: center;
+      padding: var(--space-3);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .cart-item-info {
+      min-width: 0;
+    }
+
+    .cart-item-name {
+      font-weight: 600;
+      font-size: 0.875rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cart-item-price {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .cart-qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cart-qty-btn:hover {
+      background: var(--primary-500);
+      border-color: var(--primary-500);
+      color: white;
+    }
+
+    .cart-qty-value {
+      font-weight: 600;
+      min-width: 24px;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+
+    .cart-item-total {
+      font-weight: 700;
+      font-size: 0.875rem;
+      text-align: right;
+      min-width: 70px;
+    }
+
+    .cart-item-remove {
+      background: none;
+      border: none;
+      color: var(--danger-500);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: var(--space-1);
+      opacity: 0.7;
+      transition: opacity 0.15s;
+    }
+
+    .cart-item-remove:hover {
+      opacity: 1;
     }
 
     .cart-footer {
-      padding-top: var(--space-5);
-      border-top: 2px solid var(--border-color);
+      padding: var(--space-4);
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-primary);
     }
 
     .cart-total-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--space-5);
+      margin-bottom: var(--space-4);
     }
 
     .cart-total-label {
-      font-size: 1.125rem;
-      font-weight: 600;
+      font-size: 1rem;
     }
 
     .cart-total-value {
-      font-size: 1.5rem;
-      font-weight: 800;
+      font-size: 1.25rem;
+      font-weight: 700;
       color: var(--primary-400);
     }
 
     .btn-send-order {
       width: 100%;
-      padding: var(--space-5);
+      padding: var(--space-4);
       background: linear-gradient(135deg, var(--success-600), var(--success-700));
       color: white;
       border: none;
       border-radius: var(--radius-lg);
-      font-size: 1.125rem;
-      font-weight: 700;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: all var(--transition-fast);
-      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+      transition: all 0.2s;
     }
 
-    .btn-send-order:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
+    .btn-send-order:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
     }
 
-    .btn-send-order:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    /* No products message */
+    .no-products {
+      text-align: center;
+      padding: var(--space-10);
+      color: var(--text-muted);
     }
-
-    /* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-
-.modal-content {
-  background: var(--bg-card, #1e293b);
-  border: 1px solid var(--border-color, #334155);
-  border-radius: var(--radius-xl, 16px);
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: modalSlide 0.3s ease;
-  overflow: hidden;
-}
-
-@keyframes modalSlide {
-  from { transform: translateY(50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.modal-header {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  padding: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  padding-right: 20px;
-}
-
-.modal-close {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  line-height: 1;
-}
-
-.modal-close:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.modal-gtin {
-  color: var(--text-muted, #94a3b8);
-  font-size: 13px;
-  margin-bottom: 16px;
-  font-family: monospace;
-  background: var(--bg-tertiary, #0f172a);
-  padding: 8px 12px;
-  border-radius: 6px;
-  display: inline-block;
-}
-
-.price-display {
-  background: rgba(245, 158, 11, 0.1);
-  border: 2px solid rgba(245, 158, 11, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.price-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--text-primary, #f1f5f9);
-}
-
-.price-row.total {
-  border-top: 2px solid rgba(245, 158, 11, 0.3);
-  padding-top: 8px;
-  margin-top: 8px;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.price-value.with-vat {
-  color: #f59e0b;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.qty-selector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.qty-btn {
-  width: 44px;
-  height: 44px;
-  border: 2px solid var(--border-color, #334155);
-  background: var(--bg-tertiary, #0f172a);
-  border-radius: 10px;
-  font-size: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-primary, #f1f5f9);
-}
-
-.qty-btn:hover {
-  border-color: #f59e0b;
-  color: #f59e0b;
-}
-
-#modalQty {
-  width: 80px;
-  height: 44px;
-  text-align: center;
-  border: 2px solid var(--border-color, #334155);
-  border-radius: 10px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary, #f1f5f9);
-  background: var(--bg-input, #0f172a);
-}
-
-#modalQty:focus {
-  outline: none;
-  border-color: #f59e0b;
-}
-
-.modal-footer {
-  padding: 20px 24px;
-  background: var(--bg-tertiary, #0f172a);
-  display: flex;
-  gap: 12px;
-  border-top: 1px solid var(--border-color, #334155);
-}
-
-.btn-secondary, .btn-primary {
-  flex: 1;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  font-size: 15px;
-}
-
-.btn-secondary {
-  background: var(--bg-input, #0f172a);
-  color: var(--text-muted, #94a3b8);
-  border: 2px solid var(--border-color, #334155);
-}
-
-.btn-secondary:hover {
-  border-color: #475569;
-  color: #f1f5f9;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
-}
-
-/* Toast notification */
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@media (max-width: 640px) {
-  .modal-content {
-    max-width: 100%;
-    border-radius: 20px 20px 0 0;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    animation: slideUp 0.3s ease;
-  }
-  
-  @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-  }
-  
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-    background: rgba(0, 0, 0, 0.5);
-  }
-}
-
- /* STICKY TOTALS BAR - adaugă ASTA */
-  .sticky-totals-bar {
-    position: sticky;
-    top: 70px; /* sub navbar */
-    z-index: 998;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
-    backdrop-filter: blur(10px);
-    border-bottom: 2px solid var(--primary-600, #f59e0b);
-    padding: 10px 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    font-size: 0.875rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    margin-bottom: 20px;
-    border-radius: 0 0 12px 12px;
-  }
-
-  .totals-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 100px;
-  }
-
-  .totals-label {
-    color: #94a3b8;
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-  }
-
-  .totals-value {
-    color: #f1f5f9;
-    font-weight: 800;
-    font-size: 1rem;
-    font-family: 'Segoe UI', monospace;
-  }
-
-  .totals-item.highlight .totals-value {
-    color: #fbbf24;
-    font-size: 1.125rem;
-    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-  }
-
-  .totals-divider {
-    width: 1px;
-    height: 28px;
-    background: rgba(148, 163, 184, 0.3);
-  }
-
-  @media (max-width: 640px) {
-    .sticky-totals-bar {
-      gap: 15px;
-      padding: 8px 10px;
-      top: 60px;
-    }
-    .totals-item {
-      min-width: auto;
-      flex: 1;
-    }
-    .totals-label {
-      font-size: 0.625rem;
-    }
-    .totals-value {
-      font-size: 0.875rem;
-    }
-    .totals-divider {
-      display: none;
-    }
-  }
   </style>
 </head>
 <body>
-  <nav class="navbar">
-    <div class="navbar-inner">
-      <a href="index.html" class="navbar-brand">
-        <div class="navbar-brand-icon">⚕️</div>
-        <span>FMD</span>
+  <div class="order-layout">
+    <!-- Header cu Logo și Nav -->
+    <header class="order-header">
+      <a href="index.html" class="header-logo-link">
+        <div class="header-logo-icon">oB</div>
+        <span class="header-logo-text">OpenBill</span>
       </a>
-      <div class="navbar-actions"><div id="userBar"></div>
-        <a href="client.html" class="btn btn-ghost btn-sm">← Înapoi la client</a>
+      <nav class="header-nav">
+        <a href="index.html" class="nav-btn">
+          <span>&#8592;</span>
+          <span>Pagina Principală</span>
+        </a>
+      </nav>
+    </header>
+
+    <!-- Top Bar cu Totaluri și Verifică Comanda -->
+    <div class="top-bar">
+      <div class="totals-group">
+        <div class="total-item">
+          <span class="total-label">Produse</span>
+          <span class="total-value" id="tpTotal">0 buc</span>
+        </div>
+        <div class="total-item">
+          <span class="total-label">Total</span>
+          <span class="total-value" id="tftTotal">0.00 RON</span>
+        </div>
+        <div class="total-item">
+          <span class="total-label">Cu TVA</span>
+          <span class="total-value tb" id="tbTotal">0.00 RON</span>
+        </div>
       </div>
+      <button class="btn-verify" id="btnVerify" onclick="openCartModal()">
+        <span>&#128722;</span>
+        <span>Verifică Comanda</span>
+        <span class="btn-verify-badge" id="verifyBadge">0</span>
+      </button>
     </div>
-  </nav>
 
-  </nav>
-
-<!-- STICKY BAR -->
-<div class="sticky-totals-bar">
-  <div class="totals-item">
-    <span class="totals-label">TP (Produse)</span>
-    <span class="totals-value" id="stickyTotalProducts">0 buc</span>
-  </div>
-  <div class="totals-divider"></div>
-  <div class="totals-item">
-    <span class="totals-label">TfT (Fără TVA)</span>
-    <span class="totals-value" id="stickyTotalNoVat">0.00 RON</span>
-  </div>
-  <div class="totals-divider"></div>
-  <div class="totals-item highlight">
-    <span class="totals-label">Tb (Cu TVA 21%)</span>
-    <span class="totals-value" id="stickyTotalWithVat">0.00 RON</span>
-  </div>
-</div>
-
-<main class="container">
-  
-
-  <main class="container">
     <!-- Client Banner -->
     <div class="client-banner">
       <div class="client-info">
-        <h2 id="clientTitle">Client: -</h2>
-        <p id="clientMeta">Selectează un client pentru a începe comanda</p>
+        <h2 id="clientName">Client: <span>-</span></h2>
+        <p id="clientDetails">Selectează un client</p>
       </div>
       <span class="order-badge">Comandă Nouă</span>
     </div>
 
-    <div class="order-layout">
-      <!-- Left: Products -->
-      <div>
-        <!-- Search -->
-        <div class="search-section">
-          <div class="search-box">
-            <span class="search-icon"></span>
-            <input type="text" id="searchProduct" class="form-input" placeholder="Caută produs după nume..." autocomplete="off" />
-            <div class="search-results" id="productSearchResults"></div>
-          </div>
-        </div>
-
-        <!-- Categories -->
-        <div class="categories-container" id="productsTree">
-          <!-- Populat din JS -->
-        </div>
-      </div>
-
-      <!-- Right: Cart -->
-      <div class="cart-panel">
-        <div class="cart-header">
-          <div class="cart-title">
-            <span>🛒</span>
-            <span>Coș comandă</span>
-          </div>
-          <span class="cart-count" id="cartCount">0</span>
-        </div>
-
-        <div class="cart-items" id="cartBox">
-          <div class="cart-empty">
-            <div class="cart-empty-icon">🛒</div>
-            <p>Coșul este gol</p>
-            <p style="font-size: 0.875rem;">Adaugă produse din lista din stânga</p>
-          </div>
-        </div>
-
-        <div class="cart-footer" id="cartFooter" style="display: none;">
-          <div class="cart-total-row">
-            <span class="cart-total-label">Total comandă:</span>
-            <span class="cart-total-value" id="cartTotal">0.00 RON</span>
-          </div>
-          <button class="btn-send-order" id="btnSendOrder">
-            ✅ Trimite comanda
-          </button>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <script src="script.js"></script>
-
- 
-<!-- Modal Adăugare Produs -->
-<div id="addProductModal" class="modal-overlay" style="display: none;">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="modalProductName">Nume Produs</h3>
-      <button class="modal-close" onclick="closeProductModal()">×</button>
-    </div>
-    
-    <div class="modal-body">
-      <div class="modal-gtin" id="modalProductGtin">GTIN: -</div>
-
-       <div id="modalStock" style="font-weight: 600; margin: 10px 0; font-size: 1.1rem;">
-        Stoc disponibil: -
-      </div>
-      
-      
-      <div class="price-display">
-        <div class="price-row">
-          <span class="price-label">Preț unitar:</span>
-          <span class="price-value" id="modalUnitPrice">0.00 RON / buc</span>
-        </div>
-        <div class="price-row total">
-          <span class="price-label">Total cu TVA:</span>
-          <span class="price-value with-vat" id="modalPriceWithVat">0.00 RON</span>
-        </div>
-        <div class="price-row">
-          <span class="price-label">Fără TVA:</span>
-          <span class="price-value no-vat" id="modalPriceNoVat">0.00 RON</span>
-        </div>
-      </div>
-
-      <div class="qty-selector">
-        <button class="qty-btn" onclick="adjustQty(-1)">−</button>
-       <input type="number" id="modalQty" value="" min="1" inputmode="numeric" pattern="[0-9]*" onchange="calculateModalPrices()">
-        <button class="qty-btn" onclick="adjustQty(1)">+</button>
+    <!-- Search -->
+    <div class="search-section">
+      <div class="search-wrapper">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="Caută produs după nume..." autocomplete="off" />
       </div>
     </div>
 
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeProductModal()">Anulează</button>
-      <button class="btn-primary" onclick="confirmAddToCart()">
-        <span>Adaugă în coș</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      </button>
+    <!-- Products -->
+    <div class="products-grid" id="productsContainer">
+      <!-- Products loaded here -->
     </div>
   </div>
-</div>
 
+  <!-- Quantity Modal -->
+  <div class="qty-modal-overlay" id="qtyModal" onclick="closeQtyModal(event)">
+    <div class="qty-modal" onclick="event.stopPropagation()">
+      <!-- Header Orange -->
+      <div class="qty-modal-header-orange">
+        <div class="qty-modal-title" id="qtyProductName">Produs</div>
+        <button class="qty-modal-close" onclick="closeQtyModal()">&times;</button>
+      </div>
+      
+      <!-- Body -->
+      <div class="qty-modal-body">
+        <!-- GTIN -->
+        <div class="qty-gtin" id="qtyProductGtin">GTIN: -</div>
+        
+        <!-- Stoc disponibil -->
+        <div class="qty-stock" id="qtyStock">Stoc disponibil: <span>0 buc</span></div>
+        
+        <!-- Price Box -->
+        <div class="qty-price-box">
+          <div class="qty-price-row">
+            <span class="qty-price-label">Preț unitar:</span>
+            <span class="qty-price-value" id="qtyPricePerUnit">0.00 RON / buc</span>
+          </div>
+          <div class="qty-price-row highlight">
+            <span class="qty-price-label">Total cu TVA:</span>
+            <span class="qty-price-value total" id="qtyTotalWithVat">0.00 RON</span>
+          </div>
+          <div class="qty-price-row">
+            <span class="qty-price-label">Fără TVA:</span>
+            <span class="qty-price-value" id="qtyTotalWithoutVat">0.00 RON</span>
+          </div>
+        </div>
+        
+        <!-- Quantity Controls -->
+        <div class="qty-controls-row">
+          <button class="qty-control-btn" onclick="changeQty(-1)">&#8722;</button>
+          <input type="number" class="qty-control-input" id="qtyInput" value="1" min="1" inputmode="numeric" pattern="[0-9]*" />
+          <button class="qty-control-btn" onclick="changeQty(1)">+</button>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="qty-modal-footer-orange">
+        <button class="btn-cancel-gray" onclick="closeQtyModal()">Anulează</button>
+        <button class="btn-add-orange" onclick="confirmAddToCart()">
+          Adaugă în coș <span>&#8594;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div class="cart-modal-overlay" id="cartModal" onclick="closeCartModal(event)">
+    <div class="cart-modal" onclick="event.stopPropagation()">
+      <div class="cart-modal-header">
+        <h3>&#128722; Coș Comandă</h3>
+        <button class="cart-close-btn" onclick="closeCartModal()">&times;</button>
+      </div>
+      <div class="cart-modal-body" id="cartBody">
+        <!-- Cart items here -->
+      </div>
+      <div class="cart-footer" id="cartFooter" style="display: none;">
+        <div class="cart-total-row">
+          <span class="cart-total-label">Total:</span>
+          <span class="cart-total-value" id="cartTotal">0.00 RON</span>
+        </div>
+        <button class="btn-send-order" onclick="submitOrder()">Trimite comanda</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // ========== STATE ==========
+    let products = [];
+    let client = null;
+    let clientPrices = {}; // Prețuri speciale ale clientului
+    let selectedProduct = null;
+    let currentQty = 1;
+
+    // ========== INITIALIZATION ==========
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Load client
+      const savedClient = localStorage.getItem('clientSelectat');
+      if (savedClient) {
+        client = JSON.parse(savedClient);
+        updateClientDisplay();
+        // Load client special prices
+        await loadClientPrices(client.id);
+      } else {
+        window.location.href = 'adauga_comanda.html';
+        return;
+      }
+      
+      // Load products
+      await loadProducts();
+      
+      // Initial cart update
+      updateCartUI();
+      
+      // Search
+      document.getElementById('searchInput').addEventListener('input', handleSearch);
+      
+      // Qty input enter key
+      document.getElementById('qtyInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          confirmAddToCart();
+        }
+      });
+      
+      // Qty input change
+      document.getElementById('qtyInput').addEventListener('input', function() {
+        currentQty = parseInt(this.value) || 1;
+        if (currentQty < 1) currentQty = 1;
+        
+        // Check max stock
+        if (selectedProduct && selectedProduct.maxStock > 0 && currentQty > selectedProduct.maxStock) {
+          currentQty = selectedProduct.maxStock;
+          this.value = currentQty;
+          showToast(`Stoc maxim disponibil: ${selectedProduct.maxStock} buc`);
+        }
+        
+        updateQtyTotal();
+      });
+    });
+
+    // ========== CLIENT ==========
+    async function loadClientPrices(clientId) {
+      try {
+        const res = await fetch(`/api/clients/${clientId}/prices`);
+        if (res.ok) {
+          const data = await res.json();
+          // Convert array to object: { product_id: special_price }
+          if (Array.isArray(data.prices)) {
+            clientPrices = {};
+            data.prices.forEach(p => {
+              clientPrices[p.product_id] = p.special_price;
+            });
+          } else {
+            clientPrices = data.prices || {};
+          }
+          console.log('Prețuri speciale client:', clientPrices);
+        }
+      } catch (e) {
+        console.error('Eroare încărcare prețuri client:', e);
+        clientPrices = {};
+      }
+    }
+
+    function getProductPrice(product) {
+      // Check if client has special price for this product
+      if (clientPrices && clientPrices[product.id]) {
+        return parseFloat(clientPrices[product.id]) || 0;
+      }
+      // Otherwise return list price
+      return parseFloat(product.price) || 0;
+    }
+
+    function updateClientDisplay() {
+      if (!client) return;
+      document.getElementById('clientName').innerHTML = `Client: <span>${escapeHtml(client.name)}</span>`;
+      document.getElementById('clientDetails').textContent = 
+        `Grup: ${client.group || '-'} | Categorie: ${client.category || '-'}${client.cui ? ' | CUI: ' + client.cui : ''}`;
+    }
+
+    // ========== PRODUCTS ==========
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products-flat');
+        if (!res.ok) throw new Error('Failed to load');
+        products = await res.json();
+        renderProducts(products);
+      } catch (e) {
+        console.error('Error loading products:', e);
+        document.getElementById('productsContainer').innerHTML = 
+          '<div class="no-products">Eroare la încărcare produse</div>';
+      }
+    }
+
+    function groupProductsByCategory(list) {
+      const groups = {};
+      const uncategorized = [];
+      
+      list.forEach(p => {
+        const cat = p.category && p.category.trim() ? p.category.trim() : null;
+        if (cat) {
+          if (!groups[cat]) groups[cat] = [];
+          groups[cat].push(p);
+        } else {
+          uncategorized.push(p);
+        }
+      });
+      
+      // Sort categories alphabetically
+      const sortedCategories = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ro'));
+      
+      return { groups, sortedCategories, uncategorized };
+    }
+
+    function renderProducts(list) {
+      const container = document.getElementById('productsContainer');
+      if (!list.length) {
+        container.innerHTML = '<div class="no-products">Niciun produs găsit</div>';
+        return;
+      }
+      
+      const { groups, sortedCategories, uncategorized } = groupProductsByCategory(list);
+      
+      let html = '<div class="categories-container">';
+      
+      // Render categorized products (all collapsed by default)
+      sortedCategories.forEach((cat) => {
+        const catProducts = groups[cat];
+        html += renderCategorySection(cat, catProducts, false);
+      });
+      
+      // Render uncategorized products at the end (fără header de categorie)
+      if (uncategorized.length > 0) {
+        html += '<div class="category-section uncategorized">';
+        html += `<div class="category-header collapsed" onclick="toggleCategory(this)">
+          <span class="category-title">
+            <span>Fără categorie</span>
+            <span class="category-count">${uncategorized.length} produse</span>
+          </span>
+          <span class="category-toggle">&#9662;</span>
+        </div>`;
+        html += `<div class="category-products hidden">`;
+        html += uncategorized.map(p => renderProductCard(p)).join('');
+        html += '</div></div>';
+      }
+      
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderCategorySection(category, catProducts, isExpanded) {
+      const productsHtml = catProducts.map(p => renderProductCard(p)).join('');
+      return `
+        <div class="category-section">
+          <div class="category-header ${!isExpanded ? 'collapsed' : ''}" onclick="toggleCategory(this)">
+            <span class="category-title">
+              <span>${escapeHtml(category)}</span>
+              <span class="category-count">${catProducts.length} produse</span>
+            </span>
+            <span class="category-toggle">&#9662;</span>
+          </div>
+          <div class="category-products ${!isExpanded ? 'hidden' : ''}">
+            ${productsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProductCard(p) {
+      return `
+        <div class="product-card" onclick="openQtyModalForProduct('${p.id}')">
+          <div class="product-name">${escapeHtml(p.name)}</div>
+        </div>
+      `;
+    }
+
+    function toggleCategory(header) {
+      header.classList.toggle('collapsed');
+      const productsContainer = header.nextElementSibling;
+      productsContainer.classList.toggle('hidden');
+    }
+
+    function handleSearch(e) {
+      const term = e.target.value.toLowerCase().trim();
+      if (!term) {
+        renderProducts(products);
+        return;
+      }
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(term) || 
+        (p.category && p.category.toLowerCase().includes(term))
+      );
+      renderProducts(filtered);
+    }
+
+    // ========== QUANTITY MODAL ==========
+    function openQtyModalForProduct(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+      
+      selectedProduct = product;
+      currentQty = 1;
+      
+      // Use special price if available, otherwise list price
+      const price = getProductPrice(product);
+      
+      // Header
+      document.getElementById('qtyProductName').textContent = product.name;
+      
+      // GTIN
+      const gtin = product.gtin || product.gtins?.[0] || '-';
+      document.getElementById('qtyProductGtin').textContent = 'GTIN: ' + gtin;
+      
+      // Stock
+      const stock = product.stock || 0;
+      const stockEl = document.getElementById('qtyStock');
+      if (stock > 0) {
+        stockEl.innerHTML = `Stoc disponibil: <span>${stock} buc</span>`;
+        stockEl.querySelector('span').style.color = '#22c55e'; // green
+      } else {
+        stockEl.innerHTML = `Stoc disponibil: <span>0 buc</span>`;
+        stockEl.querySelector('span').style.color = '#ef4444'; // red
+      }
+      
+      // Store max stock for validation
+      selectedProduct.maxStock = stock;
+      
+      // Prices
+      document.getElementById('qtyPricePerUnit').textContent = price.toFixed(2) + ' RON / buc';
+      
+      // Input
+      document.getElementById('qtyInput').value = currentQty;
+      
+      updateQtyTotal();
+      
+      document.getElementById('qtyModal').classList.add('visible');
+      
+      // Focus input after animation
+      setTimeout(() => {
+        const input = document.getElementById('qtyInput');
+        input.focus();
+        input.select();
+      }, 100);
+    }
+
+    function closeQtyModal(e) {
+      if (!e || e.target.id === 'qtyModal') {
+        document.getElementById('qtyModal').classList.remove('visible');
+        selectedProduct = null;
+      }
+    }
+
+    function changeQty(delta) {
+      currentQty += delta;
+      if (currentQty < 1) currentQty = 1;
+      
+      // Check max stock
+      if (selectedProduct && selectedProduct.maxStock > 0 && currentQty > selectedProduct.maxStock) {
+        currentQty = selectedProduct.maxStock;
+        showToast(`Stoc maxim disponibil: ${selectedProduct.maxStock} buc`);
+      }
+      
+      document.getElementById('qtyInput').value = currentQty;
+      updateQtyTotal();
+    }
+
+    function updateQtyTotal() {
+      if (!selectedProduct) return;
+      const price = parseFloat(selectedProduct.price) || 0;
+      const totalWithoutVat = price * currentQty;
+      const totalWithVat = totalWithoutVat * 1.19;
+      
+      document.getElementById('qtyTotalWithoutVat').textContent = totalWithoutVat.toFixed(2) + ' RON';
+      document.getElementById('qtyTotalWithVat').textContent = totalWithVat.toFixed(2) + ' RON';
+    }
+
+    function confirmAddToCart() {
+      if (!selectedProduct) return;
+      
+      const qty = parseInt(document.getElementById('qtyInput').value) || 1;
+      if (qty < 1) return;
+      
+      // Check stock
+      if (selectedProduct.maxStock !== undefined && qty > selectedProduct.maxStock) {
+        showToast(`Stoc insuficient! Disponibil: ${selectedProduct.maxStock} buc`);
+        return;
+      }
+      
+      // Check if we already have some in cart
+      const cart = getCart();
+      const existing = cart.find(item => item.id === selectedProduct.id);
+      const currentInCart = existing ? existing.qty : 0;
+      const totalRequested = currentInCart + qty;
+      
+      if (selectedProduct.maxStock > 0 && totalRequested > selectedProduct.maxStock) {
+        const remaining = selectedProduct.maxStock - currentInCart;
+        if (remaining <= 0) {
+          showToast(`Ai deja ${currentInCart} buc în coș (stoc maxim)`);
+        } else {
+          showToast(`Poți adăuga încă ${remaining} buc (stoc: ${selectedProduct.maxStock})`);
+        }
+        return;
+      }
+      
+      addToCart(selectedProduct, qty);
+      closeQtyModal();
+      
+      // Feedback vizual cu preț total
+      const total = (selectedProduct.price * qty).toFixed(2);
+      showToast(`${qty} buc adăugate (${total} RON)`);
+    }
+
+    function showToast(message) {
+      // Creăm un toast temporar
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--success-600);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 400;
+        animation: slideUp 0.3s ease;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    // ========== CART ==========
+    function getCart() {
+      try {
+        return JSON.parse(localStorage.getItem('cart')) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCart(cart) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    function addToCart(product, qty) {
+      const cart = getCart();
+      const existing = cart.find(item => item.id === product.id);
+      
+      // Use special price if available
+      const price = getProductPrice(product);
+      
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        cart.push({
+          id: product.id,
+          name: product.name,
+          price: price,
+          qty: qty,
+          gtin: product.gtin || ''
+        });
+      }
+      
+      saveCart(cart);
+    }
+
+    function updateCartItemQty(itemId, delta) {
+      let cart = getCart();
+      const item = cart.find(i => i.id === itemId);
+      
+      if (item) {
+        item.qty += delta;
+        if (item.qty <= 0) {
+          cart = cart.filter(i => i.id !== itemId);
+        }
+        saveCart(cart);
+      }
+    }
+
+    function removeCartItem(itemId) {
+      let cart = getCart();
+      cart = cart.filter(i => i.id !== itemId);
+      saveCart(cart);
+    }
+
+    // ========== UI UPDATES ==========
+    function updateCartUI() {
+      const cart = getCart();
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalValue = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      
+      // Update top bar
+      document.getElementById('tpTotal').textContent = totalItems + ' buc';
+      document.getElementById('tftTotal').textContent = totalValue.toFixed(2) + ' RON';
+      document.getElementById('tbTotal').textContent = (totalValue * 1.19).toFixed(2) + ' RON';
+      
+      // Update verify button
+      const btn = document.getElementById('btnVerify');
+      const badge = document.getElementById('verifyBadge');
+      
+      if (totalItems > 0) {
+        btn.classList.add('visible');
+        badge.textContent = totalItems;
+      } else {
+        btn.classList.remove('visible');
+      }
+      
+      // Update cart modal
+      renderCartModal();
+    }
+
+    function renderCartModal() {
+      const cart = getCart();
+      const container = document.getElementById('cartBody');
+      const footer = document.getElementById('cartFooter');
+      
+      if (!cart.length) {
+        container.innerHTML = `
+          <div class="cart-empty">
+            <div class="cart-empty-icon">&#128722;</div>
+            <p>Coșul este gol</p>
+          </div>
+        `;
+        footer.style.display = 'none';
+        return;
+      }
+      
+      let total = 0;
+      
+      container.innerHTML = cart.map(item => {
+        const lineTotal = item.price * item.qty;
+        total += lineTotal;
+        return `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-name">${escapeHtml(item.name)}</div>
+            <div class="cart-item-price">${item.price.toFixed(2)} RON</div>
+          </div>
+          <div class="cart-item-qty">
+            <button class="cart-qty-btn" onclick="updateCartItemQty('${item.id}', -1)">&#8722;</button>
+            <span class="cart-qty-value">${item.qty}</span>
+            <button class="cart-qty-btn" onclick="updateCartItemQty('${item.id}', 1)">+</button>
+          </div>
+          <div class="cart-item-total">${lineTotal.toFixed(2)} RON</div>
+          <button class="cart-item-remove" onclick="removeCartItem('${item.id}')">&#10005;</button>
+        </div>
+      `}).join('');
+      
+      footer.style.display = 'block';
+      document.getElementById('cartTotal').textContent = total.toFixed(2) + ' RON';
+    }
+
+    // ========== CART MODAL ==========
+    function openCartModal() {
+      document.getElementById('cartModal').classList.add('visible');
+      renderCartModal();
+    }
+
+    function closeCartModal(e) {
+      if (!e || e.target.id === 'cartModal') {
+        document.getElementById('cartModal').classList.remove('visible');
+      }
+    }
+
+    // ========== SUBMIT ==========
+    async function submitOrder() {
+      const cart = getCart();
+      if (!cart.length) {
+        alert('Coșul este gol!');
+        return;
+      }
+      
+      if (!client) {
+        alert('Selectează un client!');
+        return;
+      }
+      
+      // Build items with GTIN from products
+      const items = cart.map(item => {
+        const product = products.find(p => p.id === item.id);
+        return {
+          product_id: item.id,
+          name: item.name,
+          qty: item.qty,
+          price: item.price,
+          gtin: product ? (product.gtin || '') : ''
+        };
+      });
+      
+      const orderData = {
+        client: {
+          id: client.id,
+          name: client.name,
+          cui: client.cui || '',
+          address: client.address || ''
+        },
+        items: items
+      };
+      
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData)
+        });
+        
+        if (res.ok) {
+          localStorage.removeItem('cart');
+          updateCartUI();
+          closeCartModal();
+          alert('Comanda a fost trimisă cu succes!');
+          window.location.href = 'orders.html';
+        } else {
+          const err = await res.json();
+          alert('Eroare: ' + (err.error || 'Nu s-a putut trimite comanda'));
+        }
+      } catch (e) {
+        console.error('Error:', e);
+        alert('Eroare de conexiune');
+      }
+    }
+
+    // ========== UTILS ==========
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
 </body>
 </html>

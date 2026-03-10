@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Înregistrare Demo - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="global.css">
+  <style>
+    body {
+      min-height: 100vh;
+      padding: var(--space-4);
+      background: var(--bg-primary);
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      padding: var(--space-6) 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: var(--space-4);
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: var(--space-2);
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.125rem;
+    }
+    
+    /* Planuri */
+    .plans-section {
+      margin: var(--space-8) 0;
+    }
+    .plans-title {
+      text-align: center;
+      font-size: 1.25rem;
+      margin-bottom: var(--space-5);
+      color: var(--text-secondary);
+    }
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+    }
+    .plan-card {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      position: relative;
+    }
+    .plan-card:hover {
+      border-color: var(--primary-500);
+      transform: translateY(-4px);
+    }
+    .plan-card.selected {
+      border-color: var(--success-500);
+      background: rgba(34, 197, 94, 0.05);
+    }
+    .plan-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 28px;
+      height: 28px;
+      background: var(--success-500);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    .plan-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: var(--space-2);
+    }
+    .plan-price {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary-400);
+      margin-bottom: var(--space-2);
+    }
+    .plan-price span {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .plan-features {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-4) 0;
+      text-align: left;
+    }
+    .plan-features li {
+      padding: var(--space-1) 0;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    .plan-features li::before {
+      content: '✓';
+      color: var(--success-400);
+      margin-right: var(--space-2);
+    }
+    
+    /* Formular */
+    .form-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .form-title {
+      text-align: center;
+      margin-bottom: var(--space-5);
+    }
+    .form-group {
+      margin-bottom: var(--space-4);
+    }
+    .form-label {
+      display: block;
+      margin-bottom: var(--space-2);
+      font-weight: 500;
+    }
+    .form-input {
+      width: 100%;
+    }
+    .submit-btn {
+      width: 100%;
+      margin-top: var(--space-4);
+      padding: var(--space-4);
+      font-size: 1rem;
+    }
+    .links {
+      text-align: center;
+      margin-top: var(--space-6);
+      color: var(--text-muted);
+    }
+    .links a {
+      color: var(--primary-400);
+      text-decoration: none;
+    }
+    .alert {
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-4);
+      display: none;
+    }
+    .alert-success {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success-400);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger-500);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .demo-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: var(--space-4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <a href="landing.html" class="logo">
+        <div class="navbar-brand-icon" style="width: 48px; height: 48px;"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>OpenBill</span>
+      </a>
+      <div class="demo-badge">🎉 Perioadă Demo 7 Zile</div>
+      <h1>Începe cu OpenBill</h1>
+      <p class="subtitle">Alege planul dorit și creează contul demo cu date de test</p>
+    </div>
+    
+    <!-- Planuri -->
+    <div class="plans-section">
+      <p class="plans-title">Selectează planul (poți schimba oricând)</p>
+      <div class="plans-grid">
+        <div class="plan-card" data-plan="starter" onclick="selectPlan('starter')">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">29.99€ <span>/lună</span></div>
+          <ul class="plan-features">
+            <li>3 utilizatori</li>
+            <li>Gestiune stoc</li>
+            <li>Comenzi și facturare</li>
+            <li>Support email</li>
+          </ul>
+        </div>
+        
+        <div class="plan-card selected" data-plan="pro" onclick="selectPlan('pro')">
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">39.99€ <span>/lună</span></div>
+          <ul class="plan-features">
+            <li>10 utilizatori</li>
+            <li>Toate funcționalitățile</li>
+            <li>Rapoarte avansate</li>
+            <li>Foi de parcurs</li>
+          </ul>
+        </div>
+        
+        <div class="plan-card" data-plan="enterprise" onclick="selectPlan('enterprise')">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">59.99€ <span>/lună</span></div>
+          <ul class="plan-features">
+            <li>Utilizatori nelimitați</li>
+            <li>API Access</li>
+            <li>Support prioritar</li>
+            <li>Funcționalități custom</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Formular -->
+    <div class="form-section">
+      <div class="form-title">
+        <h3 style="margin: 0;">Creează Cont Demo</h3>
+        <p style="color: var(--text-muted); margin: var(--space-2) 0 0 0; font-size: 0.875rem;">
+          Primești automat date de test (clienți, produse, comenzi)
+        </p>
+      </div>
+      
+      <div class="alert" id="alert"></div>
+      
+      <form id="signupForm">
+        <input type="hidden" name="plan" id="selectedPlan" value="pro">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Nume *</label>
+            <input type="text" name="firstName" class="form-input form-control" required 
+                   placeholder="Ion">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Prenume *</label>
+            <input type="text" name="lastName" class="form-input form-control" required 
+                   placeholder="Popescu">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input type="email" name="email" class="form-input form-control" required 
+                 placeholder="nume@companie.ro">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Parolă *</label>
+          <input type="password" name="password" class="form-input form-control" required 
+                 placeholder="Minim 8 caractere" minlength="8">
+          <small style="color: var(--text-muted);">Minim 8 caractere, include litere și cifre</small>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Confirmă parola *</label>
+          <input type="password" name="confirmPassword" class="form-input form-control" required 
+                 placeholder="Repetă parola">
+        </div>
+        
+        <button type="submit" class="btn btn-primary submit-btn" id="submitBtn">
+          🚀 Începe Demo Gratuit
+        </button>
+      </form>
+      
+      <!-- Formular verificare cod (ascuns inițial) -->
+      <div id="verifyForm" style="display: none;">
+        <hr style="border-color: var(--border-color); margin: var(--space-5) 0;">
+        <h3 style="text-align: center; margin-bottom: var(--space-3);">📧 Verificare Email</h3>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: var(--space-4);">
+          Am trimis un cod de 6 cifre pe email. Introdu-l mai jos:
+        </p>
+        <div class="form-group">
+          <input type="text" id="verificationCode" class="form-input form-control" 
+                 placeholder="Cod de 6 cifre" maxlength="6" 
+                 style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;">
+        </div>
+        <button onclick="verifyCode()" class="btn btn-success submit-btn">
+          ✅ Verifică și Activează Contul
+        </button>
+        <p style="text-align: center; margin-top: var(--space-3);">
+          <a href="#" onclick="resendCode(); return false;" style="color: var(--text-muted); font-size: 0.875rem;">
+            Nu ai primit codul? Retrimite
+          </a>
+        </p>
+      </div>
+      
+      <div class="links" id="linksSection">
+        Ai deja cont? <a href="login.html">Conectează-te</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let registeredEmail = '';
+    let registeredUsername = '';
+    let registeredPassword = '';
+    
+    // Selectare plan
+    function selectPlan(plan) {
+      document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      document.querySelector(`.plan-card[data-plan="${plan}"]`).classList.add('selected');
+      document.getElementById('selectedPlan').value = plan;
+    }
+    
+    // Preselectează plan din URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const planFromUrl = urlParams.get('plan');
+    if (planFromUrl && ['starter', 'pro', 'enterprise'].includes(planFromUrl)) {
+      selectPlan(planFromUrl);
+    }
+    
+    // Submit form
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const form = e.target;
+      const alert = document.getElementById('alert');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      const firstName = form.firstName.value.trim();
+      const lastName = form.lastName.value.trim();
+      const email = form.email.value.trim();
+      const password = form.password.value;
+      const confirmPassword = form.confirmPassword.value;
+      const plan = form.plan.value;
+      
+      // Validare
+      if (password !== confirmPassword) {
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Parolele nu coincid';
+        alert.style.display = 'block';
+        return;
+      }
+      
+      if (password.length < 8) {
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Parola trebuie să aibă minim 8 caractere';
+        alert.style.display = 'block';
+        return;
+      }
+      
+      // Username generat din nume.prenume
+      const username = (firstName + '.' + lastName).toLowerCase().replace(/[^a-z0-9.]/g, '');
+      
+      // Salvează pentru verificare ulterioară (lowercase pentru consistență)
+      registeredEmail = email.toLowerCase();
+      registeredUsername = username;
+      registeredPassword = password;
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Se procesează...';
+      
+      try {
+        const res = await fetch('/api/demo-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            username: username,
+            firstName: firstName,
+            lastName: lastName,
+            email: email, 
+            password: password,
+            plan: plan
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.requiresVerification) {
+          // Arată formularul de verificare
+          document.getElementById('signupForm').style.display = 'none';
+          document.getElementById('verifyForm').style.display = 'block';
+          document.getElementById('linksSection').style.display = 'none';
+          
+          alert.className = 'alert alert-success';
+          alert.innerHTML = '✅ Cont creat!<br>Am trimis un cod de verificare pe <strong>' + email + '</strong>';
+          alert.style.display = 'block';
+          
+          // Focusează pe câmpul de cod
+          setTimeout(() => {
+            document.getElementById('verificationCode').focus();
+          }, 100);
+          
+        } else if (res.ok) {
+          // Fallback - login direct (nu ar trebui să ajungă aici)
+          window.location.href = 'login.html';
+        } else if (data.emailExists) {
+          // Email already exists - show banner with login link
+          alert.className = 'alert alert-error';
+          alert.innerHTML = `
+            <strong>${data.error}</strong><br>
+            ${data.message}<br>
+            <a href="login.html" style="color: #fff; text-decoration: underline; font-weight: bold;">→ Mergi la Login</a>
+          `;
+          alert.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🚀 Începe Demo Gratuit';
+        } else {
+          alert.className = 'alert alert-error';
+          alert.textContent = data.error || 'Eroare la crearea contului';
+          alert.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🚀 Începe Demo Gratuit';
+        }
+      } catch (e) {
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Eroare de conexiune';
+        alert.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🚀 Începe Demo Gratuit';
+      }
+    });
+    
+    // Verificare cod
+    async function verifyCode() {
+      const code = document.getElementById('verificationCode').value.trim();
+      const alert = document.getElementById('alert');
+      
+      if (code.length !== 6) {
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Introdu codul de 6 cifre';
+        alert.style.display = 'block';
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/verify-email-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: registeredEmail, code: code })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert.className = 'alert alert-success';
+          alert.textContent = '✅ ' + data.message;
+          alert.style.display = 'block';
+          
+          // Backend a setat sesiunea automat, doar redirect
+          setTimeout(() => {
+            window.location.href = data.redirectTo || 'index.html';
+          }, 1500);
+        } else {
+          alert.className = 'alert alert-error';
+          alert.textContent = data.error || 'Cod invalid';
+          alert.style.display = 'block';
+        }
+      } catch (e) {
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Eroare de conexiune';
+        alert.style.display = 'block';
+      }
+    }
+    
+    // Retrimite cod - apelează API-ul
+    async function resendCode() {
+      const alert = document.getElementById('alert');
+      alert.className = 'alert alert-info';
+      alert.textContent = 'Se retrimite codul...';
+      alert.style.display = 'block';
+      
+      try {
+        const res = await fetch('/api/resend-verification-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: registeredEmail })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          alert.className = 'alert alert-success';
+          alert.textContent = '✅ ' + data.message;
+        } else {
+          alert.className = 'alert alert-error';
+          alert.textContent = data.error || 'Eroare la retrimitere';
+        }
+      } catch (e) {
+        alert.className = 'alert alert-error';
+        alert.textContent = 'Eroare de conexiune';
+      }
+      alert.style.display = 'block';
+    }
+    
+    // Enter key în câmpul de cod
+    document.getElementById('verificationCode').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        verifyCode();
+      }
+    });
+  </script>
+  
+  <footer style="text-align: center; padding: 2rem; margin-top: 3rem; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 0.85rem;">
+    <p style="margin-bottom: 0.5rem;">© 2026 OpenBill. Toate drepturile rezervate.</p>
+    <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;">
+      <a href="termeni-si-conditii.html" style="color: rgba(255,255,255,0.6); text-decoration: none;">Termeni și Condiții</a>
+      <a href="politica-confidentialitate.html" style="color: rgba(255,255,255,0.6); text-decoration: none;">Politica de Confidențialitate</a>
+    </div>
+  </footer>
+</body>
+</html>

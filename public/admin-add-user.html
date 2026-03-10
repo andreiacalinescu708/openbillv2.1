@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaugă Utilizator - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .btn-back {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .form-group small {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .alert.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    
+    .alert.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    
+    .alert.warning {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid var(--warning);
+      color: var(--warning);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .stat-box {
+      background: var(--bg-input);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👤 Adaugă Utilizator</h1>
+      <a href="index.html" class="btn-back">← Înapoi</a>
+    </div>
+    
+    <div id="alert"></div>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-value" id="currentUsers">-</div>
+        <div class="stat-label">Utilizatori actuali</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="maxUsers">-</div>
+        <div class="stat-label">Limită plan</div>
+      </div>
+    </div>
+    
+    <div class="info-box">
+      <strong>💡 Cum funcționează:</strong> Introdu email-ul noului utilizator și selectează rolul. 
+      Acesta va primi un email cu un link pentru a-și crea contul. Va fi asociat automat companiei tale.
+    </div>
+    
+    <div class="card">
+      <div class="card-title">📧 Trimite Invitație</div>
+      
+      <form id="inviteForm">
+        <div class="form-group">
+          <label for="email">Email utilizator *</label>
+          <input type="email" id="email" name="email" required placeholder="utilizator@companie.ro">
+          <small>Utilizatorul va primi un email cu link de înregistrare la această adresă.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="role">Rol *</label>
+          <select id="role" name="role" required>
+            <option value="user">Utilizator (acces standard)</option>
+            <option value="admin">Administrator (acces complet)</option>
+          </select>
+          <small>Administratorii pot gestiona utilizatori și setări. Utilizatorii au acces doar la funcționalități.</small>
+        </div>
+        
+        <button type="submit" class="btn">📨 Trimite Invitație</button>
+      </form>
+    </div>
+    
+    <div class="card" id="invitationsList" style="display: none;">
+      <div class="card-title">📋 Invitații Active</div>
+      <div id="invitationsContent">
+        <!-- Se populează din JS -->
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let companyId = null;
+    let maxUsers = 0;
+    let currentUsersCount = 0;
+    
+    // Verifică autentificare și rol
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        
+        if (!data.loggedIn) {
+          window.location.href = '/login.html';
+          return false;
+        }
+        
+        if (data.user.role !== 'admin' && data.user.role !== 'superadmin') {
+          showAlert('Acces interzis! Doar administratorii pot adăuga utilizatori.', 'error');
+          setTimeout(() => window.location.href = '/index.html', 2000);
+          return false;
+        }
+        
+        companyId = data.user.company_id;
+        return true;
+      } catch (err) {
+        console.error('Eroare:', err);
+        window.location.href = '/login.html';
+        return false;
+      }
+    }
+    
+    // Încarcă statistici utilizatori
+    async function loadStats() {
+      try {
+        // Companie info
+        const companyRes = await fetch('/api/companies');
+        const companies = await companyRes.json();
+        const company = companies.find(c => c.id === companyId);
+        
+        if (company) {
+          maxUsers = company.max_users;
+          document.getElementById('maxUsers').textContent = maxUsers;
+        }
+        
+        // Utilizatori actuali
+        // Notă: ar trebui să avem un endpoint pentru asta, dar folosim companies ca proxy
+        const usersRes = await fetch('/api/users');
+        if (usersRes.ok) {
+          const users = await usersRes.json();
+          currentUsersCount = users.filter(u => u.company_id === companyId).length;
+          document.getElementById('currentUsers').textContent = currentUsersCount;
+        }
+        
+        // Verificăm dacă am atins limita
+        if (currentUsersCount >= maxUsers) {
+          document.getElementById('inviteForm').style.display = 'none';
+          showAlert('Ai atins limita maximă de utilizatori pentru planul tău. Fă upgrade pentru a adăuga mai mulți.', 'warning');
+        }
+        
+      } catch (err) {
+        console.error('Eroare încărcare statistici:', err);
+      }
+    }
+    
+    // Trimite invitație
+    document.getElementById('inviteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const role = document.getElementById('role').value;
+      
+      if (currentUsersCount >= maxUsers) {
+        showAlert('Ai atins limita maximă de utilizatori.', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/invite-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          showAlert('Invitație trimisă cu succes! Utilizatorul va primi un email.', 'success');
+          document.getElementById('inviteForm').reset();
+          loadStats(); // Reîncărcăm stats
+        } else if (data.emailExists) {
+          showAlert(data.error + ' ' + data.message, 'error');
+        } else {
+          showAlert(data.error || data.message || 'Eroare la trimiterea invitației.', 'error');
+        }
+        
+      } catch (err) {
+        console.error('Eroare:', err);
+        showAlert('Eroare de conexiune. Încearcă din nou.', 'error');
+      }
+    });
+    
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = 'alert ' + type;
+      setTimeout(() => alert.className = 'alert hidden', 5000);
+    }
+    
+    // Inițializare
+    (async function init() {
+      if (await checkAuth()) {
+        await loadStats();
+      }
+    })();
+  </script>
+</body>
+</html>

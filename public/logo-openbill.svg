@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <!-- Document icon -->
+  <rect x="5" y="10" width="28" height="30" rx="3" fill="#2563EB" stroke="#1D4ED8" stroke-width="2"/>
+  <line x1="10" y1="18" x2="23" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="10" y1="25" x2="20" y2="25" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="10" y1="32" x2="18" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- OpenBill Text -->
+  <text x="40" y="32" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#1F2937">
+    Open<tspan fill="#2563EB">Bill</tspan>
+  </text>
+</svg>

@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Istoric Comenzi - Fast Medical Distribution</title>
+  <title>Istoric Comenzi</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="global.css" />
   <style>
     .page-header {
@@ -255,18 +256,19 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-brand">
-        <div class="navbar-brand-icon">⚕️</div>
-        <span>FMD</span>
+        <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>Pagina Principala</span>
       </a>
-      <div class="navbar-actions"><div id="userBar"></div>
-        <a href="client.html" class="btn btn-ghost btn-sm">← Înapoi la client</a>
+      <div class="navbar-actions">
+        <div id="userBar"></div>
+        <a href="client.html" class="btn btn-ghost btn-sm">&larr; Înapoi la client</a>
       </div>
     </div>
   </nav>
 
   <main class="container">
     <div class="page-header">
-      <a href="client.html" class="back-link">← Înapoi la pagina client</a>
+      <a href="client.html" class="back-link">&larr; Înapoi la pagina client</a>
       
       <div class="client-info">
         <div class="client-name" id="clientName">Se încarcă...</div>
@@ -311,7 +313,7 @@
       if (!client) {
         contentArea.innerHTML = `
           <div class="empty-state">
-            <div class="empty-icon">⚠️</div>
+            <div class="empty-icon">âš ï¸</div>
             <div class="empty-title">Niciun client selectat</div>
             <p>Selectați un client pentru a vedea istoricul comenzilor.</p>
             <a href="adauga_comanda.html" class="btn btn-primary" style="margin-top: var(--space-6);">
@@ -359,7 +361,7 @@
         if (clientOrders.length === 0) {
           contentArea.innerHTML = `
             <div class="empty-state">
-              <div class="empty-icon">📭</div>
+              <div class="empty-icon">&#128237;</div>
               <div class="empty-title">Nu există comenzi</div>
               <p>Acest client nu are nicio comandă înregistrată în sistem.</p>
               <a href="comanda.html" class="btn btn-primary" style="margin-top: var(--space-6);">
@@ -413,11 +415,11 @@
                 <div class="item-info">
                   <div class="item-name">${escapeHtml(item.name)}</div>
                   <div class="item-details">
-                    ${item.qty || 0} buc × ${price.toFixed(2)} RON = ${itemTotal.toFixed(2)} RON
+                    ${item.qty || 0} buc &times; ${price.toFixed(2)} RON = ${itemTotal.toFixed(2)} RON
                     ${item.gtin ? `<span class="badge">GTIN: ${item.gtin}</span>` : ''}
                   </div>
                 </div>
-                <div class="item-qty">×${item.qty || 0}</div>
+                <div class="item-qty">&times;${item.qty || 0}</div>
               </div>
             `;
           }).join("");
@@ -453,7 +455,7 @@
         console.error("Eroare:", err);
         contentArea.innerHTML = `
           <div class="empty-state">
-            <div class="empty-icon">❌</div>
+            <div class="empty-icon">&#10060;</div>
             <div class="empty-title">Eroare la încărcare</div>
             <p>Nu s-a putut încărca istoricul comenzilor. Încercați din nou.</p>
             <button onclick="location.reload()" class="btn btn-primary" style="margin-top: var(--space-6);">

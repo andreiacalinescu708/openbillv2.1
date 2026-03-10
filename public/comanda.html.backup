@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+ <title>Comanda Noua - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+ <link rel="stylesheet" href="global.css" />
+ <style>
+
+ 
+ .order-layout {
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: var(--space-6);
+ max-width: 1200px;
+ margin: 0 auto;
+ }
+
+ /* Header Client */
+ .client-banner {
+ background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 197, 94, 0.1));
+ border: 1px solid rgba(59, 130, 246, 0.2);
+ border-radius: var(--radius-xl);
+ padding: var(--space-5);
+ margin-bottom: var(--space-6);
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ flex-wrap: wrap;
+ gap: var(--space-4);
+ }
+
+ .client-info h2 {
+ margin: 0 0 var(--space-2) 0;
+ font-size: 1.375rem;
+ }
+
+ .client-info p {
+ margin: 0;
+ color: var(--text-muted);
+ font-size: 0.9375rem;
+ }
+
+ .order-badge {
+ background: var(--primary-600);
+ color: white;
+ padding: var(--space-2) var(--space-4);
+ border-radius: var(--radius-full);
+ font-size: 0.8125rem;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 0.03em;
+ }
+
+ /* Search */
+ .search-section {
+ margin-bottom: var(--space-6);
+ }
+
+ .search-box {
+ position: relative;
+ }
+
+ .search-box input {
+ padding-left: var(--space-12);
+ font-size: 1rem;
+ height: 56px;
+ }
+
+ .search-icon {
+ position: absolute;
+ left: var(--space-4);
+ top: 50%;
+ transform: translateY(-50%);
+ font-size: 1.5rem;
+ color: var(--text-muted);
+ }
+
+ .search-results {
+ position: absolute;
+ top: calc(100% + var(--space-2));
+ left: 0;
+ right: 0;
+ background: var(--bg-card);
+ border: 1px solid var(--border-color);
+ border-radius: var(--radius-xl);
+ max-height: 400px;
+ overflow-y: auto;
+ z-index: 50;
+ box-shadow: var(--shadow-xl);
+ display: none;
+ }
+
+ .search-results.show {
+ display: block;
+ }
+
+ .search-result-item {
+ padding: var(--space-4) var(--space-5);
+ border-bottom: 1px solid var(--border-color);
+ cursor: pointer;
+ transition: background var(--transition-fast);
+ }
+
+ .search-result-item:hover {
+ background: rgba(59, 130, 246, 0.1);
+ }
+
+ .search-result-name {
+ font-weight: 600;
+ margin-bottom: var(--space-1);
+ }
+
+ .search-result-category {
+ font-size: 0.875rem;
+ color: var(--text-muted);
+ }
+
+ /* Categories */
+ .categories-container {
+ background: var(--bg-card);
+ border: 1px solid var(--border-color);
+ border-radius: var(--radius-xl);
+ padding: var(--space-5);
+ }
+
+ .category-section {
+ margin-bottom: var(--space-4);
+ }
+
+ .category-section:last-child {
+ margin-bottom: 0;
+ }
+
+ .category-header {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ padding: var(--space-4);
+ background: var(--bg-tertiary);
+ border-radius: var(--radius-lg);
+ cursor: pointer;
+ font-weight: 700;
+ font-size: 1rem;
+ transition: all var(--transition-fast);
+ border: 1px solid transparent;
+ }
+
+ .category-header:hover {
+ border-color: var(--border-color);
+ }
+
+ .category-header.expanded {
+ border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+ border-bottom-color: var(--border-color);
+ }
+
+ .category-toggle {
+ transition: transform var(--transition-fast);
+ color: var(--text-muted);
+ }
+
+ .category-header.expanded .category-toggle {
+ transform: rotate(180deg);
+ }
+
+ .category-products {
+ display: none;
+ padding: var(--space-3);
+ background: rgba(148, 163, 184, 0.05);
+ border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+ border: 1px solid var(--border-color);
+ border-top: none;
+ }
+
+ .category-header.expanded + .category-products {
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--space-2);
+ }
+
+ .product-btn {
+ padding: var(--space-3) var(--space-4);
+ background: var(--bg-tertiary);
+ border: 1px solid var(--border-color);
+ border-radius: var(--radius-md);
+ cursor: pointer;
+ transition: all var(--transition-fast);
+ font-size: 0.9375rem;
+ color: var(--text-primary);
+ font-weight: 500;
+ }
+
+ .product-btn:hover {
+ background: var(--primary-600);
+ border-color: var(--primary-600);
+ color: white;
+ }
+
+ /* Cart Panel */
+ .cart-panel {
+ background: var(--bg-card);
+ border: 1px solid var(--border-color);
+ border-radius: var(--radius-xl);
+ padding: var(--space-6);
+ position: sticky;
+ top: 100px;
+ box-shadow: var(--shadow-lg);
+ }
+
+ .cart-header {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ margin-bottom: var(--space-5);
+ padding-bottom: var(--space-4);
+ border-bottom: 1px solid var(--border-color);
+ }
+
+ .cart-title {
+ display: flex;
+ align-items: center;
+ gap: var(--space-3);
+ font-size: 1.25rem;
+ font-weight: 700;
+ }
+
+ .cart-count {
+ background: var(--primary-600);
+ color: white;
+ width: 28px;
+ height: 28px;
+ border-radius: var(--radius-full);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 0.875rem;
+ font-weight: 700;
+ }
+
+ .cart-items {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-3);
+ max-height: 400px;
+ overflow-y: auto;
+ margin-bottom: var(--space-5);
+ }
+
+ .cart-item {
+ background: var(--bg-tertiary);
+ border: 1px solid var(--border-color);
+ border-radius: var(--radius-lg);
+ padding: var(--space-4);
+ }
+
+ .cart-item-header {
+ display: flex;
+ justify-content: space-between;
+ align-items: flex-start;
+ margin-bottom: var(--space-3);
+ }
+
+ .cart-item-name {
+ font-weight: 600;
+ font-size: 0.9375rem;
+ flex: 1;
+ padding-right: var(--space-3);
+ }
+
+ .cart-item-remove {
+ background: rgba(239, 68, 68, 0.1);
+ border: none;
+ color: var(--danger-500);
+ width: 32px;
+ height: 32px;
+ border-radius: var(--radius-md);
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 1.125rem;
+ transition: all var(--transition-fast);
+ }
+
+ .cart-item-remove:hover {
+ background: var(--danger-500);
+ color: white;
+ }
+
+ .cart-item-details {
+ font-size: 0.875rem;
+ color: var(--text-muted);
+ margin-bottom: var(--space-3);
+ }
+
+ .cart-item-price {
+ color: var(--primary-400);
+ font-weight: 600;
+ }
+
+ .stock-warning {
+ color: var(--danger-500);
+ font-size: 0.8125rem;
+ display: flex;
+ align-items: center;
+ gap: var(--space-1);
+ margin-top: var(--space-1);
+ }
+
+ .stock-ok {
+ color: var(--success-400);
+ font-size: 0.8125rem;
+ display: flex;
+ align-items: center;
+ gap: var(--space-1);
+ margin-top: var(--space-1);
+ }
+
+ .cart-item-controls {
+ display: flex;
+ align-items: center;
+ gap: var(--space-3);
+ }
+
+ .qty-btn {
+ width: 36px;
+ height: 36px;
+ border-radius: var(--radius-md);
+ border: 1px solid var(--border-color);
+ background: var(--bg-input);
+ color: var(--text-primary);
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 1.25rem;
+ font-weight: 600;
+ transition: all var(--transition-fast);
+ }
+
+ .qty-btn:hover {
+ background: var(--primary-600);
+ border-color: var(--primary-600);
+ color: white;
+ }
+
+ .qty-input {
+ width: 60px;
+ height: 36px;
+ text-align: center;
+ border: 1px solid var(--border-color);
+ border-radius: var(--radius-md);
+ background: var(--bg-input);
+ color: var(--text-primary);
+ font-weight: 600;
+ font-size: 1rem;
+ }
+
+ .cart-empty {
+ text-align: center;
+ padding: var(--space-10) var(--space-4);
+ color: var(--text-muted);
+ }
+
+ .cart-empty-icon {
+ font-size: 4rem;
+ margin-bottom: var(--space-4);
+ opacity: 0.3;
+ }
+
+ .cart-footer {
+ padding-top: var(--space-5);
+ border-top: 2px solid var(--border-color);
+ }
+
+ .cart-total-row {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ margin-bottom: var(--space-5);
+ }
+
+ .cart-total-label {
+ font-size: 1.125rem;
+ font-weight: 600;
+ }
+
+ .cart-total-value {
+ font-size: 1.5rem;
+ font-weight: 800;
+ color: var(--primary-400);
+ }
+
+ .btn-send-order {
+ width: 100%;
+ padding: var(--space-5);
+ background: linear-gradient(135deg, var(--success-600), var(--success-700));
+ color: white;
+ border: none;
+ border-radius: var(--radius-lg);
+ font-size: 1.125rem;
+ font-weight: 700;
+ cursor: pointer;
+ transition: all var(--transition-fast);
+ box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+ }
+
+ .btn-send-order:hover:not(:disabled) {
+ transform: translateY(-2px);
+ box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
+ }
+
+ .btn-send-order:disabled {
+ opacity: 0.5;
+ cursor: not-allowed;
+ }
+
+ /* Verify Order Button in Sticky Bar */
+ .btn-verify-order {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ background: linear-gradient(135deg, var(--primary-600), var(--primary-500));
+ color: white;
+ border: none;
+ padding: 12px 20px;
+ border-radius: 14px;
+ font-weight: 700;
+ font-size: 1rem;
+ cursor: pointer;
+ transition: all 0.2s ease;
+ box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+ white-space: nowrap;
+ min-height: 48px;
+ }
+
+ .btn-verify-order:hover {
+ transform: translateY(-2px);
+ box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+ }
+
+ .btn-verify-order:active {
+ transform: translateY(0);
+ }
+
+ .btn-verify-order span:first-child {
+ font-size: 1.4rem;
+ }
+
+ .verify-count {
+ background: rgba(255, 255, 255, 0.25);
+ color: white;
+ padding: 4px 10px;
+ border-radius: 20px;
+ font-size: 0.875rem;
+ font-weight: 700;
+ min-width: 28px;
+ text-align: center;
+ border: 2px solid rgba(255, 255, 255, 0.3);
+ }
+
+ /* Mobile - larger button */
+ @media (max-width: 640px) {
+ .btn-verify-order {
+ padding: 14px 18px;
+ font-size: 0.95rem;
+ border-radius: 12px;
+ min-height: 52px;
+ }
+
+ .btn-verify-order span:first-child {
+ font-size: 1.5rem;
+ }
+
+ .verify-count {
+ font-size: 0.9rem;
+ padding: 5px 12px;
+ min-width: 32px;
+ }
+ }
+
+ /* Cart Modal - Mobile Optimized */
+ .cart-modal-content {
+ max-width: 600px;
+ width: 95%;
+ max-height: 90vh;
+ display: flex;
+ flex-direction: column;
+ border-radius: 20px;
+ }
+
+ .cart-modal-content .modal-header {
+ padding: 20px 24px;
+ background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(34, 197, 94, 0.05));
+ border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+ }
+
+ .cart-modal-content .modal-header h3 {
+ font-size: 1.5rem;
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ }
+
+ .cart-modal-content .modal-body {
+ flex: 1;
+ overflow-y: auto;
+ padding: 0;
+ }
+
+ .cart-modal-content .cart-panel {
+ height: 100%;
+ display: flex;
+ flex-direction: column;
+ }
+
+ .cart-modal-content .cart-items {
+ flex: 1;
+ overflow-y: auto;
+ padding: 16px;
+ max-height: calc(90vh - 200px);
+ }
+
+ .cart-modal-content .cart-item {
+ padding: 16px;
+ margin-bottom: 12px;
+ background: rgba(30, 41, 59, 0.8);
+ border: 1px solid rgba(148, 163, 184, 0.2);
+ border-radius: 12px;
+ }
+
+ .cart-modal-content .cart-item-name {
+ font-size: 1.1rem;
+ font-weight: 600;
+ }
+
+ .cart-modal-content .cart-item-details {
+ font-size: 0.95rem;
+ margin-top: 8px;
+ }
+
+ .cart-modal-content .cart-item-controls {
+ margin-top: 12px;
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ }
+
+ .cart-modal-content .qty-btn {
+ width: 40px;
+ height: 40px;
+ font-size: 1.3rem;
+ border-radius: 10px;
+ }
+
+ .cart-modal-content .qty-input {
+ width: 70px;
+ height: 40px;
+ font-size: 1.1rem;
+ font-weight: 600;
+ }
+
+ .cart-modal-content .cart-footer {
+ padding: 20px 24px;
+ background: rgba(15, 23, 42, 0.95);
+ border-top: 1px solid rgba(148, 163, 184, 0.2);
+ }
+
+ .cart-modal-content .cart-total-row {
+ margin-bottom: 16px;
+ font-size: 1.2rem;
+ }
+
+ .cart-modal-content .btn-send-order {
+ width: 100%;
+ padding: 18px 24px;
+ font-size: 1.15rem;
+ font-weight: 700;
+ border-radius: 14px;
+ margin-top: 8px;
+ }
+
+ /* Mobile optimizations */
+ @media (max-width: 640px) {
+ .cart-modal-content {
+ width: 100%;
+ max-width: 100%;
+ max-height: 95vh;
+ border-radius: 20px 20px 0 0;
+ margin: 0;
+ position: fixed;
+ bottom: 0;
+ left: 0;
+ right: 0;
+ }
+
+ .cart-modal-content .modal-header h3 {
+ font-size: 1.3rem;
+ }
+
+ .cart-modal-content .cart-items {
+ max-height: calc(95vh - 220px);
+ padding: 12px;
+ }
+
+ .cart-modal-content .cart-item {
+ padding: 14px;
+ }
+
+ .cart-modal-content .cart-item-name {
+ font-size: 1rem;
+ }
+
+ .cart-modal-content .qty-btn {
+ width: 44px;
+ height: 44px;
+ font-size: 1.4rem;
+ }
+
+ .cart-modal-content .qty-input {
+ width: 60px;
+ height: 44px;
+ font-size: 1.2rem;
+ }
+
+ .cart-modal-content .btn-send-order {
+ padding: 20px;
+ font-size: 1.1rem;
+ min-height: 56px;
+ }
+ }
+
+ /* Modal styles */
+.modal-overlay {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ background: rgba(0, 0, 0, 0.7);
+ backdrop-filter: blur(4px);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ z-index: 1000;
+ padding: 16px;
+}
+
+.modal-content {
+ background: var(--bg-card, #1e293b);
+ border: 1px solid var(--border-color, #334155);
+ border-radius: var(--radius-xl, 16px);
+ width: 100%;
+ max-width: 420px;
+ box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+ animation: modalSlide 0.3s ease;
+ overflow: hidden;
+}
+
+@keyframes modalSlide {
+ from { transform: translateY(50px); opacity: 0; }
+ to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+ background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+ color: white;
+ padding: 20px;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+}
+
+.modal-header h3 {
+ margin: 0;
+ font-size: 18px;
+ font-weight: 600;
+ padding-right: 20px;
+}
+
+.modal-close {
+ background: rgba(255, 255, 255, 0.2);
+ border: none;
+ color: white;
+ width: 32px;
+ height: 32px;
+ border-radius: 50%;
+ font-size: 24px;
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ transition: all 0.2s;
+ line-height: 1;
+}
+
+.modal-close:hover {
+ background: rgba(255, 255, 255, 0.3);
+}
+
+.modal-body {
+ padding: 24px;
+}
+
+.modal-gtin {
+ color: var(--text-muted, #94a3b8);
+ font-size: 13px;
+ margin-bottom: 16px;
+ font-family: monospace;
+ background: var(--bg-tertiary, #0f172a);
+ padding: 8px 12px;
+ border-radius: 6px;
+ display: inline-block;
+}
+
+.price-display {
+ background: rgba(245, 158, 11, 0.1);
+ border: 2px solid rgba(245, 158, 11, 0.3);
+ border-radius: 12px;
+ padding: 16px;
+ margin-bottom: 20px;
+}
+
+.price-row {
+ display: flex;
+ justify-content: space-between;
+ margin-bottom: 8px;
+ font-size: 14px;
+ color: var(--text-primary, #f1f5f9);
+}
+
+.price-row.total {
+ border-top: 2px solid rgba(245, 158, 11, 0.3);
+ padding-top: 8px;
+ margin-top: 8px;
+ font-weight: 600;
+ font-size: 16px;
+}
+
+.price-value.with-vat {
+ color: #f59e0b;
+ font-size: 18px;
+ font-weight: 700;
+}
+
+.qty-selector {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 12px;
+}
+
+.qty-btn {
+ width: 44px;
+ height: 44px;
+ border: 2px solid var(--border-color, #334155);
+ background: var(--bg-tertiary, #0f172a);
+ border-radius: 10px;
+ font-size: 20px;
+ font-weight: 600;
+ cursor: pointer;
+ transition: all 0.2s;
+ color: var(--text-primary, #f1f5f9);
+}
+
+.qty-btn:hover {
+ border-color: #f59e0b;
+ color: #f59e0b;
+}
+
+#modalQty {
+ width: 80px;
+ height: 44px;
+ text-align: center;
+ border: 2px solid var(--border-color, #334155);
+ border-radius: 10px;
+ font-size: 18px;
+ font-weight: 600;
+ color: var(--text-primary, #f1f5f9);
+ background: var(--bg-input, #0f172a);
+}
+
+#modalQty:focus {
+ outline: none;
+ border-color: #f59e0b;
+}
+
+.modal-footer {
+ padding: 20px 24px;
+ background: var(--bg-tertiary, #0f172a);
+ display: flex;
+ gap: 12px;
+ border-top: 1px solid var(--border-color, #334155);
+}
+
+.btn-secondary, .btn-primary {
+ flex: 1;
+ padding: 12px 20px;
+ border-radius: 10px;
+ font-weight: 600;
+ cursor: pointer;
+ transition: all 0.2s;
+ border: none;
+ font-size: 15px;
+}
+
+.btn-secondary {
+ background: var(--bg-input, #0f172a);
+ color: var(--text-muted, #94a3b8);
+ border: 2px solid var(--border-color, #334155);
+}
+
+.btn-secondary:hover {
+ border-color: #475569;
+ color: #f1f5f9;
+}
+
+.btn-primary {
+ background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+ color: white;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 8px;
+ box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-primary:hover {
+ transform: translateY(-1px);
+ box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+/* Toast notification */
+@keyframes slideIn {
+ from { transform: translateX(100%); opacity: 0; }
+ to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 640px) {
+ .modal-content {
+ max-width: 100%;
+ border-radius: 20px 20px 0 0;
+ position: fixed;
+ bottom: 0;
+ left: 0;
+ right: 0;
+ animation: slideUp 0.3s ease;
+ }
+ 
+ @keyframes slideUp {
+ from { transform: translateY(100%); }
+ to { transform: translateY(0); }
+ }
+ 
+ .modal-overlay {
+ align-items: flex-end;
+ padding: 0;
+ background: rgba(0, 0, 0, 0.5);
+ }
+}
+
+ /* STICKY TOTALS BAR - adauga ASTA */
+ .sticky-totals-bar {
+ position: sticky;
+ top: 70px; /* sub navbar */
+ z-index: 998;
+ background: linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+ backdrop-filter: blur(10px);
+ border-bottom: 2px solid var(--primary-600, #f59e0b);
+ padding: 10px 20px;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ gap: 30px;
+ font-size: 0.875rem;
+ box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+ margin-bottom: 20px;
+ border-radius: 0 0 12px 12px;
+ }
+
+ .totals-item {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 2px;
+ min-width: 100px;
+ }
+
+ .totals-label {
+ color: #94a3b8;
+ font-size: 0.6875rem;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ font-weight: 600;
+ }
+
+ .totals-value {
+ color: #f1f5f9;
+ font-weight: 800;
+ font-size: 1rem;
+ font-family: 'Segoe UI', monospace;
+ }
+
+ .totals-item.highlight .totals-value {
+ color: #fbbf24;
+ font-size: 1.125rem;
+ text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+ }
+
+ .totals-divider {
+ width: 1px;
+ height: 28px;
+ background: rgba(148, 163, 184, 0.3);
+ }
+
+ @media (max-width: 640px) {
+ .sticky-totals-bar {
+ gap: 15px;
+ padding: 8px 10px;
+ top: 60px;
+ }
+ .totals-item {
+ min-width: auto;
+ flex: 1;
+ }
+ .totals-label {
+ font-size: 0.625rem;
+ }
+ .totals-value {
+ font-size: 0.875rem;
+ }
+ .totals-divider {
+ display: none;
+ }
+ }
+ </style>
+</head>
+<body>
+ <nav class="navbar">
+ <div class="navbar-inner">
+ <a href="index.html" class="navbar-brand">
+ <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+ <span>Pagina Principala</span>
+ </a>
+ <div class="navbar-actions">
+ <div id="userBar"></div>
+ <a href="client.html" class="btn btn-ghost btn-sm">&larr; Inapoi la client</a>
+ </div>
+ </div>
+ </nav>
+
+<!-- STICKY BAR -->
+<div class="sticky-totals-bar">
+ <div class="totals-item">
+ <span class="totals-label">TP (Produse)</span>
+ <span class="totals-value" id="stickyTotalProducts">0 buc</span>
+ </div>
+ <div class="totals-divider"></div>
+ <div class="totals-item">
+ <span class="totals-label">TfT (Fara TVA)</span>
+ <span class="totals-value" id="stickyTotalNoVat">0.00 RON</span>
+ </div>
+ <div class="totals-divider"></div>
+ <div class="totals-item highlight">
+ <span class="totals-label">Tb (Cu TVA 21%)</span>
+ <span class="totals-value" id="stickyTotalWithVat">0.00 RON</span>
+ </div>
+ <div class="totals-divider"></div>
+ <button class="btn-verify-order" onclick="openCartModal()" id="btnVerifyOrder" style="display: none;">
+   <span>&#128722;</span>
+   <span>Verifica Comanda</span>
+   <span class="verify-count" id="verifyCount">0</span>
+ </button>
+</div>
+
+ <main class="container">
+ <!-- Client Banner -->
+ <div class="client-banner">
+ <div class="client-info">
+ <h2 id="clientTitle">Client: -</h2>
+ <p id="clientMeta">Selecteaza un client pentru a incepe comanda</p>
+ </div>
+ <span class="order-badge">Comanda Noua</span>
+ </div>
+
+ <div class="order-layout">
+ <!-- Left: Products -->
+ <div>
+ <!-- Search -->
+ <div class="search-section">
+ <div class="search-box">
+ <span class="search-icon"></span>
+ <input type="text" id="searchProduct" class="form-input" placeholder="Cauta produs dupa nume..." autocomplete="off" />
+ <div class="search-results" id="productSearchResults"></div>
+ </div>
+ </div>
+
+ <!-- Categories -->
+ <div class="categories-container" id="productsTree">
+ <!-- Populat din JS -->
+ </div>
+ </div>
+
+ <!-- Hidden Cart Box (for JS compatibility) -->
+ <div style="display: none;">
+   <div id="cartBox"></div>
+   <div id="cartFooter"></div>
+   <span id="cartTotal">0.00 RON</span>
+   <span id="cartCount">0</span>
+   <button id="btnSendOrder"></button>
+ </div>
+
+ </div>
+ </main>
+
+ <script src="script.js"></script>
+
+ 
+<!-- Modal Adaugare Produs -->
+<div id="addProductModal" class="modal-overlay" style="display: none;">
+ <div class="modal-content">
+ <div class="modal-header">
+ <h3 id="modalProductName">Nume Produs</h3>
+ <button class="modal-close" onclick="closeProductModal()">&times;</button>
+ </div>
+ 
+ <div class="modal-body">
+ <div class="modal-gtin" id="modalProductGtin">GTIN: -</div>
+
+ <div id="modalStock" style="font-weight: 600; margin: 10px 0; font-size: 1.1rem;">
+ Stoc disponibil: -
+ </div>
+ 
+ 
+ <div class="price-display">
+ <div class="price-row">
+ <span class="price-label">Pret unitar:</span>
+ <span class="price-value" id="modalUnitPrice">0.00 RON / buc</span>
+ </div>
+ <div class="price-row total">
+ <span class="price-label">Total cu TVA:</span>
+ <span class="price-value with-vat" id="modalPriceWithVat">0.00 RON</span>
+ </div>
+ <div class="price-row">
+ <span class="price-label">Fara TVA:</span>
+ <span class="price-value no-vat" id="modalPriceNoVat">0.00 RON</span>
+ </div>
+ </div>
+
+ <div class="qty-selector">
+ <button class="qty-btn" onclick="adjustQty(-1)">&minus;</button>
+ <input 
+ type="number" 
+ id="modalQty" 
+ value="" 
+ min="1" 
+ inputmode="numeric" 
+ pattern="[0-9]*"
+ autocomplete="off"
+ autocorrect="off"
+ autocapitalize="off"
+ placeholder="0"
+ onchange="calculateModalPrices()"
+ style="font-size: 1.5rem; text-align: center; font-weight: 600;"
+ >
+ <button class="qty-btn" onclick="adjustQty(1)">+</button>
+ </div>
+ </div>
+
+ <div class="modal-footer">
+ <button class="btn-secondary" onclick="closeProductModal()">Anuleaza</button>
+ <button class="btn-primary" onclick="confirmAddToCart()">
+ <span>Adauga in cos</span>
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+ <path d="M5 12h14M12 5l7 7-7 7"/>
+ </svg>
+ </button>
+ </div>
+ </div>
+</div>
+
+<!-- Modal Cos Comanda -->
+<div id="cartModal" class="modal-overlay" style="display: none;">
+ <div class="modal-content cart-modal-content">
+ <div class="modal-header">
+ <h3>&#128722; Cos Comanda</h3>
+ <button class="modal-close" onclick="closeCartModal()">&times;</button>
+ </div>
+ 
+ <div class="modal-body" style="padding: 0;">
+ <div class="cart-panel" style="border: none; box-shadow: none;">
+ <div class="cart-items" id="cartBoxModal">
+ <div class="cart-empty">
+ <div class="cart-empty-icon">&#128722;</div>
+ <p>Cosul este gol</p>
+ <p style="font-size: 0.875rem;">Adauga produse din lista</p>
+ </div>
+ </div>
+
+ <div class="cart-footer" id="cartFooterModal" style="display: none;">
+ <div class="cart-total-row">
+ <span class="cart-total-label">Total comanda:</span>
+ <span class="cart-total-value" id="cartTotalModal">0.00 RON</span>
+ </div>
+ <button class="btn-send-order" id="btnSendOrderModal" onclick="submitOrder()">
+ Trimite comanda
+ </button>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<script>
+// ✅ Funcție locală pentru actualizare badge (fallback dacă script.js nu e încărcat)
+function updateCartBadgeLocal() {
+ const btn = document.getElementById('btnViewCurrentOrder');
+ const cartBadge = document.getElementById('cartBadge');
+ if (!btn) return;
+ 
+ const cart = JSON.parse(localStorage.getItem('cart')) || [];
+ const hasItems = cart && cart.length > 0;
+ const totalItems = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+ 
+ btn.style.display = hasItems ? 'flex' : 'none';
+ if (cartBadge) {
+   cartBadge.textContent = totalItems;
+   cartBadge.style.display = hasItems ? 'inline-block' : 'none';
+ }
+}
+
+// Cart Modal Functions
+function openCartModal() {
+ document.getElementById('cartModal').style.display = 'flex';
+ updateCartModal();
+}
+
+function closeCartModal() {
+ document.getElementById('cartModal').style.display = 'none';
+}
+
+// ✅ Actualizează conținutul modalului coș
+function updateCartModal() {
+ const cart = JSON.parse(localStorage.getItem('cart')) || [];
+ const cartBoxModal = document.getElementById('cartBoxModal');
+ const cartFooterModal = document.getElementById('cartFooterModal');
+ const cartTotalModal = document.getElementById('cartTotalModal');
+ 
+ if (!cartBoxModal) return;
+ 
+ if (cart.length === 0) {
+   // Coș gol
+   cartBoxModal.innerHTML = `
+     <div class="cart-empty">
+       <div class="cart-empty-icon">&#128722;</div>
+       <p>Cosul este gol</p>
+       <p style="font-size: 0.875rem;">Adauga produse din lista</p>
+     </div>
+   `;
+   if (cartFooterModal) cartFooterModal.style.display = 'none';
+   
+   // ✅ Închide modalul automat dacă coșul e gol
+   setTimeout(() => {
+     closeCartModal();
+   }, 300);
+   
+   // ✅ Actualizează badge-ul
+   if (typeof updateViewCurrentOrderButton === 'function') {
+     updateViewCurrentOrderButton();
+   } else {
+     updateCartBadgeLocal();
+   }
+   
+   return;
+ }
+ 
+ // Afișează produsele
+ let html = '';
+ let total = 0;
+ let totalItems = 0;
+ 
+ cart.forEach(item => {
+   const itemTotal = item.qty * item.price;
+   total += itemTotal;
+   totalItems += item.qty;
+   
+   html += `
+     <div class="cart-item">
+       <div class="cart-item-info">
+         <div class="cart-item-name">${item.name}</div>
+         <div class="cart-item-price">${item.price.toFixed(2)} RON</div>
+       </div>
+       <div class="cart-item-qty">
+         <button class="qty-btn dec" onclick="updateCartItemQty('${item.id}', -1)">-</button>
+         <span class="qty-value">${item.qty}</span>
+         <button class="qty-btn inc" onclick="updateCartItemQty('${item.id}', 1)">+</button>
+       </div>
+       <div class="cart-item-total">${itemTotal.toFixed(2)} RON</div>
+       <button class="cart-item-remove" onclick="removeCartItem('${item.id}')">&#10005;</button>
+     </div>
+   `;
+ });
+ 
+ cartBoxModal.innerHTML = html;
+ 
+ if (cartTotalModal) {
+   cartTotalModal.textContent = `${total.toFixed(2)} RON`;
+ }
+ if (cartFooterModal) {
+   cartFooterModal.style.display = 'block';
+ }
+ 
+ // ✅ Actualizează badge-ul din bara de sus
+ if (typeof updateViewCurrentOrderButton === 'function') {
+   updateViewCurrentOrderButton();
+ } else {
+   updateCartBadgeLocal();
+ }
+}
+
+// ✅ Actualizează cantitatea unui produs în coș
+function updateCartItemQty(itemId, delta) {
+ console.log('updateCartItemQty called:', itemId, delta);
+ try {
+   let cart = JSON.parse(localStorage.getItem('cart')) || [];
+   const item = cart.find(x => x.id === itemId);
+   
+   if (item) {
+     item.qty += delta;
+     if (item.qty <= 0) {
+       cart = cart.filter(x => x.id !== itemId);
+     }
+     localStorage.setItem('cart', JSON.stringify(cart));
+     
+     // ✅ Actualizează direct badge-ul din bara de sus
+     const btn = document.querySelector('#btnVerifyOrder, .btn-verify-order, button[onclick*="openCartModal"]');
+     const cartBadge = document.querySelector('#verifyCount, .verify-count, button span:last-child');
+     const hasItems = cart.length > 0;
+     const totalItems = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+     
+     console.log('Updating badge:', {hasItems, totalItems, btnFound: !!btn, badgeFound: !!cartBadge});
+     
+     if (btn) {
+       btn.style.display = hasItems ? 'flex' : 'none';
+       console.log('Button display set to:', btn.style.display);
+     }
+     if (cartBadge) {
+       cartBadge.textContent = totalItems;
+       cartBadge.style.display = hasItems ? 'inline-block' : 'none';
+       console.log('Badge text set to:', cartBadge.textContent);
+     }
+     
+     // ✅ Actualizează modalul
+     updateCartModal();
+     updateVerifyButton();
+   }
+ } catch(e) {
+   console.error('Error in updateCartItemQty:', e);
+ }
+}
+
+// ✅ Elimină un produs din coș
+function removeCartItem(itemId) {
+ console.log('removeCartItem called:', itemId);
+ try {
+   let cart = JSON.parse(localStorage.getItem('cart')) || [];
+   cart = cart.filter(x => x.id !== itemId);
+   localStorage.setItem('cart', JSON.stringify(cart));
+   
+   // ✅ Actualizează direct badge-ul din bara de sus (ÎNAINTE de celelalte)
+   const btn = document.getElementById('btnViewCurrentOrder');
+   const cartBadge = document.getElementById('cartBadge');
+   const hasItems = cart.length > 0;
+   const totalItems = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+   
+   console.log('Updating badge:', {hasItems, totalItems});
+   if (btn) btn.style.display = hasItems ? 'flex' : 'none';
+   if (cartBadge) {
+     cartBadge.textContent = totalItems;
+     cartBadge.style.display = hasItems ? 'inline-block' : 'none';
+   }
+   
+   // ✅ Actualizează modalul
+   updateCartModal();
+   updateVerifyButton();
+ } catch(e) {
+   console.error('Error in removeCartItem:', e);
+ }
+}
+
+// Actualizeaza butonul din sticky bar SI badge-ul din bara de sus
+function updateVerifyButton() {
+ const btnVerify = document.getElementById('btnVerifyOrder');
+ const verifyCount = document.getElementById('verifyCount');
+ const cartCount = document.getElementById('cartCount');
+ 
+ if (btnVerify && verifyCount && cartCount) {
+   const count = parseInt(cartCount.textContent) || 0;
+   verifyCount.textContent = count;
+   btnVerify.style.display = count > 0 ? 'flex' : 'none';
+ }
+ 
+ // ✅ Actualizează și badge-ul din bara de sus (lângă "Vizualizează comanda actuală")
+ const btnViewCurrentOrder = document.getElementById('btnViewCurrentOrder');
+ const cartBadge = document.getElementById('cartBadge');
+ const cart = JSON.parse(localStorage.getItem('cart')) || [];
+ const totalItems = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+ const hasItems = cart.length > 0;
+ 
+ if (btnViewCurrentOrder) {
+   btnViewCurrentOrder.style.display = hasItems ? 'flex' : 'none';
+ }
+ if (cartBadge) {
+   cartBadge.textContent = totalItems;
+   cartBadge.style.display = hasItems ? 'inline-block' : 'none';
+ }
+}
+
+// Suprascrie functia updateCartCount originala
+const originalUpdateCartCount = window.updateCartCount;
+window.updateCartCount = function() {
+ if (originalUpdateCartCount) originalUpdateCartCount();
+ updateVerifyButton();
+};
+
+// Inchide modalul la click in afara
+window.onclick = function(event) {
+ const cartModal = document.getElementById('cartModal');
+ const productModal = document.getElementById('addProductModal');
+ if (event.target === cartModal) {
+ closeCartModal();
+ }
+ if (event.target === productModal) {
+ closeProductModal();
+ }
+};
+</script>
+
+</body>
+</html>

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Transfer Stoc - FMD</title>
+  <title>Transfer Stoc - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="global.css">
   <style>
     .transfer-grid {
@@ -92,9 +93,14 @@
 <body>
   <nav class="navbar">
     <div class="navbar-inner">
-      <a href="index.html" class="navbar-brand">⚕️ FMD</a>
-      <div id="userBar"></div>
-      <a href="checkstock.html" class="btn btn-ghost btn-sm">← Inventar</a>
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>Pagina Principala</span>
+      </a>
+      <div class="navbar-actions">
+        <div id="userBar"></div>
+        <a href="checkstock.html" class="btn btn-ghost btn-sm">← Inventar</a>
+      </div>
     </div>
   </nav>
 
@@ -123,23 +129,18 @@
       <div id="locationSection">
         <div class="transfer-grid">
           <div>
-            <label class="form-label">Locație Sursă (Depozit)</label>
-            <select id="fromLocation" class="form-select">
-              <option value="A">📍 A</option>
-              <option value="B">📍 B</option>
-              <option value="C">📍 C</option>
-              <option value="R1">📦 R1</option>
-              <option value="R2">📦 R2</option>
-              <option value="R3">📦 R3</option>
+            <label class="form-label">Locație Sursă (selectează din locațiile disponibile)</label>
+            <select id="fromLocation" class="form-select" onchange="onLocationChange()">
+              <option value="">📍 Selectează locația</option>
             </select>
           </div>
           
           <div>
-            <label class="form-label">Locație Destinație (Depozit)</label>
+            <label class="form-label">Locație Destinație</label>
             <select id="toLocation" class="form-select">
-              <option value="A">📍 A</option>
-              <option value="B">📍 B</option>
-              <option value="C">📍 C</option>
+              <option value="D1">🏢 D1</option>
+              <option value="D2">🏢 D2</option>
+              <option value="D3">🏢 D3</option>
               <option value="R1">📦 R1</option>
               <option value="R2">📦 R2</option>
               <option value="R3">📦 R3</option>
@@ -208,10 +209,13 @@
       // Arată/ascunde locațiile
       locSection.style.display = from === 'magazin' ? 'none' : 'block';
       
-      // Resetează
+      // Resetează locațiile și loturile
       selectedProduct = null;
       document.getElementById('selectedProductBox').style.display = 'none';
       document.getElementById('searchInput').value = '';
+      document.getElementById('fromLocation').innerHTML = '<option value="">📍 Selectează locația</option>';
+      document.getElementById('lotSelect').innerHTML = '<option value="">Selectează mai întâi locația</option>';
+      document.getElementById('maxQty').textContent = '0';
     }
 
     async function searchProduct(query) {
@@ -250,35 +254,99 @@
       
       // Încarcă stoc disponibil pentru acest produs în gestiunea sursă
       const fromWh = document.getElementById('fromWarehouse').value;
-      const fromLoc = document.getElementById('fromLocation')?.value;
       
       try {
         const stockRes = await fetch(`/api/stock?warehouse=${fromWh}`);
         const allStock = await stockRes.json();
         
-        // Filtrează după GTIN și locație (dacă e depozit)
+        // Filtrează doar după GTIN (toate locațiile)
         availableLots = allStock.filter(s => {
-          const matchGtin = normalizeGTIN(s.gtin) === normalizeGTIN(gtin);
-          if (fromWh === 'magazin') return matchGtin;
-          return matchGtin && s.location === fromLoc;
+          return normalizeGTIN(s.gtin) === normalizeGTIN(gtin);
         });
         
-        // Afișează info
+        // Afișează info produs
         document.getElementById('selProdName').textContent = name;
         const totalAvailable = availableLots.reduce((a, s) => a + Number(s.qty), 0);
+        
+        // Obține locațiile unice disponibile pentru acest produs
+        const uniqueLocations = [...new Set(availableLots.map(s => s.location || (fromWh === 'magazin' ? 'M1' : 'D1')))];
+        
+        // Grupează pe locații pentru afișare
+        const byLocation = {};
+        availableLots.forEach(s => {
+          const loc = s.location || (fromWh === 'magazin' ? 'M1' : 'D1');
+          byLocation[loc] = (byLocation[loc] || 0) + Number(s.qty);
+        });
+        
+        let locHtml = '';
+        for (const [loc, qty] of Object.entries(byLocation)) {
+          locHtml += `<div class="stock-row"><span>Locație ${loc}:</span><strong>${qty} buc</strong></div>`;
+        }
+        
         document.getElementById('selProdStock').innerHTML = `
-          <div class="stock-row"><span>Disponibil ${fromWh}:</span><strong>${totalAvailable} buc</strong></div>
+          <div class="stock-row"><span>Total disponibil:</span><strong>${totalAvailable} buc</strong></div>
+          ${locHtml}
         `;
         document.getElementById('selectedProductBox').style.display = 'block';
         
-        // Populează dropdown LOT
+        // Populează dropdown-ul de locații sursă doar cu locațiile disponibile
+        const fromLocSelect = document.getElementById('fromLocation');
+        const allLocationOptions = fromWh === 'magazin' 
+          ? [
+              {value: 'M1', label: '🏪 M1'},
+              {value: 'M2', label: '🏪 M2'},
+              {value: 'M3', label: '🏪 M3'}
+            ]
+          : [
+              {value: 'D1', label: '🏢 D1'},
+              {value: 'D2', label: '🏢 D2'},
+              {value: 'D3', label: '🏢 D3'},
+              {value: 'R1', label: '📦 R1'},
+              {value: 'R2', label: '📦 R2'},
+              {value: 'R3', label: '📦 R3'}
+            ];
+        
+        fromLocSelect.innerHTML = '<option value="">Selectează locația</option>' +
+          allLocationOptions
+            .filter(opt => uniqueLocations.includes(opt.value))
+            .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+            .join('');
+        
+        // Golește dropdown LOT până se selectează o locație
         const lotSelect = document.getElementById('lotSelect');
-        lotSelect.innerHTML = '<option value="">Selectează LOT</option>' + 
-          availableLots.map(l => `<option value="${l.lot}" data-qty="${l.qty}" data-exp="${l.expiresAt}">${l.lot} (${l.qty} buc)</option>`).join('');
+        lotSelect.innerHTML = '<option value="">Selectează mai întâi locația</option>';
         
       } catch (e) {
         console.error(e);
       }
+    }
+    
+    function onLocationChange() {
+      const selectedLoc = document.getElementById('fromLocation').value;
+      const lotSelect = document.getElementById('lotSelect');
+      
+      if (!selectedLoc) {
+        lotSelect.innerHTML = '<option value="">Selectează mai întâi locația</option>';
+        return;
+      }
+      
+      // Filtrează loturile pentru locația selectată
+      const filteredLots = availableLots.filter(l => {
+        const loc = l.location || (document.getElementById('fromWarehouse').value === 'magazin' ? 'M1' : 'D1');
+        return loc === selectedLoc;
+      });
+      
+      // Populează dropdown LOT cu data expirării
+      lotSelect.innerHTML = '<option value="">Selectează LOT</option>' + 
+        filteredLots.map(l => {
+          const loc = l.location || (document.getElementById('fromWarehouse').value === 'magazin' ? 'M1' : 'D1');
+          const expDate = l.expiresAt ? new Date(l.expiresAt).toLocaleDateString('ro-RO') : 'N/A';
+          return `<option value="${l.lot}" data-qty="${l.qty}" data-exp="${l.expiresAt}" data-loc="${loc}">${l.lot} | Exp: ${expDate} (${l.qty} buc)</option>`;
+        }).join('');
+      
+      // Resetează cantitatea
+      document.getElementById('maxQty').textContent = '0';
+      document.getElementById('qtyInput').value = '1';
     }
 
     function updateMaxQty() {
@@ -292,13 +360,17 @@
     async function executeTransfer() {
       const fromWh = document.getElementById('fromWarehouse').value;
       const toWh = document.getElementById('toWarehouse').value;
-      const fromLoc = fromWh === 'depozit' ? document.getElementById('fromLocation').value : 'MAGAZIN';
-      const toLoc = toWh === 'depozit' ? document.getElementById('toLocation').value : 'MAGAZIN';
+      const fromLoc = document.getElementById('fromLocation').value;
       const lot = document.getElementById('lotSelect').value;
       const qty = Number(document.getElementById('qtyInput').value);
+      const toLoc = toWh === 'depozit' ? document.getElementById('toLocation').value : 'M1';
       
       if (!selectedProduct) {
         showResult('Selectează un produs!', 'error');
+        return;
+      }
+      if (!fromLoc) {
+        showResult('Selectează locația sursă!', 'error');
         return;
       }
       if (!lot) {
@@ -310,7 +382,11 @@
         return;
       }
       
-      const lotData = availableLots.find(l => l.lot === lot);
+      // Find lot in the specific location
+      const lotData = availableLots.find(l => {
+        const loc = l.location || (fromWh === 'magazin' ? 'M1' : 'D1');
+        return l.lot === lot && loc === fromLoc;
+      });
       if (!lotData || lotData.qty < qty) {
         showResult('Stoc insuficient!', 'error');
         return;

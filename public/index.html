@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fast Medical Distribution - Dashboard</title>
+  <title>OpenBill - Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="global.css" />
   <style>
     /* Stiluri specifice doar pentru dashboard */
@@ -126,187 +127,236 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-brand">
-        <div class="navbar-brand-icon">⚕️</div>
-        <span>Fast Medical Distribution</span>
+        <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>OpenBill</span>
       </a>
       <div class="navbar-actions">
-        <button class="btn btn-ghost btn-icon" id="btnToggleTheme" title="Schimbă tema">🌙</button>
+        <button class="btn btn-ghost btn-icon" id="btnToggleTheme" title="Schimba tema">&#127769;</button>
       </div>
     </div>
   </nav>
 
   <main class="container">
-    <!-- User Bar -->
-    <div class="user-bar" id="userBar">
-      <div class="user-info">
-        <div class="user-avatar" id="userAvatar">U</div>
+    <!-- User Bar (generat dinamic de script.js) -->
+    <div class="user-bar" id="userBar"></div>
+    
+    <!-- Banner Cont Demo -->
+    <div id="demoBanner" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; padding: var(--space-4); border-radius: var(--radius-lg); margin-bottom: var(--space-6);">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
         <div>
-          <div style="font-weight: 600;" id="userName">Utilizator</div>
-          <div style="font-size: 0.875rem; color: var(--text-muted);" id="userRole">Rol</div>
+          <strong>🎉 Cont Demo Activ</strong>
+          <p style="margin: 0; font-size: 0.875rem; opacity: 0.9;">
+            Explorează toate funcționalitățile OpenBill cu date de test. 
+            Când ești gata, înregistrează-ți compania pentru acces permanent.
+          </p>
         </div>
+        <a href="signup-company.html" class="btn" style="background: #000; color: #fff; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+          🚀 Înregistrează Compania
+        </a>
       </div>
-      <button class="btn btn-danger btn-sm" id="btnLogout">Logout</button>
     </div>
 
     <!-- Dashboard Grid -->
     <div class="dashboard-grid">
       <!-- Teren (ACUM PRIMUL) -->
       <div class="dashboard-card success">
-        <div class="dashboard-card-icon">🚚</div>
+        <div class="dashboard-card-icon">&#128663;</div>
         <h3>Teren</h3>
-        <p>Clienți, comenzi mobile și verificare prețuri</p>
+        <p>Clienti, comenzi mobile si verificare preturi</p>
         <div class="dashboard-actions">
-          <a href="adauga_comanda.html" class="btn btn-success">👥 Lista Clienți</a>
-          <a href="checkprice.html" class="btn btn-secondary">💰 Produse și Prețuri</a>
-          <!-- În dashboard-grid, cardul Teren, în dashboard-actions: -->
-<a href="foi_parcurs.html" class="btn btn-success">📋 Foi de Parcurs</a>
+          <a href="adauga_comanda.html" class="btn btn-success">&#128101; Lista Clienti</a>
+          <a href="checkprice.html" class="btn btn-secondary">&#128176; Produse si Preturi</a>
+          <!-- În dashboard-grid, cardul Teren, in dashboard-actions: -->
+<a href="foi_parcurs.html" class="btn btn-success" id="btnFoiParcurs">&#128203; Foi de Parcurs</a>
         </div>
       </div>
 
       <!-- Depozit (ACUM AL DOILEA) -->
       <div class="dashboard-card">
-        <div class="dashboard-card-icon">📦</div>
+        <div class="dashboard-card-icon">&#128230;</div>
         <h3>Depozit</h3>
-        <p>Recepție marfă, gestiune stoc și procesare comenzi</p>
+        <p>Receptie marfa, gestiune stoc si procesare comenzi</p>
         <div class="dashboard-actions">
-          <a href="stock.html" class="btn btn-primary">➕ Recepție marfă</a>
-          <a href="checkstock.html" class="btn btn-secondary">📋 Inventar stoc</a>
-          <a href="orders.html" class="btn btn-secondary">🧾 Comenzi</a>
+          <a href="stock.html" class="btn btn-primary">+ Receptie marfa</a>
+          <a href="checkstock.html" class="btn btn-secondary">&#128203; Inventar stoc</a>
+          <a href="orders.html" class="btn btn-secondary">&#128207; Comenzi</a>
         </div>
       </div>
 
             <!-- Birou -->
       <div class="dashboard-card warning">
-        <div class="dashboard-card-icon">📊</div>
+        <div class="dashboard-card-icon">&#128202;</div>
         <h3>Birou</h3>
-        <p>Administrare, rapoarte și setări sistem</p>
+        <p>Administrare, rapoarte si setari sistem</p>
         <div class="dashboard-actions">
-          <a href="clienti.html" class="btn" style="background: #f59e0b; color: #000; border: 1px solid #f59e0b;">⚙️ Administrare clienți</a>
-          <button class="btn btn-ghost" disabled style="opacity: 0.5;">📈 Rapoarte (în curând)</button>
-          
-          <!-- Secțiune Solduri Clienți -->
-          
-            
-            
-            
-            <input type="file" id="raportSold" accept=".xlsx" style="display: none;">
-<button class="btn" onclick="document.getElementById('raportSold').click()" 
-        style="width: 100%; background: #f59e0b; color: #000; border: 1px solid #f59e0b; margin-bottom: 8px;">
-  📁 Încarcă Raport Excel
-</button>
-            
-            <div id="statusRaport" style="font-size: 0.875rem; margin-bottom: 4px;"></div>
-            <div id="lastUploadInfo" style="font-size: 0.75rem; color: var(--text-muted);"></div>
-          </div>
+          <a href="admin-clients.html" id="btnAdminClients" class="btn" style="background: #f59e0b; color: #000;">&#9881; Administrare Clienti (Admin)</a>
+
+          <a href="reports.html" class="btn" style="background: #f59e0b; color: #000;">&#128200; Rapoarte</a>
         </div>
       </div>
   </main>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <script src="script.js"></script>
   <script>
-(function() {
-  const input = document.getElementById('raportSold');
-  if (!input) return;
-  
-  input.onchange = async function() {
-    const file = this.files[0];
-    if (!file) return;
+
+// Verificare abonament activ (exceptie pentru admin)
+(async function checkSubscription() {
+  try {
+    const res = await fetch('/api/subscription-status');
+    const status = await res.json();
     
-    const statusEl = document.getElementById('statusRaport');
-    const infoEl = document.getElementById('lastUploadInfo');
+    // Admin poate accesa oricum
+    if (status.plan === 'admin') return;
     
-    statusEl.textContent = "⏳ Se procesează...";
-    
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
-        
-        // Detectare header (rândul cu "Client")
-        let headerIndex = -1;
-        for (let i = 0; i < Math.min(rows.length, 20); i++) {
-          if (String(rows[i][0] || '').toLowerCase().trim() === 'client') {
-            headerIndex = i;
-            break;
-          }
-        }
-        if (headerIndex === -1) throw new Error("Nu am găsit coloana 'Client' în Excel");
-        
-        const invoices = [];
-        const seen = new Set(); // Previne duplicate în același fișier
-        
-        for (let i = headerIndex + 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length < 7) continue;
-          
-          const clientName = String(row[0] || '').trim();
-          if (!clientName || clientName.toLowerCase().includes('total')) continue;
-          
-          // Cheie unică pentru detectare duplicat
-          const key = `${clientName}|${row[3]}|${row[6]}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          
-          const parseSum = (val) => {
-            if (!val) return 0;
-            if (typeof val === 'number') return val;
-            return parseFloat(String(val).replace(/,/g, '')) || 0;
-          };
-          
-          const parseDate = (val) => {
-            if (!val || val === '' || val === '-') return null;
-            if (val instanceof Date) return isNaN(val.getTime()) ? null : val.toISOString().split('T')[0];
-            const str = String(val).trim();
-            const parts = str.split(/[\/\-\.]/);
-            if (parts.length === 3) {
-              const day = parts[0].padStart(2, '0');
-              const month = parts[1].padStart(2, '0');
-              const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-              return `${year}-${month}-${day}`;
-            }
-            return null;
-          };
-          
-          invoices.push({
-            client_name: clientName,
-            cui: String(row[1] || ''),
-            invoice_date: parseDate(row[2]),
-            invoice_number: String(row[3] || ''),
-            currency: String(row[4] || 'RON'),
-            total_value: parseSum(row[5]),
-            balance_due: parseSum(row[6]),
-            due_date: parseDate(row[7]),
-            days_overdue: parseInt(row[8]) || 0,
-            status: String(row[9] || '')
-          });
-        }
-        
-        const res = await fetch('/api/balances/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoices })
-        });
-        
-        const result = await res.json();
-        
-        if (result.success) {
-          statusEl.innerHTML = `✅ ${result.inserted} facturi încărcate`;
-          infoEl.textContent = `Ultima încărcare: ${new Date().toLocaleString('ro-RO')}`;
-        } else {
-          statusEl.innerHTML = `❌ Eroare: ${result.error || 'Necunoscută'}`;
-        }
-        
-      } catch (err) {
-        console.error(err);
-        statusEl.innerHTML = `❌ ${err.message}`;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
+    // Daca nu are abonament activ, redirect la billing
+    if (!status.hasSubscription && status.plan === 'free') {
+      window.location.href = '/billing.html';
+    }
+  } catch (e) {
+    console.error('Eroare verificare abonament:', e);
+  }
 })();
+
+// Verificare plan pentru restricții funcționalități
+(async function checkPlanFeatures() {
+  try {
+    const res = await fetch('/api/subscription-status');
+    if (res.ok) {
+      const data = await res.json();
+      // Ascunde Foi de Parcurs pentru planul Starter
+      if (data.plan === 'starter') {
+        const btnFoi = document.getElementById('btnFoiParcurs');
+        if (btnFoi) btnFoi.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    console.error('Eroare verificare funcționalități:', e);
+  }
+})();
+
+// Verificare utilizator demo și afișare banner
+(async function checkDemoUser() {
+  try {
+    const res = await fetch('/api/me');
+    if (res.ok) {
+      const data = await res.json();
+      // is_demo_user este în data.user.is_demo_user
+      if (data.user && data.user.is_demo_user) {
+        const banner = document.getElementById('demoBanner');
+        if (banner) banner.style.display = 'block';
+      }
+    }
+  } catch (e) {
+    console.error('Eroare verificare demo user:', e);
+  }
+})();
+
+// Deschide modal înregistrare companie
+function openRegisterCompanyModal() {
+  // Crează modal
+  const modal = document.createElement('div');
+  modal.id = 'registerCompanyModal';
+  modal.innerHTML = `
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="if(event.target===this)closeRegisterModal()">
+      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-xl); max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;">
+        <div style="padding: var(--space-6); border-bottom: 1px solid var(--border-color);">
+          <h2 style="margin: 0;">🚀 Înregistrează Compania</h2>
+          <p style="color: var(--text-muted); margin: var(--space-2) 0 0 0;">Completează datele pentru a activa contul permanent</p>
+        </div>
+        <div style="padding: var(--space-6);">
+          <div id="registerAlert" style="display: none; padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-4);"></div>
+          <form id="registerCompanyForm">
+            <div style="margin-bottom: var(--space-4);">
+              <label style="display: block; margin-bottom: var(--space-2); font-weight: 500;">Nume Companie *</label>
+              <input type="text" name="companyName" class="form-input" required placeholder="SRL-ul tău">
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <label style="display: block; margin-bottom: var(--space-2); font-weight: 500;">CUI *</label>
+              <input type="text" name="cui" class="form-input" required placeholder="RO12345678">
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <label style="display: block; margin-bottom: var(--space-2); font-weight: 500;">Adresă *</label>
+              <input type="text" name="address" class="form-input" required placeholder="Strada, număr, oraș">
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <label style="display: block; margin-bottom: var(--space-2); font-weight: 500;">Telefon *</label>
+              <input type="tel" name="phone" class="form-input" required placeholder="0700000000">
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <label style="display: block; margin-bottom: var(--space-2); font-weight: 500;">Plan *</label>
+              <select name="plan" class="form-select" required>
+                <option value="">Alege planul</option>
+                <option value="starter">Starter - 29.99€/lună (3 utilizatori)</option>
+                <option value="pro">Pro - 39.99€/lună (10 utilizatori)</option>
+                <option value="enterprise">Enterprise - 59.99€/lună (nelimitat)</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: var(--space-3);">
+              <button type="button" onclick="closeRegisterModal()" class="btn btn-ghost" style="flex: 1;">Anulează</button>
+              <button type="submit" class="btn btn-primary" style="flex: 1;">Trimite Solicitarea</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // Handler form
+  document.getElementById('registerCompanyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const alert = document.getElementById('registerAlert');
+    
+    const data = {
+      companyName: form.companyName.value,
+      cui: form.cui.value,
+      address: form.address.value,
+      phone: form.phone.value,
+      plan: form.plan.value
+    };
+    
+    try {
+      const res = await fetch('/api/companies/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await res.json();
+      
+      if (res.ok) {
+        alert.style.cssText = 'display: block; background: rgba(34, 197, 94, 0.15); color: var(--success-400); border: 1px solid rgba(34, 197, 94, 0.3); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-4);';
+        alert.innerHTML = `✅ ${result.message}<br><br>Cod companie: <strong>${result.companyCode}</strong>`;
+        setTimeout(() => {
+          closeRegisterModal();
+          document.getElementById('demoBanner').innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+              <div>
+                <strong>⏳ Solicitare în Așteptare</strong>
+                <p style="margin: 0; font-size: 0.875rem; opacity: 0.9;">
+                  Contul tău este în curs de aprobare. Vei primi un email când compania este activată.
+                </p>
+              </div>
+            </div>
+          `;
+        }, 3000);
+      } else {
+        alert.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.15); color: var(--danger-500); border: 1px solid rgba(239, 68, 68, 0.3); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-4);';
+        alert.textContent = result.error || 'Eroare la înregistrare';
+      }
+    } catch (e) {
+      alert.style.cssText = 'display: block; background: rgba(239, 68, 68, 0.15); color: var(--danger-500); border: 1px solid rgba(239, 68, 68, 0.3); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-4);';
+      alert.textContent = 'Eroare de conexiune';
+    }
+  });
+}
+
+// Închide modal
+function closeRegisterModal() {
+  const modal = document.getElementById('registerCompanyModal');
+  if (modal) modal.remove();
+}
+
 </script>
 </body>
 </html>

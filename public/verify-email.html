@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmare Email - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="global.css">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+    }
+    .verify-container {
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    .verify-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      margin-top: var(--space-6);
+    }
+    .icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+    }
+    .success { color: var(--success-400); }
+    .error { color: var(--danger-500); }
+    .loading { color: var(--primary-400); }
+    h1 { margin-bottom: var(--space-3); }
+    p { color: var(--text-muted); margin-bottom: var(--space-6); }
+  </style>
+</head>
+<body>
+  <div class="verify-container">
+    <div class="navbar-brand" style="justify-content: center; margin-bottom: var(--space-6);">
+      <div class="navbar-brand-icon">💊</div>
+      <span>OpenBill</span>
+    </div>
+    
+    <div class="verify-card" id="verifyCard">
+      <div class="icon loading" id="icon">⏳</div>
+      <h1 id="title">Se verifică email-ul...</h1>
+      <p id="message">Te rugăm să aștepți un moment.</p>
+      <a href="login.html" class="btn btn-primary" id="loginBtn" style="display: none;">
+        Conectează-te
+      </a>
+    </div>
+  </div>
+
+  <script>
+    async function verifyEmail() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      
+      const icon = document.getElementById('icon');
+      const title = document.getElementById('title');
+      const message = document.getElementById('message');
+      const loginBtn = document.getElementById('loginBtn');
+      
+      if (!token) {
+        icon.textContent = '❌';
+        icon.className = 'icon error';
+        title.textContent = 'Token lipsă';
+        message.textContent = 'Link-ul de verificare este invalid.';
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/verify-email?token=${token}`);
+        const data = await res.json();
+        
+        if (res.ok) {
+          icon.textContent = '✅';
+          icon.className = 'icon success';
+          title.textContent = 'Email confirmat!';
+          message.textContent = 'Contul tău a fost activat cu succes. Poți să te conectezi acum.';
+          loginBtn.style.display = 'inline-flex';
+        } else {
+          icon.textContent = '❌';
+          icon.className = 'icon error';
+          title.textContent = 'Eroare';
+          message.textContent = data.error || 'A apărut o eroare la verificarea emailului.';
+        }
+      } catch (e) {
+        icon.textContent = '❌';
+        icon.className = 'icon error';
+        title.textContent = 'Eroare';
+        message.textContent = 'Nu s-a putut conecta la server.';
+      }
+    }
+    
+    verifyEmail();
+  </script>
+</body>
+</html>

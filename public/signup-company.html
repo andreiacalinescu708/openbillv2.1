@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Înregistrează Compania - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="global.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --success: #22c55e;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--primary), #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .form-group label span {
+      color: #ef4444;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .edit-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .plan-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .plan-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .plan-card:hover {
+      border-color: var(--primary);
+    }
+
+    .plan-card.selected {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .plan-card h4 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .plan-card .price {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .plan-card .period {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .plan-card .features {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .alert.success {
+      display: block;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #4ade80;
+    }
+
+    .alert.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .actions .btn {
+      flex: 1;
+    }
+
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-box p {
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .card {
+        padding: 1rem;
+      }
+      
+      .plan-cards {
+        grid-template-columns: 1fr;
+      }
+      
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-icon">🚀</div>
+      <h1>Înregistrează Compania Reală</h1>
+      <p>Trece de la contul demo la contul permanent</p>
+    </div>
+
+    <div class="info-box">
+      <p>💡 <strong>Datele tale actuale:</strong> Email-ul și numele sunt precompletate. Poți să le modifici dacă e necesar.</p>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <form id="registerForm">
+      <!-- Date Utilizator -->
+      <div class="card">
+        <div class="card-title">👤 Date Administrator</div>
+        
+        <div class="form-group">
+          <label>Email <span>*</span></label>
+          <input type="email" id="email" name="email" class="form-input" required>
+          <p class="edit-hint">Poți modifica email-ul dacă dorești</p>
+        </div>
+
+        <div class="form-group">
+          <label>Prenume <span>*</span></label>
+          <input type="text" id="firstName" name="firstName" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label>Nume <span>*</span></label>
+          <input type="text" id="lastName" name="lastName" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label>Telefon <span>*</span></label>
+          <input type="tel" id="phone" name="phone" class="form-input" required placeholder="0700000000">
+        </div>
+      </div>
+
+      <!-- Date Companie -->
+      <div class="card">
+        <div class="card-title">🏢 Date Companie</div>
+        
+        <div class="form-group">
+          <label>Denumire Firmă <span>*</span></label>
+          <input type="text" id="companyName" name="companyName" class="form-input" required placeholder="SC Exemplu SRL">
+        </div>
+
+        <div class="form-group">
+          <label>CUI / CIF <span>*</span></label>
+          <input type="text" id="cui" name="cui" class="form-input" required placeholder="RO12345678">
+        </div>
+
+        <div class="form-group">
+          <label>Adresă Sediu <span>*</span></label>
+          <input type="text" id="address" name="address" class="form-input" required placeholder="Strada, număr, oraș, județ">
+        </div>
+
+        <div class="form-group">
+          <label>Număr Registrul Comerțului (opțional)</label>
+          <input type="text" id="registrationNumber" name="registrationNumber" class="form-input" placeholder="J12/1234/2024">
+        </div>
+
+        <div class="form-group">
+          <label>Cont Bancar (IBAN) (opțional)</label>
+          <input type="text" id="bankIban" name="bankIban" class="form-input" placeholder="RO49AAAA1B31007593840000">
+        </div>
+
+        <div class="form-group">
+          <label>Bancă (opțional)</label>
+          <input type="text" id="bankName" name="bankName" class="form-input" placeholder="Banca Transilvania">
+        </div>
+      </div>
+
+      <!-- Plan Abonament -->
+      <div class="card">
+        <div class="card-title">💳 Alege Planul</div>
+        <input type="hidden" id="plan" name="plan" required>
+        
+        <div class="plan-cards">
+          <div class="plan-card" data-plan="starter" onclick="selectPlan('starter')">
+            <h4>Starter</h4>
+            <div class="price">29.99€</div>
+            <div class="period">/lună</div>
+            <div class="features">3 utilizatori</div>
+          </div>
+          
+          <div class="plan-card" data-plan="pro" onclick="selectPlan('pro')">
+            <h4>Pro</h4>
+            <div class="price">39.99€</div>
+            <div class="period">/lună</div>
+            <div class="features">10 utilizatori</div>
+          </div>
+          
+          <div class="plan-card" data-plan="enterprise" onclick="selectPlan('enterprise')">
+            <h4>Enterprise</h4>
+            <div class="price">59.99€</div>
+            <div class="period">/lună</div>
+            <div class="features">Nelimitat</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a href="index.html" class="btn btn-ghost">← Înapoi</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          🚀 Creează Compania
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Încarcă datele utilizatorului curent
+    async function loadUserData() {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) {
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        const data = await res.json();
+        
+        // is_demo_user este în data.user.is_demo_user
+        if (!data.user || !data.user.is_demo_user) {
+          showAlert('Ai deja o companie înregistrată!', 'error');
+          setTimeout(() => window.location.href = 'index.html', 2000);
+          return;
+        }
+        
+        // Precompletează datele
+        document.getElementById('email').value = data.user.email || '';
+        document.getElementById('firstName').value = data.user.first_name || '';
+        document.getElementById('lastName').value = data.user.last_name || '';
+        
+      } catch (e) {
+        console.error('Eroare:', e);
+        showAlert('Eroare la încărcarea datelor', 'error');
+      }
+    }
+
+    function selectPlan(plan) {
+      document.getElementById('plan').value = plan;
+      document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      document.querySelector(`[data-plan="${plan}"]`).classList.add('selected');
+    }
+
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.className = `alert ${type}`;
+      alert.textContent = message;
+    }
+
+    // Submit form
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.classList.add('loading');
+      submitBtn.textContent = 'Se procesează...';
+      
+      const formData = {
+        email: document.getElementById('email').value,
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        phone: document.getElementById('phone').value,
+        companyName: document.getElementById('companyName').value,
+        cui: document.getElementById('cui').value,
+        address: document.getElementById('address').value,
+        registrationNumber: document.getElementById('registrationNumber').value,
+        bankIban: document.getElementById('bankIban').value,
+        bankName: document.getElementById('bankName').value,
+        plan: document.getElementById('plan').value
+      };
+
+      if (!formData.plan) {
+        showAlert('Selectează un plan de abonament!', 'error');
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = '🚀 Creează Compania';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/register-real-company', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          // Afișează modal cu informații de plată
+          showPaymentModal(result);
+        } else {
+          showAlert(result.error || 'Eroare la înregistrare', 'error');
+          submitBtn.classList.remove('loading');
+          submitBtn.textContent = '🚀 Creează Compania';
+        }
+      } catch (e) {
+        console.error('Eroare:', e);
+        showAlert('Eroare de conexiune', 'error');
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = '🚀 Creează Compania';
+      }
+    });
+
+    // Încarcă datele la pornire
+    loadUserData();
+    
+    // Afișează modal cu informații de plată
+    function showPaymentModal(result) {
+      const modal = document.createElement('div');
+      modal.id = 'paymentModal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px);">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; animation: slideIn 0.3s ease;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, var(--success), #16a34a); border-radius: 16px 16px 0 0;">
+              <h2 style="margin: 0; color: white; font-size: 1.25rem;">✅ Companie Activată!</h2>
+            </div>
+            <div style="padding: 1.5rem;">
+              <p style="margin-bottom: 1rem; font-size: 1.1rem;">${result.message}</p>
+              
+              <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
+                <h3 style="margin: 0 0 0.75rem 0; color: var(--primary); font-size: 1rem;">📧 Facturare</h3>
+                <p style="margin: 0; font-size: 0.95rem;">
+                  <strong>Vei primi factura pe email</strong> pentru planul <strong>${result.company?.plan?.toUpperCase() || ''}</strong> selectat.
+                </p>
+              </div>
+              
+              <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
+                <p style="margin: 0; color: #4ade80; font-size: 0.95rem;">
+                  <strong>🚀 Compania este activă!</strong><br>
+                  Poți folosi platforma imediat. Compania pornește de la zero, fără date de test.
+                </p>
+              </div>
+              
+              <button onclick="closePaymentModal()" style="width: 100%; padding: 0.875rem; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                Continuă în Aplicație →
+              </button>
+            </div>
+          </div>
+        </div>
+        <style>
+          @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        </style>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (modal) modal.remove();
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

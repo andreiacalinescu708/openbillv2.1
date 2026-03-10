@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fundal cu colțuri rotunjite -->
+  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+  
+  <!-- "o" mic, alb -->
+  <text x="32" y="65" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text>
+  
+  <!-- "B" mare, cyan -->
+  <text x="48" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text>
+  
+  <!-- Border subtil galben (ca în aplicație) -->
+  <rect width="100" height="100" rx="22" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.3"/>
+</svg>

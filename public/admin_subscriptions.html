@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrare Abonamente - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="global.css">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --success-hover: #16a34a;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .header h1 {
+      font-size: 1.75rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: var(--success-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: var(--surface);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    
+    .stat-card .label {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    
+    .section {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .section h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      text-align: left;
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+    }
+    
+    tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status-pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+    
+    .status-paid {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+    
+    .plan-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      background: var(--primary);
+      color: white;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid var(--border);
+    }
+    
+    .modal h3 {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-muted);
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    .modal-actions .btn {
+      flex: 1;
+    }
+    
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    
+    .alert-success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1><svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg>Administrare Abonamente</h1>
+      <p style="color: var(--text-muted);">Gestionează abonamentele clienților OpenBill</p>
+    </div>
+    <a href="/index.html" class="btn btn-secondary">← Înapoi la Dashboard</a>
+  </div>
+  
+  <div id="alertContainer"></div>
+  
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">În Așteptare</div>
+      <div class="value" id="pendingCount" style="color: var(--warning);">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active</div>
+      <div class="value" id="activeCount" style="color: var(--success);">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Clienți</div>
+      <div class="value" id="totalCount">-</div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>📋 Abonamente în Așteptare (Plată OP)</h2>
+    <div id="pendingContainer">
+      <p class="empty-state">Se încarcă...</p>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>🏢 Management Companii & Planuri</h2>
+    <div id="companiesContainer">
+      <p class="empty-state">Se încarcă...</p>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>📊 Toate Abonamentele</h2>
+    <div id="allContainer">
+      <p class="empty-state">Se încarcă...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Schimbare Plan -->
+<div class="modal-overlay" id="changePlanModal">
+  <div class="modal">
+    <h3>🔄 Schimbă Planul Companiei</h3>
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+      Selectează noul plan pentru această companie.
+    </p>
+    <div class="form-group">
+      <label>Companie</label>
+      <input type="text" id="changePlanCompanyName" readonly>
+      <input type="hidden" id="changePlanCompanyId">
+    </div>
+    <div class="form-group">
+      <label>Plan Curent</label>
+      <input type="text" id="changePlanCurrent" readonly>
+    </div>
+    <div class="form-group">
+      <label>Plan Nou</label>
+      <select id="changePlanNew">
+        <option value="starter">Starter (29€/lună) - 3 utilizatori</option>
+        <option value="pro">Pro (39€/lună) - 10 utilizatori + Foi Parcurs</option>
+        <option value="enterprise">Enterprise (59€/lună) - Nelimitat + API</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeChangePlanModal()">Anulează</button>
+      <button class="btn btn-success" onclick="confirmChangePlan()">Schimbă Planul</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Activare Abonament -->
+<div class="modal-overlay" id="activateModal">
+  <div class="modal">
+    <h3>✅ Activează Abonament</h3>
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+      Confirmă plata primită și activează abonamentul pentru client.
+    </p>
+    <div class="form-group">
+      <label>ID Factură</label>
+      <input type="text" id="activateInvoiceId" readonly>
+    </div>
+    <div class="form-group">
+      <label>Client</label>
+      <input type="text" id="activateClientName" readonly>
+    </div>
+    <div class="form-group">
+      <label>Plan</label>
+      <input type="text" id="activatePlan" readonly>
+    </div>
+    <div class="form-group">
+      <label>Durată (luni)</label>
+      <select id="activateMonths">
+        <option value="1">1 lună</option>
+        <option value="3" selected>3 luni</option>
+        <option value="6">6 luni</option>
+        <option value="12">12 luni</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Anulează</button>
+      <button class="btn btn-success" onclick="confirmActivation()">Activează Abonament</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Schimbare Plan -->
+<div class="modal-overlay" id="changePlanModal">
+  <div class="modal">
+    <h3>🔄 Schimbă Plan Companie</h3>
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+      Schimbă planul de abonament pentru această companie.
+    </p>
+    <input type="hidden" id="changePlanCompanyId">
+    <div class="form-group">
+      <label>Companie</label>
+      <input type="text" id="changePlanCompanyName" readonly>
+    </div>
+    <div class="form-group">
+      <label>Plan Curent</label>
+      <input type="text" id="changePlanCurrent" readonly>
+    </div>
+    <div class="form-group">
+      <label>Plan Nou</label>
+      <select id="changePlanNew">
+        <option value="starter">Starter (29€) - Comenzi, Stoc, Clienți, Produse</option>
+        <option value="pro">Pro (39€) + Rapoarte, Foi Parcurs</option>
+        <option value="enterprise">Enterprise (59€) + Toate funcționalitățile</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label style="color: var(--warning);">⚠️ Atenție</label>
+      <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
+        Dacă reducem planul la Starter și compania are utilizatori > 3 sau folosește funcționalități Pro/Enterprise, aceștia vor pierde accesul.
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeChangePlanModal()">Anulează</button>
+      <button class="btn btn-success" onclick="confirmChangePlan()">Salvează Schimbarea</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentInvoice = null;
+
+// Verifică dacă e admin
+async function checkAdmin() {
+  try {
+    const res = await fetch('/api/me');
+    const me = await res.json();
+    
+    if (!me.loggedIn || me.user?.role !== 'admin') {
+      window.location.href = '/index.html';
+      return false;
+    }
+    return true;
+  } catch (e) {
+    window.location.href = '/login.html';
+    return false;
+  }
+}
+
+// Încarcă abonamentele în așteptare
+async function loadPendingSubscriptions() {
+  try {
+    const res = await fetch('/api/admin/pending-subscriptions');
+    const subscriptions = await res.json();
+    
+    document.getElementById('pendingCount').textContent = subscriptions.length;
+    
+    const container = document.getElementById('pendingContainer');
+    
+    if (subscriptions.length === 0) {
+      container.innerHTML = '<p class="empty-state">Nu există abonamente în așteptare 🎉</p>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Companie</th>
+            <th>CUI</th>
+            <th>Plan</th>
+            <th>Sumă</th>
+            <th>Data</th>
+            <th>Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${subscriptions.map(sub => `
+            <tr>
+              <td>#${sub.id}</td>
+              <td>${sub.username}</td>
+              <td>${sub.company_name || '-'}</td>
+              <td>${sub.cui || '-'}</td>
+              <td><span class="plan-badge">${sub.plan}</span></td>
+              <td>${(sub.amount / 100).toFixed(2)}€</td>
+              <td>${new Date(sub.created_at).toLocaleDateString('ro-RO')}</td>
+              <td>
+                <button class="btn btn-success" onclick="openActivateModal(${sub.id}, '${sub.username}', '${sub.plan}')">
+                  Activează
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    console.error(e);
+    showAlert('Eroare la încărcarea abonamentelor', 'error');
+  }
+}
+
+// Încarcă toate abonamentele
+async function loadAllSubscriptions() {
+  try {
+    // Pentru moment folosim doar pending, dar putem extinde cu un endpoint nou
+    const container = document.getElementById('allContainer');
+    container.innerHTML = '<p class="empty-state">Funcționalitate în dezvoltare. Folosiți "Abonamente în Așteptare" pentru activări.</p>';
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// Deschide modal activare
+function openActivateModal(invoiceId, clientName, plan) {
+  currentInvoice = invoiceId;
+  document.getElementById('activateInvoiceId').value = invoiceId;
+  document.getElementById('activateClientName').value = clientName;
+  document.getElementById('activatePlan').value = plan;
+  document.getElementById('activateModal').classList.add('active');
+}
+
+// Închide modal
+function closeModal() {
+  document.getElementById('activateModal').classList.remove('active');
+  currentInvoice = null;
+}
+
+// Confirmă activarea
+async function confirmActivation() {
+  if (!currentInvoice) return;
+  
+  const months = document.getElementById('activateMonths').value;
+  
+  try {
+    const res = await fetch(`/api/admin/activate-subscription/${currentInvoice}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ months: parseInt(months) })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showAlert(data.message, 'success');
+      closeModal();
+      loadPendingSubscriptions();
+    } else {
+      showAlert(data.error || 'Eroare la activare', 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    showAlert('Eroare la activare', 'error');
+  }
+}
+
+// Afișează alertă
+function showAlert(message, type) {
+  const container = document.getElementById('alertContainer');
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type}`;
+  alert.textContent = message;
+  container.appendChild(alert);
+  
+  setTimeout(() => alert.remove(), 5000);
+}
+
+// Încarcă statisticile
+async function loadStats() {
+  try {
+    const res = await fetch('/api/admin/subscription-stats');
+    const stats = await res.json();
+    
+    document.getElementById('pendingCount').textContent = stats.pending;
+    document.getElementById('activeCount').textContent = stats.active;
+    document.getElementById('totalCount').textContent = stats.total;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// Încarcă lista companiilor
+async function loadCompanies() {
+  try {
+    const res = await fetch('/api/admin/companies');
+    const companies = await res.json();
+    
+    const container = document.getElementById('companiesContainer');
+    
+    if (companies.length === 0) {
+      container.innerHTML = '<p class="empty-state">Nu există companii în sistem</p>';
+      return;
+    }
+    
+    const planColors = {
+      starter: 'background: rgba(59, 130, 246, 0.2); color: #60a5fa;',
+      pro: 'background: rgba(34, 197, 94, 0.2); color: #4ade80;',
+      enterprise: 'background: rgba(245, 158, 11, 0.2); color: #fbbf24;'
+    };
+    
+    container.innerHTML = `
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color);">
+            <th style="padding: 1rem; text-align: left;">Companie</th>
+            <th style="padding: 1rem; text-align: left;">CUI</th>
+            <th style="padding: 1rem; text-align: left;">Plan</th>
+            <th style="padding: 1rem; text-align: center;">Utilizatori</th>
+            <th style="padding: 1rem; text-align: center;">Status</th>
+            <th style="padding: 1rem; text-align: right;">Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${companies.map(c => `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 1rem;">
+                <div style="font-weight: 600;">${c.name}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${c.code}</div>
+              </td>
+              <td style="padding: 1rem;">${c.cui || '-'}</td>
+              <td style="padding: 1rem;">
+                <span style="${planColors[c.plan] || ''} padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-transform: uppercase;">
+                  ${c.plan}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: center;">${c.user_count} / ${c.max_users}</td>
+              <td style="padding: 1rem; text-align: center;">
+                <span style="${c.subscription_status === 'active' ? 'color: var(--success);' : 'color: var(--warning);'}">
+                  ${c.subscription_status === 'active' ? '● Activ' : '○ ' + c.subscription_status}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: right;">
+                <button class="btn btn-primary btn-sm" onclick="openChangePlanModal('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.plan}')">
+                  Schimbă Plan
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    console.error(e);
+    document.getElementById('companiesContainer').innerHTML = '<p class="empty-state">Eroare la încărcarea companiilor</p>';
+  }
+}
+
+// Deschide modal schimbare plan
+function openChangePlanModal(companyId, companyName, currentPlan) {
+  document.getElementById('changePlanCompanyId').value = companyId;
+  document.getElementById('changePlanCompanyName').value = companyName;
+  document.getElementById('changePlanCurrent').value = currentPlan;
+  document.getElementById('changePlanNew').value = currentPlan;
+  document.getElementById('changePlanModal').classList.add('active');
+}
+
+// Închide modal schimbare plan
+function closeChangePlanModal() {
+  document.getElementById('changePlanModal').classList.remove('active');
+}
+
+// Confirmă schimbarea planului
+async function confirmChangePlan() {
+  const companyId = document.getElementById('changePlanCompanyId').value;
+  const newPlan = document.getElementById('changePlanNew').value;
+  const companyName = document.getElementById('changePlanCompanyName').value;
+  
+  if (!confirm(`Ești sigur că vrei să schimbi planul companiei "${companyName}" la "${newPlan}"?`)) {
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/admin/companies/${companyId}/plan`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: newPlan })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      showAlert(data.message, 'success');
+      closeChangePlanModal();
+      loadCompanies();
+    } else {
+      showAlert(data.error || 'Eroare la schimbarea planului', 'error');
+    }
+  } catch (e) {
+    console.error(e);
+    showAlert('Eroare la schimbarea planului', 'error');
+  }
+}
+
+// Inițializează pagina
+async function init() {
+  const isAdmin = await checkAdmin();
+  if (!isAdmin) return;
+  
+  loadStats();
+  loadPendingSubscriptions();
+  loadAllSubscriptions();
+  loadCompanies();
+}
+
+// Închide modal la click în afară
+document.getElementById('activateModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+document.getElementById('changePlanModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeChangePlanModal();
+});
+
+init();
+</script>
+
+</body>
+</html>

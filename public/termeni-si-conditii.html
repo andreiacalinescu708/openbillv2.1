@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termeni și Condiții - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+    
+    .nav-links a {
+      color: var(--text);
+      text-decoration: none;
+      margin-left: 2rem;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+    
+    .nav-links a:hover { color: var(--primary); }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 8rem 2rem 4rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .last-updated {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-size: 0.9rem;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 2.5rem 0 1rem;
+      color: var(--primary);
+    }
+    
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.5rem;
+    }
+    
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+    
+    ul {
+      margin: 1rem 0 1rem 2rem;
+      color: var(--text-muted);
+    }
+    
+    li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      margin-top: 4rem;
+      text-align: center;
+    }
+    
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+    
+    .footer-copyright {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="landing.html" class="logo">OpenBill</a>
+    <div class="nav-links">
+      <a href="landing.html">Acasă</a>
+      <a href="login.html">Autentificare</a>
+      <a href="demo-signup.html" style="color: var(--primary);">Cont Demo</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>Termeni și Condiții</h1>
+    <p class="last-updated">Ultima actualizare: 8 Martie 2026</p>
+
+    <h2>1. Acceptarea Termenilor</h2>
+    <p>Prin accesarea și utilizarea platformei OpenBill, acceptați acești Termeni și Condiții în totalitate. Dacă nu sunteți de acord cu oricare dintre prevederile prezentate, vă rugăm să nu utilizați serviciul.</p>
+
+    <h2>2. Definiții</h2>
+    <ul>
+      <li><strong>"Platforma"</strong> - aplicația web OpenBill disponibilă la adresa openbill.ro</li>
+      <li><strong>"Utilizator"</strong> - persoana fizică sau juridică care utilizează Platforma</li>
+      <li><strong>"Abonament"</strong> - planul de servicii plătite sau gratuite selectat de Utilizator</li>
+      <li><strong>"Date"</strong> - informațiile introduse de Utilizator în Platformă</li>
+      <li><strong>"Cont"</strong> - contul de utilizator creat pe Platformă</li>
+    </ul>
+
+    <h2>3. Înregistrarea Contului</h2>
+    <p>Pentru a utiliza Platforma, trebuie să:</p>
+    <ul>
+      <li>Furnizați informații reale și actualizate despre companie</li>
+      <li>Furnizați o adresă de email validă pentru verificare</li>
+      <li>Mențineți confidențialitatea datelor de autentificare</li>
+      <li>Notificați imediat orice utilizare neautorizată a contului</li>
+    </ul>
+
+    <h2>4. Planuri și Plată</h2>
+    <h3>4.1 Perioada de probă</h3>
+    <p>Fiecare utilizator nou beneficiază de o perioadă de probă de 7 zile cu acces la toate funcționalitățile aplicatiei intr-o companie DEMO. După expirarea perioadei de probă, contul va fi suspendat până la activarea unui abonament plătit.</p>
+
+    <h3>4.2 Abonamente plătite</h3>
+    <p>Abonamentele se plătesc în avans pe o perioadă de 30 de zile. Neplata în termen de 5 zile de la data scadenței duce la suspendarea contului. Datele rămân stocate pentru o perioadă de 30 de zile după suspendare.</p>
+
+    <h3>4.3 Anularea</h3>
+    <p>Utilizatorul poate anula abonamentul în orice moment. Nu se oferă rambursări pentru perioadele parțiale de utilizare.</p>
+
+    <h2>5. Utilizarea Acceptabilă</h2>
+    <p>Este strict interzisă:</p>
+    <ul>
+      <li>Utilizarea Platformei pentru activități ilegale</li>
+      <li>Încercarea de a accesa datele altor utilizatori</li>
+      <li>Distribuirea contului de utilizator către terți</li>
+      <li>Atacurile cibernetice asupra Platformei</li>
+      <li>Utilizarea Platformei în mod care ar putea afecta disponibilitatea pentru alți utilizatori</li>
+    </ul>
+
+    <h2>6. Proprietatea Intelectuală</h2>
+    <p>Toate drepturile de proprietate intelectuală asupra Platformei aparțin OpenBill. Utilizatorului i se acordă o licență limitată, neexclusivă și netransferabilă pentru utilizarea Platformei.</p>
+
+    <h2>7. Limitarea Răspunderii</h2>
+    <p>OpenBill nu este răspunzător pentru:</p>
+    <ul>
+      <li>Pierderea de date cauzată de nefuncționarea echipamentului Utilizatorului</li>
+      <li>Întreruperi temporare ale serviciului pentru mentenanță</li>
+      <li>Daune indirecte sau consecințiale</li>
+      <li>Deciziile de afaceri luate pe baza datelor din Platformă</li>
+    </ul>
+    <p>Răspunderea totală a OpenBill nu poate depăși valoarea abonamentului plătit de Utilizator în ultimele 12 luni.</p>
+
+    <h2>8. Modificări ale Termenilor</h2>
+    <p>OpenBill își rezervă dreptul de a modifica acești Termeni în orice moment. Utilizatorii vor fi notificați cu 30 de zile înainte de intrarea în vigoare a modificărilor. Continuarea utilizării Platformei după modificare constituie acceptarea noilor Termeni.</p>
+
+    <h2>9. Încetarea Contractului</h2>
+    <p>OpenBill poate rezilia accesul Utilizatorului:</p>
+    <ul>
+      <li>În caz de încălcare a acestor Termeni</li>
+      <li>La solicitarea scrisă a Utilizatorului</li>
+      <li>În caz de insolvență sau dizolvare a Utilizatorului</li>
+    </ul>
+
+    <h2>10. Legislație Aplicabilă</h2>
+    <p>Acești Termeni sunt guvernați de legislația Română. Orice litigiu va fi soluționat de instanțele competente din Romania.</p>
+
+    <h2>11. Contact</h2>
+    <p>Pentru orice întrebări legate de acești Termeni, contactați-ne la: <a href="mailto:support@openbill.ro" style="color: var(--primary);">support@openbill.ro</a></p>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="termeni-si-conditii.html">Termeni și Condiții</a>
+      <a href="politica-confidentialitate.html">Politica de Confidențialitate</a>
+      <a href="landing.html">Acasă</a>
+    </div>
+    <p class="footer-copyright">© 2026 OpenBill. Toate drepturile rezervate.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rapoarte - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="global.css" />
+  <style>
+    .reports-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--space-5);
+      margin-top: var(--space-6);
+    }
+
+    .report-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      transition: all var(--transition-base);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .report-card:hover {
+      border-color: rgba(148, 163, 184, 0.3);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .report-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: var(--space-3);
+    }
+
+    .report-card.products .report-card-icon {
+      background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+      box-shadow: 0 6px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .report-card.customers .report-card-icon {
+      background: linear-gradient(135deg, var(--success-500), var(--success-600));
+      box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .report-card.vehicles .report-card-icon {
+      background: linear-gradient(135deg, var(--warning-500), var(--warning-600));
+      box-shadow: 0 6px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .report-card.balances .report-card-icon {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      box-shadow: 0 6px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .report-card h3 {
+      font-size: 1.125rem;
+      margin-bottom: var(--space-2);
+    }
+
+    .report-card p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: var(--space-4);
+      flex: 1;
+    }
+
+    .report-btn {
+      width: 100%;
+      padding: var(--space-3);
+      font-weight: 600;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+
+    .report-btn.primary {
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      color: white;
+    }
+
+    .report-btn.success {
+      background: linear-gradient(135deg, var(--success-600), var(--success-700));
+      color: white;
+    }
+
+    .report-btn.warning {
+      background: linear-gradient(135deg, var(--warning-500), var(--warning-600));
+      color: #000;
+    }
+
+    .report-btn.purple {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white;
+    }
+
+    .report-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: var(--space-4);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: modalSlide 0.3s ease;
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: var(--space-5);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .modal-close {
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .modal-close:hover {
+      background: var(--danger-500);
+      color: white;
+    }
+
+    .modal-body {
+      padding: var(--space-5);
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Filter styles */
+    .filters-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      padding: var(--space-4);
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .filter-group label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+    }
+
+    /* Table styles */
+    .report-table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .report-table th,
+    .report-table td {
+      padding: var(--space-3) var(--space-4);
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .report-table th {
+      background: var(--bg-tertiary);
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .report-table tr:hover td {
+      background: rgba(148, 163, 184, 0.05);
+    }
+
+    .report-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .text-right {
+      text-align: right !important;
+    }
+
+    .number-cell {
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    .currency {
+      color: var(--success-400);
+    }
+
+    /* Stats cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .stat-card {
+      background: var(--bg-tertiary);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-400);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: var(--space-1);
+    }
+
+    /* Status messages */
+    .status-message {
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-top: var(--space-4);
+      text-align: center;
+    }
+
+    .status-message.loading {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--primary-400);
+    }
+
+    .status-message.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger-500);
+    }
+
+    .status-message.empty {
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+    }
+
+    /* Chart container */
+    .chart-container {
+      height: 300px;
+      margin-top: var(--space-5);
+      padding: var(--space-4);
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+    }
+
+    /* Upload section */
+    .upload-section {
+      margin-top: var(--space-6);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .upload-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white;
+      border: none;
+      padding: var(--space-4);
+      font-weight: 600;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .upload-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    }
+
+    .last-upload-info {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: var(--space-2);
+      text-align: center;
+    }
+
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: var(--radius-full);
+      margin-left: var(--space-3);
+    }
+
+    @media (max-width: 640px) {
+      .modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+      
+      .filters-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>Pagina Principală</span>
+      </a>
+      <div class="navbar-actions">
+        <div id="userBar"></div>
+        <a href="index.html" class="btn btn-ghost btn-sm">&larr; Înapoi</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+      <div>
+        <h1 style="margin-bottom: var(--space-2);">Rapoarte</h1>
+        <p class="text-muted">Analize și statistici pentru afacerea ta</p>
+      </div>
+      <span class="plan-badge">⭐ PRO / ENTERPRISE</span>
+    </div>
+
+    <div class="reports-grid">
+      <!-- Cele mai vândute produse -->
+      <div class="report-card products">
+        <div class="report-card-icon">&#128200;</div>
+        <h3>Cele mai vândute produse</h3>
+        <p>Top produse după cantitate și venituri generate. Filtrează după perioadă.</p>
+        <button class="report-btn primary" onclick="openReport('products')">
+          &#128202; Vezi Raport
+        </button>
+      </div>
+
+      <!-- Cei mai buni clienți -->
+      <div class="report-card customers">
+        <div class="report-card-icon">&#128101;</div>
+        <h3>Cei mai buni clienți</h3>
+        <p>Clienți cu cele mai mari comenzi și valoare totală. Filtrează după perioadă.</p>
+        <button class="report-btn success" onclick="openReport('customers')">
+          &#128202; Vezi Raport
+        </button>
+      </div>
+
+      <!-- Raport KM Mașini -->
+      <div class="report-card vehicles">
+        <div class="report-card-icon">&#128663;</div>
+        <h3>Raport KM Mașini</h3>
+        <p>Kilometraj per mașină, număr de curse și consum. Filtrează după perioadă.</p>
+        <button class="report-btn warning" onclick="openReport('vehicles')">
+          &#128202; Vezi Raport
+        </button>
+      </div>
+
+      <!-- Solduri Clienți (Excel Upload) -->
+      <div class="report-card balances">
+        <div class="report-card-icon">&#128193;</div>
+        <h3>Solduri Clienți</h3>
+        <p>Încarcă raport Excel cu soldurile clienților pentru facturare.</p>
+        <input type="file" id="raportSold" accept=".xlsx" style="display: none;">
+        <button class="report-btn purple" onclick="document.getElementById('raportSold').click()">
+          &#128193; Încarcă Excel
+        </button>
+        <div id="statusRaport" class="status-message" style="display: none; margin-top: var(--space-3);"></div>
+        <div id="lastUploadInfo" class="last-upload-info"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal pentru rapoarte -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Raport</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Filtre -->
+        <div class="filters-row">
+          <div class="filter-group">
+            <label>Perioadă</label>
+            <select id="filterPeriod" class="form-select" onchange="handlePeriodChange()">
+              <option value="">Toate timpurile</option>
+              <option value="this_month">Luna curentă</option>
+              <option value="last_week">Ultima săptămână</option>
+              <option value="this_year">Anul curent</option>
+              <option value="custom">Interval personalizat</option>
+            </select>
+          </div>
+          <div class="filter-group" id="customDateStart" style="display: none;">
+            <label>De la</label>
+            <input type="date" id="startDate" class="form-input">
+          </div>
+          <div class="filter-group" id="customDateEnd" style="display: none;">
+            <label>Până la</label>
+            <input type="date" id="endDate" class="form-input">
+          </div>
+          <div class="filter-group" id="vehicleFilter" style="display: none;">
+            <label>Mașină</label>
+            <select id="vehicleSelect" class="form-select">
+              <option value="">Toate mașinile</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="filter-actions">
+          <button class="btn btn-primary" onclick="loadReport()">&#128269; Generează Raport</button>
+          <button class="btn btn-ghost" onclick="exportReport()">&#128190; Export CSV</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsContainer"></div>
+
+        <!-- Loading / Error / Empty -->
+        <div id="messageContainer"></div>
+
+        <!-- Tabel -->
+        <div class="report-table-container" id="tableContainer" style="display: none;">
+          <table class="report-table" id="reportTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Verificare plan la încărcare
+    (async function checkPlanAccess() {
+      try {
+        const res = await fetch('/api/subscription-status');
+        if (res.ok) {
+          const data = await res.json();
+          const allowedPlans = ['pro', 'enterprise', 'admin', 'superadmin'];
+          if (!allowedPlans.includes(data.plan) && data.role !== 'admin' && data.role !== 'superadmin') {
+            document.querySelector('.reports-grid').innerHTML = `
+              <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--bg-card); border-radius: var(--radius-xl); border: 1px solid var(--border-color);">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">⭐</div>
+                <h2>Funcționalitate disponibilă doar în planurile Pro și Enterprise</h2>
+                <p style="color: var(--text-muted); margin: 1rem 0;">Planul tău curent: <strong>${data.plan || 'Starter'}</strong></p>
+                <p style="color: var(--text-muted); margin-bottom: 2rem;">Fă upgrade pentru a accesa rapoarte detaliate și analize avansate.</p>
+                <a href="billing.html" class="btn btn-primary" style="display: inline-flex;">Vezi Planuri și Prețuri</a>
+              </div>
+            `;
+          }
+        }
+      } catch (e) {
+        console.error('Eroare verificare plan:', e);
+      }
+    })();
+
+    let currentReportType = null;
+    let currentReportData = null;
+    let vehiclesList = [];
+
+    // Deschide modal raport
+    async function openReport(type) {
+      currentReportType = type;
+      currentReportData = null;
+      
+      const titles = {
+        products: 'Cele mai vândute produse',
+        customers: 'Cei mai buni clienți',
+        vehicles: 'Raport KM Mașini'
+      };
+      
+      document.getElementById('modalTitle').textContent = titles[type];
+      document.getElementById('reportModal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      
+      // Reset filters
+      document.getElementById('filterPeriod').value = '';
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      document.getElementById('customDateStart').style.display = 'none';
+      document.getElementById('customDateEnd').style.display = 'none';
+      
+      // Show/hide vehicle filter
+      document.getElementById('vehicleFilter').style.display = type === 'vehicles' ? 'flex' : 'none';
+      
+      // Load vehicles if needed
+      if (type === 'vehicles' && vehiclesList.length === 0) {
+        await loadVehicles();
+      }
+      
+      // Clear previous results
+      document.getElementById('statsContainer').innerHTML = '';
+      document.getElementById('tableContainer').style.display = 'none';
+      document.getElementById('messageContainer').innerHTML = '';
+      
+      // Load report immediately
+      loadReport();
+    }
+
+    // Închide modal
+    function closeModal() {
+      document.getElementById('reportModal').classList.remove('active');
+      document.body.style.overflow = '';
+      currentReportType = null;
+      currentReportData = null;
+    }
+
+    // Schimbare perioadă
+    function handlePeriodChange() {
+      const period = document.getElementById('filterPeriod').value;
+      const isCustom = period === 'custom';
+      document.getElementById('customDateStart').style.display = isCustom ? 'flex' : 'none';
+      document.getElementById('customDateEnd').style.display = isCustom ? 'flex' : 'none';
+    }
+
+    // Încarcă lista de mașini
+    async function loadVehicles() {
+      try {
+        const res = await fetch('/api/vehicles');
+        if (res.ok) {
+          vehiclesList = await res.json();
+          const select = document.getElementById('vehicleSelect');
+          select.innerHTML = '<option value="">Toate mașinile</option>';
+          vehiclesList.forEach(v => {
+            select.innerHTML += `<option value="${v.id}">${v.plate_number}</option>`;
+          });
+        }
+      } catch (e) {
+        console.error('Eroare încărcare mașini:', e);
+      }
+    }
+
+    // Încarcă raport
+    async function loadReport() {
+      const period = document.getElementById('filterPeriod').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const vehicleId = document.getElementById('vehicleSelect').value;
+      
+      // Show loading
+      document.getElementById('messageContainer').innerHTML = '<div class="status-message loading">⏳ Se generează raportul...</div>';
+      document.getElementById('tableContainer').style.display = 'none';
+      document.getElementById('statsContainer').innerHTML = '';
+      
+      try {
+        // Map report types to correct API endpoints
+        const endpointMap = {
+          'products': 'top-products',
+          'customers': 'top-customers',
+          'vehicles': 'vehicle-km'
+        };
+        let url = `/api/reports/${endpointMap[currentReportType]}?`;
+        if (period) url += `period=${period}&`;
+        if (period === 'custom' && startDate && endDate) {
+          url += `start_date=${startDate}&end_date=${endDate}&`;
+        }
+        if (vehicleId) url += `vehicle_id=${vehicleId}&`;
+        
+        console.log('Fetching URL:', url);
+        const res = await fetch(url);
+        
+        // Verificăm mai întâi dacă răspunsul este JSON
+        const contentType = res.headers.get('content-type');
+        console.log('Response status:', res.status, 'Content-Type:', contentType);
+        
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await res.text();
+          console.error('Răspuns non-JSON:', text.substring(0, 500));
+          throw new Error(`Răspuns invalid de la server (status ${res.status}). Asigurați-vă că sunteți autentificat și aveți plan Pro sau Enterprise.`);
+        }
+        
+        const data = await res.json();
+        console.log('Response data:', data);
+        
+        if (!res.ok) {
+          throw new Error(data.error || data.message || 'Eroare la generarea raportului');
+        }
+        
+        if (!data.data || data.data.length === 0) {
+          document.getElementById('messageContainer').innerHTML = '<div class="status-message empty">📊 Nu există date pentru perioada selectată</div>';
+          return;
+        }
+        
+        currentReportData = data;
+        document.getElementById('messageContainer').innerHTML = '';
+        
+        // Render based on report type
+        switch(currentReportType) {
+          case 'products':
+            renderProductsReport(data.data);
+            break;
+          case 'customers':
+            renderCustomersReport(data.data);
+            break;
+          case 'vehicles':
+            renderVehiclesReport(data.data);
+            break;
+        }
+        
+      } catch (error) {
+        document.getElementById('messageContainer').innerHTML = `<div class="status-message error">❌ ${error.message}</div>`;
+      }
+    }
+
+    // Render raport produse
+    function renderProductsReport(data) {
+      // Stats
+      const totalQty = data.reduce((sum, p) => sum + parseInt(p.total_qty || 0), 0);
+      const totalOrders = data.reduce((sum, p) => sum + parseInt(p.order_count || 0), 0);
+      
+      document.getElementById('statsContainer').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${data.length}</div>
+          <div class="stat-label">Produse</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalQty.toLocaleString('ro-RO')}</div>
+          <div class="stat-label">Bucăți vândute</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalOrders.toLocaleString('ro-RO')}</div>
+          <div class="stat-label">Apariții în comenzi</div>
+        </div>
+      `;
+      
+      // Table
+      const thead = document.querySelector('#reportTable thead');
+      const tbody = document.querySelector('#reportTable tbody');
+      
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>Produs</th>
+          <th>GTIN</th>
+          <th class="text-right">Cantitate vândută</th>
+          <th class="text-right">Apariții în comenzi</th>
+        </tr>
+      `;
+      
+      tbody.innerHTML = data.map((p, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${p.product_name}</strong></td>
+          <td class="text-muted">${p.gtin || '-'}</td>
+          <td class="text-right number-cell">${parseInt(p.total_qty || 0).toLocaleString('ro-RO')}</td>
+          <td class="text-right number-cell">${parseInt(p.order_count || 0).toLocaleString('ro-RO')}</td>
+        </tr>
+      `).join('');
+      
+      document.getElementById('tableContainer').style.display = 'block';
+    }
+
+    // Render raport clienți
+    function renderCustomersReport(data) {
+      // Stats
+      const totalOrders = data.reduce((sum, c) => sum + parseInt(c.total_orders || 0), 0);
+      const totalValue = data.reduce((sum, c) => sum + parseFloat(c.total_value || 0), 0);
+      const avgOrder = totalOrders > 0 ? totalValue / totalOrders : 0;
+      
+      document.getElementById('statsContainer').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${data.length}</div>
+          <div class="stat-label">Clienți activi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalOrders.toLocaleString('ro-RO')}</div>
+          <div class="stat-label">Total comenzi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value currency">${totalValue.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON</div>
+          <div class="stat-label">Valoare totală</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value currency">${avgOrder.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON</div>
+          <div class="stat-label">Comandă medie</div>
+        </div>
+      `;
+      
+      // Table
+      const thead = document.querySelector('#reportTable thead');
+      const tbody = document.querySelector('#reportTable tbody');
+      
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>Client</th>
+          <th class="text-right">Comenzi</th>
+          <th class="text-right">Valoare totală</th>
+          <th class="text-right">Medie/comandă</th>
+          <th>Ultima comandă</th>
+        </tr>
+      `;
+      
+      tbody.innerHTML = data.map((c, i) => {
+        const avg = parseFloat(c.avg_order_value);
+        const lastOrder = c.last_order ? new Date(c.last_order).toLocaleDateString('ro-RO') : '-';
+        return `
+        <tr>
+          <td>${i + 1}</td>
+          <td>
+            <strong>${c.client_name}</strong>
+            ${c.cui ? `<br><small class="text-muted">CUI: ${c.cui}</small>` : ''}
+          </td>
+          <td class="text-right number-cell">${parseInt(c.total_orders).toLocaleString('ro-RO')}</td>
+          <td class="text-right number-cell currency">${parseFloat(c.total_value).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON</td>
+          <td class="text-right number-cell">${avg.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON</td>
+          <td class="text-muted">${lastOrder}</td>
+        </tr>
+      `}).join('');
+      
+      document.getElementById('tableContainer').style.display = 'block';
+      
+      // Adaugă notă despre TVA
+      document.getElementById('messageContainer').innerHTML = '<div class="status-message" style="background: var(--bg-tertiary); color: var(--text-muted); margin-top: var(--space-3);">💡 Toate valorile sunt exprimate fără TVA.</div>';
+    }
+
+    // Render raport mașini
+    function renderVehiclesReport(data) {
+      // Stats
+      const totalKm = data.reduce((sum, v) => sum + parseInt(v.total_km), 0);
+      const totalTrips = data.reduce((sum, v) => sum + parseInt(v.total_trips), 0);
+      const avgKmPerTrip = totalKm / totalTrips;
+      
+      document.getElementById('statsContainer').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${data.length}</div>
+          <div class="stat-label">Mașini active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalTrips.toLocaleString('ro-RO')}</div>
+          <div class="stat-label">Total curse</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalKm.toLocaleString('ro-RO')} km</div>
+          <div class="stat-label">Total KM</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${avgKmPerTrip.toFixed(1)} km</div>
+          <div class="stat-label">Medie/cursă</div>
+        </div>
+      `;
+      
+      // Table
+      const thead = document.querySelector('#reportTable thead');
+      const tbody = document.querySelector('#reportTable tbody');
+      
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>Număr mașină</th>
+          <th class="text-right">Curse</th>
+          <th class="text-right">Total KM</th>
+          <th class="text-right">Medie/cursă</th>
+          <th class="text-right">KM ultima cursă</th>
+          <th class="text-right">Ultimii KM înregistrați</th>
+        </tr>
+      `;
+      
+      tbody.innerHTML = data.map((v, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${v.plate_number}</strong></td>
+          <td class="text-right number-cell">${parseInt(v.total_trips || 0).toLocaleString('ro-RO')}</td>
+          <td class="text-right number-cell">${parseInt(v.total_km || 0).toLocaleString('ro-RO')} km</td>
+          <td class="text-right number-cell">${parseFloat(v.avg_km_per_trip || 0).toFixed(1)} km</td>
+          <td class="text-right number-cell">${parseInt(v.last_trip_distance || 0).toLocaleString('ro-RO')} km</td>
+          <td class="text-right number-cell">${parseInt(v.last_km_recorded || 0).toLocaleString('ro-RO')}</td>
+        </tr>
+      `).join('');
+      
+      document.getElementById('tableContainer').style.display = 'block';
+    }
+
+    // Export CSV
+    function exportReport() {
+      if (!currentReportData || !currentReportData.data) return;
+      
+      let csv = '';
+      const data = currentReportData.data;
+      
+      if (currentReportType === 'products') {
+        csv = 'Rank,Produs,GTIN,Cantitate,Venituri,Comenzi\n';
+        csv += data.map((p, i) => `${i + 1},"${p.product_name}",${p.gtin || ''},${p.total_qty},${p.total_revenue},${p.order_count}`).join('\n');
+      } else if (currentReportType === 'customers') {
+        csv = 'Rank,Client,CUI,Comenzi,Valoare Totala,Medie Comanda\n';
+        csv += data.map((c, i) => `${i + 1},"${c.client_name}",${c.cui || ''},${c.total_orders},${c.total_value},${c.avg_order_value}`).join('\n');
+      } else if (currentReportType === 'vehicles') {
+        csv = 'Rank,Masina,Curse,Total KM,Medie Cursa,KM Min,KM Max\n';
+        csv += data.map((v, i) => `${i + 1},${v.plate_number},${v.total_trips},${v.total_km},${v.avg_km_per_trip},${v.min_km},${v.max_km}`).join('\n');
+      }
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `raport-${currentReportType}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+
+    // Upload Excel pentru solduri
+    (function() {
+      const input = document.getElementById('raportSold');
+      if (!input) return;
+      
+      input.onchange = async function() {
+        const file = this.files[0];
+        if (!file) return;
+        
+        const statusEl = document.getElementById('statusRaport');
+        const infoEl = document.getElementById('lastUploadInfo');
+        
+        statusEl.style.display = 'block';
+        statusEl.className = 'status-message loading';
+        statusEl.innerHTML = "⏳ Se procesează...";
+        
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+            
+            let headerIndex = -1;
+            for (let i = 0; i < Math.min(rows.length, 20); i++) {
+              if (String(rows[i][0] || '').toLowerCase().trim() === 'client') {
+                headerIndex = i;
+                break;
+              }
+            }
+            if (headerIndex === -1) throw new Error("Nu am găsit coloana 'Client' în Excel");
+            
+            const invoices = [];
+            const seen = new Set();
+            
+            for (let i = headerIndex + 1; i < rows.length; i++) {
+              const row = rows[i];
+              if (!row || row.length < 7) continue;
+              
+              const clientName = String(row[0] || '').trim();
+              if (!clientName || clientName.toLowerCase().includes('total')) continue;
+              
+              const key = `${clientName}|${row[3]}|${row[6]}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+              
+              const parseSum = (val) => {
+                if (!val) return 0;
+                if (typeof val === 'number') return val;
+                return parseFloat(String(val).replace(/,/g, '')) || 0;
+              };
+              
+              const parseDate = (val) => {
+                if (!val || val === '' || val === '-') return null;
+                if (val instanceof Date) return isNaN(val.getTime()) ? null : val.toISOString().split('T')[0];
+                const str = String(val).trim();
+                const parts = str.split(/[\/\-\.]/);
+                if (parts.length === 3) {
+                  const day = parts[0].padStart(2, '0');
+                  const month = parts[1].padStart(2, '0');
+                  const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                  return `${year}-${month}-${day}`;
+                }
+                return null;
+              };
+              
+              invoices.push({
+                client_name: clientName,
+                cui: String(row[1] || ''),
+                invoice_date: parseDate(row[2]),
+                invoice_number: String(row[3] || ''),
+                currency: String(row[4] || 'RON'),
+                total_value: parseSum(row[5]),
+                balance_due: parseSum(row[6]),
+                due_date: parseDate(row[7]),
+                days_overdue: parseInt(row[8]) || 0,
+                status: String(row[9] || '')
+              });
+            }
+            
+            const res = await fetch('/api/balances/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ invoices })
+            });
+            
+            const result = await res.json();
+            
+            if (result.success) {
+              statusEl.className = 'status-message success';
+              statusEl.innerHTML = `✅ ${result.inserted} facturi încărcate cu succes`;
+              infoEl.textContent = `Ultima încărcare: ${new Date().toLocaleString('ro-RO')}`;
+            } else {
+              statusEl.className = 'status-message error';
+              statusEl.innerHTML = `❌ Eroare: ${result.error || 'Necunoscută'}`;
+            }
+            
+          } catch (err) {
+            console.error(err);
+            statusEl.className = 'status-message error';
+            statusEl.innerHTML = `❌ ${err.message}`;
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      };
+    })();
+
+    // Închide modal la click outside
+    document.getElementById('reportModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // Escape key închide modal
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('reportModal').classList.contains('active')) {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>

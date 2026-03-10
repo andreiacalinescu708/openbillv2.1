@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Clienți - Fast Medical Distribution</title>
+  <title>Clienti - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="global.css" />
   <style>
     .page-header {
@@ -99,8 +100,9 @@
 
     .tab-btn {
       flex: 1;
-      min-width: 120px;
-      padding: var(--space-4) var(--space-6);
+      min-width: 90px;
+      padding: var(--space-3) var(--space-4);
+      font-size: 0.95rem;
       background: transparent;
       border: 2px solid transparent;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -284,7 +286,7 @@
     }
 
     .client-card::before {
-      content: "👤";
+      content: "\1F464";
       font-size: 1.5rem;
       opacity: 0.7;
     }
@@ -338,12 +340,12 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-brand">
-        <div class="navbar-brand-icon">⚕️</div>
-        <span>FMD</span>
+        <div class="navbar-brand-icon"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><defs><linearGradient id="bgLogo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" /><stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" /></linearGradient></defs><rect width="100" height="100" rx="20" fill="url(#bgLogo)"/><text x="32" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="45" font-weight="600" fill="#ffffff">o</text><text x="52" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="48" font-weight="700" fill="#38bdf8">B</text><rect width="100" height="100" rx="20" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.4"/></svg></div>
+        <span>Pagina Principala</span>
       </a>
       <div class="navbar-actions">
         <div id="userBar"></div>
-        <a href="index.html" class="btn btn-ghost btn-sm">← Înapoi</a>
+        <a href="index.html" class="btn btn-ghost btn-sm">&larr; Inapoi</a>
       </div>
     </div>
   </nav>
@@ -351,104 +353,66 @@
   <main class="container">
     <div class="page-header">
       <div>
-        <h1 style="margin-bottom: var(--space-2); font-size: 2rem;">Selectează Client</h1>
-        <p style="color: var(--text-muted); margin: 0; font-size: 1.125rem;">Alege un client pentru a începe o comandă nouă</p>
+        <h1 style="margin-bottom: var(--space-2); font-size: 2rem;">Selecteaza Client</h1>
+        <p style="color: var(--text-muted); margin: 0; font-size: 1.125rem;">Alege un client pentru a incepe o comanda noua</p>
       </div>
        <button class="btn btn-primary btn-lg" id="btnViewCurrentOrder" style="display: none; align-items: center; gap: 10px;">
-    <span>🛒</span>
-    <span>Vizualizează comanda actuală</span>
+    <span>&#128722;</span>
+    <span>Vizualizeaza comanda actuala</span>
     <span id="cartBadge" style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-left: 8px; display: none;">0</span>
   </button>
 </div>
     </div>
 
     <div class="search-box">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon">&#128269;</span>
       <input 
         type="text" 
         id="searchClient" 
         class="form-input" 
-        placeholder="Caută client după nume..." 
+        placeholder="Cauta client dupa nume..." 
         autocomplete="off" 
       />
       <div id="clientSearchResults"></div>
     </div>
 
     <!-- TAB NAVIGATION -->
-    <div class="tabs-nav">
-      <button class="tab-btn active" data-tab="craiova">
-        <span>📍</span>
-        <span>Craiova</span>
-        <span class="tab-badge" id="count-craiova">0</span>
-      </button>
-      <button class="tab-btn" data-tab="exterior">
-        <span>🌍</span>
-        <span>Exterior</span>
-        <span class="tab-badge" id="count-exterior">0</span>
-      </button>
+    <div class="tabs-nav" id="categoryTabs">
+      <!-- Tab-urile se genereaza dinamic -->
     </div>
 
     <!-- TAB CONTENT -->
-    <div class="clients-container">
-      <!-- CRAIOVA TAB -->
-      <div id="tab-craiova" class="tab-content active">
-        <div id="craiovaContent">
-          <div class="empty-state">
-            <div style="font-size: 3rem; margin-bottom: var(--space-4); opacity: 0.3;">📍</div>
-            <p>Se încarcă clienții din Craiova...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- EXTERIOR TAB -->
-      <div id="tab-exterior" class="tab-content">
-        <div id="exteriorContent">
-          <div class="empty-state">
-            <div style="font-size: 3rem; margin-bottom: var(--space-4); opacity: 0.3;">🌍</div>
-            <p>Se încarcă clienții din Exterior...</p>
-          </div>
-        </div>
-      </div>
+    <div class="clients-container" id="categoryContents">
+      <!-- Continutul tab-urilor se genereaza dinamic -->
     </div>
   </main>
 
   <script src="script.js"></script>
   
+  
   <script>
-    // AȘTEPTĂM ca script.js să se încarce complet
+    // Categorii disponibile (vor fi încărcate de la API)
+    let AVAILABLE_CATEGORIES = [];
+    
     document.addEventListener("DOMContentLoaded", async function() {
-      // Verificăm dacă suntem pe pagina corectă
-      if (!document.getElementById('craiovaContent')) return;
-      
       try {
-        // Încărcăm datele
-        const [treeRes, flatRes] = await Promise.all([
+        // Încărcăm categoriile și datele clienților în paralel
+        const [categoriesRes, treeRes, flatRes] = await Promise.all([
+          fetch("/api/client-categories"),
           fetch("/api/clients-tree"),
           fetch("/api/clients-flat")
         ]);
         
+        const categoriesData = await categoriesRes.json();
+        AVAILABLE_CATEGORIES = categoriesData.categories || [];
         const tree = await treeRes.json();
         const flat = await flatRes.json();
         
         // Salvăm flat în localStorage pentru a-l folosi în selectClient
         localStorage.setItem('clientsFlat', JSON.stringify(flat));
         
-        // Găsim cheile (uneori vin cu literă mică, uneori mare)
-        const craiovaKey = Object.keys(tree).find(k => k.toLowerCase() === 'craiova') || 'Craiova';
-        const exteriorKey = Object.keys(tree).find(k => k.toLowerCase() === 'exterior') || 'Exterior';
-        
-        // Randăm conținutul
-        renderCraiovaTab(tree[craiovaKey], flat);
-        renderExteriorTab(tree[exteriorKey], flat);
-        
-        // Actualizăm numerele în tab-uri
-const craiovaCount = Object.values(tree[craiovaKey] || {}).flat().length;
-        const exteriorCount = Object.values(tree[exteriorKey] || {}).reduce((sum, county) => {
-          return sum + Object.keys(county || {}).length;
-        }, 0);
-        
-        document.getElementById('count-craiova').textContent = craiovaCount;
-        document.getElementById('count-exterior').textContent = exteriorCount;
+        // Generăm tab-urile dinamic
+        generateTabs(AVAILABLE_CATEGORIES, tree);
         
         // Inițializăm tab-urile
         initTabs();
@@ -458,75 +422,158 @@ const craiovaCount = Object.values(tree[craiovaKey] || {}).flat().length;
         
       } catch (err) {
         console.error("Eroare:", err);
-        document.getElementById('craiovaContent').innerHTML = `
+        document.getElementById('categoryContents').innerHTML = `
           <div class="empty-state">
             <p>Eroare la încărcarea datelor. Reîncearcă.</p>
           </div>
         `;
       }
     });
-
-    function renderCraiovaTab(data, flat) {
-  const container = document.getElementById('craiovaContent');
-  
-  // ✅ FIX: Adăugat .flat() pentru a aplatiza array-ul
-  const clients = Object.values(data || {}).flat();
-  
-  if (clients.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>Nu există clienți în Craiova.</p>
-      </div>
-    `;
-    return;
-  }
-  
-  // Sortare alfabetică
-  clients.sort((a, b) => String(a).localeCompare(String(b), 'ro'));
-  
-  // Generăm HTML
-  const grid = document.createElement('div');
-  grid.className = 'clients-grid';
-  
-  clients.forEach(name => {
-    const card = document.createElement('button');
-    card.className = 'client-card';
-    card.innerHTML = `
-      <span class="client-name">${name}</span>
-      <span class="arrow">→</span>
-    `;
-    card.onclick = () => selectClient(name);
-    grid.appendChild(card);
-  });
-  
-  container.innerHTML = '';
-  container.appendChild(grid);
-}
-
-
-       function renderExteriorTab(data, flat) {
-      const container = document.getElementById('exteriorContent');
+    
+    // Extrage toți clienții dintr-o categorie specifică din tree
+    function getClientsForCategory(tree, category) {
+      const clients = [];
+      const categoryLower = category.toLowerCase();
       
-      // Dacă nu există date
-      if (!data || Object.keys(data).length === 0) {
-        container.innerHTML = `
+      // Tree structure: { group: { category: [clients] } }
+      Object.keys(tree).forEach(group => {
+        const groupData = tree[group];
+        if (typeof groupData === 'object') {
+          Object.keys(groupData).forEach(cat => {
+            if (cat.toLowerCase() === categoryLower) {
+              const catClients = groupData[cat];
+              if (Array.isArray(catClients)) {
+                clients.push(...catClients);
+              }
+            }
+          });
+        }
+      });
+      
+      return clients;
+    }
+    
+    // Generează tab-urile și conținutul dinamic
+    function generateTabs(categories, tree) {
+      const tabsContainer = document.getElementById('categoryTabs');
+      const contentsContainer = document.getElementById('categoryContents');
+      
+      tabsContainer.innerHTML = '';
+      contentsContainer.innerHTML = '';
+      
+      if (categories.length === 0) {
+        contentsContainer.innerHTML = `
           <div class="empty-state">
-            <p>Nu există clienți în Exterior.</p>
+            <p>Nu există categorii definite.</p>
           </div>
         `;
         return;
       }
       
-      // Sortăm județele alfabetic
-      const counties = Object.entries(data).sort((a, b) => 
-        a[0].localeCompare(b[0], 'ro')
-      );
+      // Iconițe pentru categorii
+      const categoryIcons = {
+        'Craiova': '📍',
+        'Targu Jiu': '📍',
+        'Valcea': '📍',
+        'Calafat': '📍',
+        'Olt': '📍',
+        'Hunedoara': '📍',
+        'Horezu': '📍',
+        'Altele': '📍'
+      };
+      
+      categories.forEach((category, index) => {
+        // Extragem clienții pentru această categorie din toate grupurile
+        const clients = getClientsForCategory(tree, category);
+        const clientCount = clients.length;
+        
+        // Creăm tab-ul
+        const tabId = category.toLowerCase().replace(/\s+/g, '-');
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+        tabBtn.dataset.tab = tabId;
+        tabBtn.innerHTML = `
+          <span>${categoryIcons[category] || '📍'}</span>
+          <span>${category}</span>
+          <span class="tab-badge" id="count-${tabId}">${clientCount}</span>
+        `;
+        tabsContainer.appendChild(tabBtn);
+        
+        // Creăm conținutul tab-ului
+        const tabContent = document.createElement('div');
+        tabContent.id = `tab-${tabId}`;
+        tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.id = `content-${tabId}`;
+        
+        if (clientCount === 0) {
+          contentDiv.innerHTML = `
+            <div class="empty-state">
+              <div style="font-size: 3rem; margin-bottom: var(--space-4); opacity: 0.3;">${categoryIcons[category] || '📍'}</div>
+              <p>Nu există clienți în ${category}.</p>
+            </div>
+          `;
+        } else {
+          // Sortăm și randăm clienții
+          clients.sort((a, b) => String(a).localeCompare(String(b), 'ro'));
+          renderSimpleList(contentDiv, clients);
+        }
+        
+        tabContent.appendChild(contentDiv);
+        contentsContainer.appendChild(tabContent);
+      });
+    }
+    
+    // Randează o listă simplă de clienți
+    function renderSimpleList(container, clients) {
+      if (clients.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Nu există clienți în această categorie.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Sortare alfabetică
+      const sortedClients = [...clients].sort((a, b) => String(a).localeCompare(String(b), 'ro'));
+      
+      const grid = document.createElement('div');
+      grid.className = 'clients-grid';
+      
+      sortedClients.forEach(name => {
+        const card = document.createElement('button');
+        card.className = 'client-card';
+        card.innerHTML = `
+          <span class="client-name">${name}</span>
+          <span class="arrow">→</span>
+        `;
+        card.onclick = () => selectClient(name);
+        grid.appendChild(card);
+      });
+      
+      container.innerHTML = '';
+      container.appendChild(grid);
+    }
+    
+    // Randează o listă grupată de clienți (ex: pe județe)
+    function renderGroupedList(container, data, categoryName) {
+      const groups = Object.entries(data).sort((a, b) => a[0].localeCompare(b[0], 'ro'));
+      
+      if (groups.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Nu există clienți în ${categoryName}.</p>
+          </div>
+        `;
+        return;
+      }
       
       container.innerHTML = '';
       
-      counties.forEach(([countyName, clientsObj], index) => {
-        // Convertim clienții la array
-        const clients = Object.values(clientsObj || {});
+      groups.forEach(([groupName, clients], index) => {
+        const clientsArray = Array.isArray(clients) ? clients : Object.values(clients || {});
         
         const accordion = document.createElement('div');
         accordion.className = 'county-accordion';
@@ -536,9 +583,9 @@ const craiovaCount = Object.values(tree[craiovaKey] || {}).flat().length;
         header.type = 'button';
         header.innerHTML = `
           <span style="display: flex; align-items: center; gap: 8px;">
-            🏘️ ${countyName}
+            🏘️ ${groupName}
           </span>
-          <span class="county-count">${clients.length} clienți</span>
+          <span class="county-count">${clientsArray.length} clienți</span>
         `;
         
         const body = document.createElement('div');
@@ -548,14 +595,14 @@ const craiovaCount = Object.values(tree[craiovaKey] || {}).flat().length;
         content.className = 'county-content';
         
         // Sortăm clienții și creăm cardurile
-        clients.sort((a, b) => String(a).localeCompare(String(b), 'ro'));
+        clientsArray.sort((a, b) => String(a).localeCompare(String(b), 'ro'));
         
-        clients.forEach(name => {
+        clientsArray.forEach(name => {
           const card = document.createElement('button');
           card.className = 'client-card';
           card.innerHTML = `
             <span class="client-name">${name}</span>
-            <span class="arrow">→</span>
+            <span class="arrow">&rarr;</span>
           `;
           card.onclick = () => selectClient(name);
           content.appendChild(card);
@@ -566,137 +613,109 @@ const craiovaCount = Object.values(tree[craiovaKey] || {}).flat().length;
         accordion.appendChild(body);
         container.appendChild(accordion);
         
-        // Toggle funcționalitate
-        header.onclick = () => {
-          const isOpen = body.classList.contains('open');
-          body.classList.toggle('open', !isOpen);
-          header.classList.toggle('active', !isOpen);
-        };
+        // Toggle accordion
+        header.addEventListener('click', () => {
+          const isOpen = body.style.display === 'block';
+          document.querySelectorAll('.county-body').forEach(b => b.style.display = 'none');
+          document.querySelectorAll('.county-header').forEach(h => h.classList.remove('open'));
+          
+          if (!isOpen) {
+            body.style.display = 'block';
+            header.classList.add('open');
+          }
+        });
         
-        // Deschidem primul județ implicit
+        // Deschidem primul grup implicit
         if (index === 0) {
-          setTimeout(() => {
-            body.classList.add('open');
-            header.classList.add('active');
-          }, 100);
+          body.style.display = 'block';
+          header.classList.add('open');
         }
       });
     }
-
+    
+    function initTabs() {
+      const buttons = document.querySelectorAll('.tab-btn');
+      const contents = document.querySelectorAll('.tab-content');
+      
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          contents.forEach(c => c.classList.remove('active'));
+          
+          btn.classList.add('active');
+          document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+        });
+      });
+    }
+    
+    function initSearch(flatClients) {
+      const searchInput = document.getElementById('searchClient');
+      const resultsDiv = document.getElementById('clientSearchResults');
+      
+      if (!searchInput || !resultsDiv) return;
+      
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        
+        if (query.length < 2) {
+          resultsDiv.style.display = 'none';
+          return;
+        }
+        
+        const matches = flatClients.filter(c => 
+          c.name.toLowerCase().includes(query)
+        ).slice(0, 10);
+        
+        if (matches.length === 0) {
+          resultsDiv.innerHTML = '<div style="padding: 12px; color: var(--text-muted);">Niciun rezultat</div>';
+        } else {
+          resultsDiv.innerHTML = matches.map(c => `
+            <div class="search-result-item" onclick="selectClient('${c.name.replace(/'/, "\\'")}')">
+              <strong>${c.name}</strong>
+              <span style="color: var(--text-muted); font-size: 0.875rem;">${c.category || ''}</span>
+            </div>
+          `).join('');
+        }
+        
+        resultsDiv.style.display = 'block';
+      });
+      
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+          resultsDiv.style.display = 'none';
+        }
+      });
+    }
+    
+    // Selectează client și merge la pagina de comenzi
     function selectClient(name) {
       const flat = JSON.parse(localStorage.getItem('clientsFlat') || '[]');
       const client = flat.find(c => c.name === name);
       
       if (!client) {
-        alert("Clientul nu a fost găsit");
+        alert("Clientul nu a fost gasit");
         return;
       }
       
-      // Verificăm coșul
+      // Verificăm coșul existent
       const cart = JSON.parse(localStorage.getItem("cart")) || [];
       if (cart.length > 0) {
-        alert("Nu poți schimba clientul cât timp există produse în coș.");
-        return;
+        const currentClient = JSON.parse(localStorage.getItem("clientSelectat") || '{}');
+        if (currentClient.id !== client.id) {
+          if (!confirm("Ai produse in cos pentru alt client. Doresti sa stergi cosul si sa continui cu noul client?")) {
+            return;
+          }
+          localStorage.removeItem("cart");
+        }
       }
       
       localStorage.setItem("clientSelectat", JSON.stringify(client));
       location.href = "client.html";
     }
-
-    function initTabs() {
-      const tabs = document.querySelectorAll('.tab-btn');
-      const contents = document.querySelectorAll('.tab-content');
-      
-      tabs.forEach(tab => {
-        tab.onclick = () => {
-          const target = tab.dataset.tab;
-          
-          // Dezactivăm toate tab-urile
-          tabs.forEach(t => t.classList.remove('active'));
-          contents.forEach(c => c.classList.remove('active'));
-          
-          // Activăm tab-ul curent
-          tab.classList.add('active');
-          document.getElementById('tab-' + target).classList.add('active');
-        };
-      });
-    }
-
-    function initSearch(flatClients) {
-      const input = document.getElementById("searchClient");
-      const results = document.getElementById("clientSearchResults");
-      
-      if (!input || !results) return;
-      
-      let timeout;
-      
-      input.oninput = () => {
-        const query = input.value.toLowerCase().trim();
-        
-        clearTimeout(timeout);
-        results.innerHTML = '';
-        
-        if (!query) {
-          results.classList.remove("show");
-          return;
-        }
-        
-        timeout = setTimeout(() => {
-          const matches = flatClients.filter(c => 
-            c.name.toLowerCase().includes(query)
-          ).slice(0, 20);
-          
-          if (matches.length === 0) {
-            results.innerHTML = '<div style="padding: 12px; color: var(--text-muted); text-align: center;">Niciun client găsit</div>';
-            results.classList.add("show");
-            return;
-          }
-          
-          matches.forEach(client => {
-            const btn = document.createElement("button");
-            btn.className = "itembtn";
-            btn.textContent = client.name;
-            btn.onclick = () => {
-              selectClient(client.name);
-            };
-            results.appendChild(btn);
-          });
-          
-          results.classList.add("show");
-        }, 300);
-      };
-      
-      // Închidem când dăm click în afară
-      document.onclick = (e) => {
-        if (!input.contains(e.target) && !results.contains(e.target)) {
-          results.classList.remove("show");
-        }
-      };
-    }
   </script>
-  <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const btn = document.getElementById("btnViewCurrentOrder");
-  const badge = document.getElementById("cartBadge");
-  
-  if (!btn) return; // Dacă nu există butonul, ieșim
-  
-  try {
-    const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    if (cart.length > 0) {
-      btn.style.display = "inline-flex"; // sau "flex"
-      badge.style.display = "inline";
-      badge.textContent = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
-      
-      // Click handler
-      btn.onclick = function() {
-        location.href = "comanda.html";
-      };
-    }
-  } catch (e) {
-    console.log("Eroare la citirea coșului");
-  }
-});
-</script>
 </body>
 </html>
+
+
+
+

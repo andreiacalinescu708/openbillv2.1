@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrare Clienți - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .header h1 { font-size: 1.5rem; font-weight: 600; }
+    
+    .btn-back {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    
+    .search-box {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+    
+    .search-box input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.875rem 1rem 0.875rem 2.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    
+    .search-box::before {
+      content: "🔍";
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .search-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 0.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+    }
+    
+    .search-suggestions.active { display: block; }
+    
+    .suggestion-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .suggestion-item:hover { background: var(--bg-input); }
+    
+    .suggestion-group { font-size: 0.75rem; color: var(--primary); }
+    
+    .actions-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-success { background: var(--success); }
+    .btn-secondary { background: var(--bg-input); border: 1px solid var(--border); }
+    
+    .accordion {
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    
+    .accordion-item { border-bottom: 1px solid var(--border); }
+    .accordion-item:last-child { border-bottom: none; }
+    
+    .accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: var(--bg-input);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .accordion-header:hover { background: var(--border); }
+    
+    .accordion-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .client-count {
+      background: var(--primary);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+    }
+    
+    .accordion-arrow { transition: transform 0.2s; }
+    .accordion-item.active .accordion-arrow { transform: rotate(180deg); }
+    
+    .accordion-content {
+      display: none;
+      padding: 1rem 1.5rem;
+    }
+    
+    .accordion-item.active .accordion-content { display: block; }
+    
+    .client-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+    
+    .client-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.875rem;
+      background: var(--bg-dark);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    .client-info h4 { font-weight: 500; margin-bottom: 0.25rem; }
+    .client-info p { font-size: 0.875rem; color: var(--text-secondary); }
+    
+    .client-actions { display: flex; gap: 0.5rem; }
+    
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    
+    .modal-overlay.active { display: flex; }
+    
+    .modal {
+      background: var(--bg-card);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .modal-header h2 { font-size: 1.25rem; }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .modal-body { padding: 1.25rem; }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+    
+    .form-group { display: flex; flex-direction: column; gap: 0.375rem; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    
+    .form-group label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.625rem;
+      border-radius: 6px;
+      font-size: 0.9375rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    
+    .alert {
+      padding: 0.875rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    
+    .alert.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    
+    .alert.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    
+    .hidden { display: none !important; }
+    
+    .import-prices-section {
+      background: var(--bg-input);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    
+    .parent-clients-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    
+    .parent-client-card {
+      background: var(--bg-dark);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .parent-client-card:hover { border-color: var(--primary); }
+    .parent-client-card.selected { border-color: var(--success); background: rgba(34, 197, 94, 0.1); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👥 Administrare Clienți</h1>
+      <a href="index.html" class="btn-back">← Înapoi</a>
+    </div>
+    
+    <div id="alert"></div>
+    
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Caută client după nume, grup sau CUI..." autocomplete="off">
+      <div class="search-suggestions" id="searchSuggestions"></div>
+    </div>
+    
+    <!-- Tab-uri categorii -->
+    <div class="category-tabs" id="categoryTabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+      <button class="tab-btn active" data-category="all" onclick="filterByCategory('all')" style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); background: var(--primary); color: white; cursor: pointer; font-size: 0.85rem;">📍 Toți</button>
+    </div>
+    
+    <div class="actions-bar">
+      <button class="btn btn-success" onclick="openModal()">
+        <span>➕</span>
+        <span>Adaugă Client</span>
+      </button>
+      <button class="btn btn-secondary" onclick="loadClients()">
+        <span>🔄</span>
+        <span>Reîncarcă</span>
+      </button>
+    </div>
+    
+    <div class="accordion" id="clientsAccordion">
+      <!-- Se populează din JS -->
+    </div>
+  </div>
+  
+  <!-- Modal Adaugă/Editează Client -->
+  <div class="modal-overlay" id="clientModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">➕ Adaugă Client</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <form id="clientForm">
+          <input type="hidden" id="clientId">
+          
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Tip Client</label>
+              <select id="clientType" onchange="toggleClientType()">
+                <option value="parent">Client Părinte (Firmă principală)</option>
+                <option value="child">Punct de Lucru (Filială)</option>
+              </select>
+            </div>
+            
+            <div class="form-group full-width" id="parentSelectGroup" style="display: none;">
+              <label>Client Părinte *</label>
+              <select id="parentId" required>
+                <option value="">Selectează firma părinte...</option>
+              </select>
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Nume Firmă / Grup *</label>
+              <input type="text" id="groupName" required placeholder="ex: Al Shefa, Nidofarm">
+            </div>
+            
+            <div class="form-group" id="locationGroup" style="display: none;">
+              <label>Denumire Punct de Lucru *</label>
+              <input type="text" id="locationName" placeholder="ex: Simplon, Rotonda, 1 Mai">
+            </div>
+            
+            <div class="form-group">
+              <label>Nume Afisat *</label>
+              <input type="text" id="name" required placeholder="ex: Al Shefa Simplon">
+            </div>
+            
+            <div class="form-group">
+              <label>CUI / CIF</label>
+              <input type="text" id="cui" placeholder="RO12345678">
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Adresă Livrare</label>
+              <textarea id="deliveryAddress" rows="2" placeholder="Strada, număr, oraș..."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Termen Plată (zile)</label>
+              <input type="number" id="paymentTerms" value="0" min="0">
+            </div>
+            
+            <div class="form-group">
+              <label>Categorie</label>
+              <select id="category">
+                <option value="">Se încarcă...</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="import-prices-section" id="importPricesSection">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.5rem;">
+              <input type="radio" name="priceOption" value="own" checked onchange="togglePriceOption()">
+              <span>Prețuri proprii (configurează manual)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="radio" name="priceOption" value="import" onchange="togglePriceOption()">
+              <span>Importă prețuri de la alt client</span>
+            </label>
+            
+            <div id="importPricesSelect" style="display: none; margin-top: 0.75rem;">
+              <label>Selectează clientul sursă:</label>
+              <div class="parent-clients-grid" id="sourceClientsGrid">
+                <!-- Se populează din JS -->
+              </div>
+              <input type="hidden" id="sourceClientId">
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Anulează</button>
+        <button class="btn" onclick="saveClient()">Salvează</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let allClients = [];
+    let parentClients = [];
+    let groupedClients = {};
+    
+    // Verificare admin
+    async function checkAdmin() {
+      try {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        
+        if (!data.loggedIn) {
+          window.location.href = '/login.html';
+          return false;
+        }
+        
+        if (data.user.role !== 'admin' && data.user.role !== 'superadmin') {
+          alert('Acces interzis! Doar administratorii pot accesa această pagină.');
+          window.location.href = '/index.html';
+          return false;
+        }
+        
+        return true;
+      } catch (err) {
+        window.location.href = '/login.html';
+        return false;
+      }
+    }
+    
+    // Categoriile valide
+    let validCategories = [];
+    let currentCategory = 'all';
+    
+    // Încarcă categoriile valide
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/client-categories');
+        const data = await res.json();
+        validCategories = data.categories || [];
+        
+        // Populăm tab-urile
+        const tabsContainer = document.getElementById('categoryTabs');
+        // Păstrăm doar primul buton (Toți)
+        tabsContainer.innerHTML = '<button class="tab-btn active" data-category="all" onclick="filterByCategory(\'all\')" style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); background: var(--primary); color: white; cursor: pointer; font-size: 0.85rem;">📍 Toți</button>';
+        
+        validCategories.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.className = 'tab-btn';
+          btn.dataset.category = cat;
+          btn.textContent = '📍 ' + cat;
+          btn.onclick = () => filterByCategory(cat);
+          btn.style.cssText = 'padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 0.85rem;';
+          tabsContainer.appendChild(btn);
+        });
+        
+        // Populăm și dropdown-ul din modal
+        const categorySelect = document.getElementById('category');
+        if (categorySelect) {
+          categorySelect.innerHTML = '<option value="">Selectează categoria...</option>';
+          validCategories.forEach(cat => {
+            categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+          });
+        }
+      } catch (err) {
+        console.error('Eroare încărcare categorii:', err);
+      }
+    }
+    
+    // Filtrează după categorie
+    function filterByCategory(category) {
+      currentCategory = category;
+      
+      // Update UI tab-uri
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.category === category) {
+          btn.style.background = 'var(--primary)';
+          btn.style.color = 'white';
+        } else {
+          btn.style.background = 'var(--bg-input)';
+          btn.style.color = 'var(--text-primary)';
+        }
+      });
+      
+      renderAccordion();
+    }
+    
+    // Încarcă clienți
+    async function loadClients() {
+      try {
+        const res = await fetch('/api/clients-flat');
+        allClients = await res.json();
+        
+        // Separăm părinții de copii
+        parentClients = allClients.filter(c => !c.parent_id || c.is_parent);
+        
+        // Grupăm după group_name
+        groupedClients = {};
+        allClients.forEach(client => {
+          const group = client.group_name || 'Alții';
+          if (!groupedClients[group]) {
+            groupedClients[group] = { parents: [], children: [] };
+          }
+          
+          if (client.is_parent || !client.parent_id) {
+            groupedClients[group].parents.push(client);
+          } else {
+            groupedClients[group].children.push(client);
+          }
+        });
+        
+        renderAccordion();
+        populateParentSelect();
+        populateSourceClients();
+      } catch (err) {
+        console.error('Eroare:', err);
+        showAlert('Eroare la încărcarea clienților', 'error');
+      }
+    }
+    
+    // Render accordion
+    function renderAccordion() {
+      const container = document.getElementById('clientsAccordion');
+      container.innerHTML = '';
+      
+      // Filtrăm clienții după categorie dacă e selectată una
+      let filteredGroups = {};
+      Object.keys(groupedClients).forEach(group => {
+        const groupData = groupedClients[group];
+        
+        // Filtrăm părinții și copiii după categorie
+        let filteredParents = groupData.parents;
+        let filteredChildren = groupData.children;
+        
+        if (currentCategory !== 'all') {
+          filteredParents = groupData.parents.filter(c => c.category === currentCategory);
+          filteredChildren = groupData.children.filter(c => c.category === currentCategory);
+        }
+        
+        // Adăugăm grupul doar dacă are clienți după filtrare
+        if (filteredParents.length > 0 || filteredChildren.length > 0) {
+          filteredGroups[group] = {
+            parents: filteredParents,
+            children: filteredChildren
+          };
+        }
+      });
+      
+      if (Object.keys(filteredGroups).length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Nu există clienți în această categorie.</div>';
+        return;
+      }
+      
+      Object.keys(filteredGroups).sort().forEach((group, index) => {
+        const groupData = filteredGroups[group];
+        const totalClients = groupData.parents.length + groupData.children.length;
+        
+        const item = document.createElement('div');
+        item.className = 'accordion-item';
+        item.innerHTML = `
+          <div class="accordion-header" onclick="toggleAccordion(${index})">
+            <h3>
+              📁 ${escapeHtml(group)}
+              <span class="client-count">${totalClients}</span>
+            </h3>
+            <span class="accordion-arrow">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div class="client-list">
+              ${groupData.parents.map(parent => renderClientItem(parent, true)).join('')}
+              ${groupData.children.map(child => renderClientItem(child, false)).join('')}
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+    
+    function renderClientItem(client, isParent) {
+      const locations = isParent && groupedClients[client.group_name]?.children
+        ? groupedClients[client.group_name].children.filter(c => c.parent_id === client.id)
+        : [];
+      
+      return `
+        <div class="client-item">
+          <div class="client-info">
+            <h4>${escapeHtml(client.name)} ${isParent ? '👑' : '📍'}</h4>
+            <p>
+              ${client.cui ? 'CUI: ' + escapeHtml(client.cui) + ' | ' : ''}
+              ${client.location_name ? 'Locație: ' + escapeHtml(client.location_name) + ' | ' : ''}
+              Termen plată: ${client.payment_terms || 0} zile
+              ${locations.length ? `| ${locations.length} puncte de lucru` : ''}
+            </p>
+          </div>
+          <div class="client-actions">
+            <button class="btn btn-sm btn-secondary" onclick="editClient('${client.id}')">✏️</button>
+            ${isParent ? `<button class="btn btn-sm btn-success" onclick="addLocation('${client.id}', '${escapeHtml(client.group_name)}')">➕ Locație</button>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    
+    function toggleAccordion(index) {
+      const items = document.querySelectorAll('.accordion-item');
+      items[index].classList.toggle('active');
+    }
+    
+    // Search live
+    const searchInput = document.getElementById('searchInput');
+    const suggestions = document.getElementById('searchSuggestions');
+    
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      if (!query) {
+        suggestions.classList.remove('active');
+        return;
+      }
+      
+      const matches = allClients.filter(c => 
+        c.name.toLowerCase().includes(query) ||
+        (c.group_name && c.group_name.toLowerCase().includes(query)) ||
+        (c.cui && c.cui.toLowerCase().includes(query)) ||
+        (c.location_name && c.location_name.toLowerCase().includes(query))
+      ).slice(0, 10);
+      
+      suggestions.innerHTML = matches.map(c => `
+        <div class="suggestion-item" onclick="selectClient('${c.id}')">
+          <span>${escapeHtml(c.name)}</span>
+          <span class="suggestion-group">${escapeHtml(c.group_name || 'Alții')}</span>
+        </div>
+      `).join('');
+      
+      suggestions.classList.toggle('active', matches.length > 0);
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-box')) {
+        suggestions.classList.remove('active');
+      }
+    });
+    
+    function selectClient(id) {
+      editClient(id);
+      suggestions.classList.remove('active');
+      searchInput.value = '';
+    }
+    
+    // Modal funcții
+    function openModal() {
+      document.getElementById('clientModal').classList.add('active');
+      document.getElementById('clientForm').reset();
+      document.getElementById('clientId').value = '';
+      document.getElementById('modalTitle').textContent = '➕ Adaugă Client';
+      toggleClientType();
+    }
+    
+    function closeModal() {
+      document.getElementById('clientModal').classList.remove('active');
+    }
+    
+    function toggleClientType() {
+      const type = document.getElementById('clientType').value;
+      const parentGroup = document.getElementById('parentSelectGroup');
+      const locationGroup = document.getElementById('locationGroup');
+      
+      if (type === 'child') {
+        parentGroup.style.display = 'block';
+        locationGroup.style.display = 'block';
+        document.getElementById('parentId').required = true;
+        document.getElementById('locationName').required = true;
+      } else {
+        parentGroup.style.display = 'none';
+        locationGroup.style.display = 'none';
+        document.getElementById('parentId').required = false;
+        document.getElementById('locationName').required = false;
+      }
+    }
+    
+    function populateParentSelect() {
+      const select = document.getElementById('parentId');
+      select.innerHTML = '<option value="">Selectează firma părinte...</option>';
+      parentClients.forEach(p => {
+        select.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)} (${escapeHtml(p.group_name || 'fără grup')})</option>`;
+      });
+    }
+    
+    function populateSourceClients() {
+      const grid = document.getElementById('sourceClientsGrid');
+      grid.innerHTML = parentClients.map(p => `
+        <div class="parent-client-card" onclick="selectSourceClient('${p.id}', this)">
+          <strong>${escapeHtml(p.name)}</strong>
+          <div style="font-size: 0.75rem; color: var(--text-secondary);">${escapeHtml(p.group_name || '')}</div>
+        </div>
+      `).join('');
+    }
+    
+    function selectSourceClient(id, element) {
+      document.getElementById('sourceClientId').value = id;
+      document.querySelectorAll('.parent-client-card').forEach(c => c.classList.remove('selected'));
+      element.classList.add('selected');
+    }
+    
+    function togglePriceOption() {
+      const option = document.querySelector('input[name="priceOption"]:checked').value;
+      document.getElementById('importPricesSelect').style.display = option === 'import' ? 'block' : 'none';
+    }
+    
+    function toggleImportPrices() {
+      // Funcție veche - păstrată pentru compatibilitate
+      togglePriceOption();
+    }
+    
+    function addLocation(parentId, groupName) {
+      openModal();
+      document.getElementById('clientType').value = 'child';
+      document.getElementById('groupName').value = groupName;
+      toggleClientType();
+      
+      // Selectează părintele
+      setTimeout(() => {
+        document.getElementById('parentId').value = parentId;
+      }, 100);
+    }
+    
+    async function editClient(id) {
+      const client = allClients.find(c => c.id === id);
+      if (!client) return;
+      
+      openModal();
+      document.getElementById('modalTitle').textContent = '✏️ Editează Client';
+      document.getElementById('clientId').value = client.id;
+      document.getElementById('name').value = client.name;
+      document.getElementById('cui').value = client.cui || '';
+      document.getElementById('groupName').value = client.group_name || '';
+      document.getElementById('locationName').value = client.location_name || '';
+      document.getElementById('deliveryAddress').value = client.delivery_address || '';
+      document.getElementById('paymentTerms').value = client.payment_terms || 0;
+      document.getElementById('category').value = client.category || 'farmacie';
+      
+      if (client.parent_id) {
+        document.getElementById('clientType').value = 'child';
+        document.getElementById('parentId').value = client.parent_id;
+      } else {
+        document.getElementById('clientType').value = 'parent';
+      }
+      toggleClientType();
+    }
+    
+    async function saveClient() {
+      const form = document.getElementById('clientForm');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      
+      const clientId = document.getElementById('clientId').value;
+      const isChild = document.getElementById('clientType').value === 'child';
+      
+      const data = {
+        name: document.getElementById('name').value,
+        cui: document.getElementById('cui').value,
+        group_name: document.getElementById('groupName').value,
+        location_name: isChild ? document.getElementById('locationName').value : null,
+        delivery_address: document.getElementById('deliveryAddress').value,
+        payment_terms: parseInt(document.getElementById('paymentTerms').value) || 0,
+        category: document.getElementById('category').value,
+        is_parent: !isChild,
+        parent_id: isChild ? document.getElementById('parentId').value : null
+      };
+      
+      const priceOption = document.querySelector('input[name="priceOption"]:checked')?.value || 'own';
+      const importPrices = priceOption === 'import';
+      const sourceClientId = document.getElementById('sourceClientId').value;
+      
+      try {
+        let url = '/api/clients';
+        let method = 'POST';
+        
+        if (clientId) {
+          url = `/api/clients/${clientId}`;
+          method = 'PUT';
+        }
+        
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(result.error || 'Eroare la salvare');
+        }
+        
+        // Dacă trebuie importate prețuri
+        if (importPrices && sourceClientId && !clientId) {
+          await fetch(`/api/clients/${result.id}/import-prices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceClientId })
+          });
+        }
+        
+        showAlert('Client salvat cu succes!', 'success');
+        closeModal();
+        loadClients();
+      } catch (err) {
+        console.error('Eroare:', err);
+        showAlert(err.message, 'error');
+      }
+    }
+    
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = 'alert ' + type;
+      setTimeout(() => alert.className = 'alert hidden', 5000);
+    }
+    
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Inițializare
+    (async function init() {
+      if (await checkAdmin()) {
+        await loadCategories();
+        await loadClients();
+      }
+    })();
+  </script>
+</body>
+</html>

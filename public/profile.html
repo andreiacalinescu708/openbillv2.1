@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profilul Meu - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .btn-back {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+    
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 600;
+    }
+    
+    .profile-info h2 {
+      font-size: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .profile-info p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .role-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+    
+    .role-badge.admin {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+    
+    .role-badge.user {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--primary);
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .form-group input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .form-group input:read-only {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+    
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .alert.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    
+    .alert.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.5rem 0;
+    }
+    
+    .password-requirements {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+    
+    .password-requirements ul {
+      margin: 0.25rem 0 0 1rem;
+      padding: 0;
+    }
+    
+    .password-requirements li {
+      margin: 0.125rem 0;
+    }
+    
+    .password-requirements li.valid {
+      color: var(--success);
+    }
+    
+    .password-requirements li.invalid {
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👤 Profilul Meu</h1>
+      <a href="index.html" class="btn-back">← Înapoi</a>
+    </div>
+    
+    <div id="alert"></div>
+    
+    <div class="card">
+      <div class="profile-header">
+        <div class="avatar" id="userAvatar">👤</div>
+        <div class="profile-info">
+          <h2 id="displayName">-</h2>
+          <p id="displayUsername">@username</p>
+          <span class="role-badge" id="roleBadge">-</span>
+        </div>
+      </div>
+      
+      <form id="profileForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="firstName">Prenume</label>
+            <input type="text" id="firstName" name="firstName" placeholder="Prenumele tău">
+          </div>
+          
+          <div class="form-group">
+            <label for="lastName">Nume</label>
+            <input type="text" id="lastName" name="lastName" placeholder="Numele tău">
+          </div>
+          
+          <div class="form-group">
+            <label for="position">Funcție</label>
+            <input type="text" id="position" name="position" placeholder="ex: Farmacist">
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">Telefon</label>
+            <input type="tel" id="phone" name="phone" placeholder="0712 345 678">
+          </div>
+          
+          <div class="form-group full-width">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="email@companie.ro">
+          </div>
+        </div>
+        
+        <button type="submit" class="btn" style="margin-top: 1rem;">💾 Salvează Profil</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">🔐 Schimbă Parola</div>
+      
+      <form id="passwordForm">
+        <div class="form-group">
+          <label for="currentPassword">Parola curentă *</label>
+          <input type="password" id="currentPassword" required placeholder="••••••••">
+        </div>
+        
+        <div class="form-group">
+          <label for="newPassword">Parola nouă *</label>
+          <input type="password" id="newPassword" required placeholder="••••••••">
+          <div class="password-requirements">
+            Parola trebuie să conțină:
+            <ul>
+              <li id="req-length" class="invalid">minim 8 caractere</li>
+              <li id="req-upper" class="invalid">minim o literă mare</li>
+              <li id="req-lower" class="invalid">minim o literă mică</li>
+              <li id="req-number" class="invalid">minim un număr</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirmNewPassword">Confirmă parola nouă *</label>
+          <input type="password" id="confirmNewPassword" required placeholder="••••••••">
+        </div>
+        
+        <button type="submit" class="btn">🔐 Schimbă Parola</button>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    let userRole = null;
+    
+    // Verifică autentificare
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        
+        if (!data.loggedIn) {
+          window.location.href = '/login.html';
+          return false;
+        }
+        
+        userRole = data.user.role;
+        return true;
+      } catch (err) {
+        console.error('Eroare:', err);
+        window.location.href = '/login.html';
+        return false;
+      }
+    }
+    
+    // Încarcă profil
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/profile');
+        const user = await res.json();
+        
+        // Avatar și header
+        const initials = (user.first_name?.[0] || '') + (user.last_name?.[0] || '');
+        document.getElementById('userAvatar').textContent = initials || '👤';
+        
+        const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
+        document.getElementById('displayName').textContent = fullName;
+        document.getElementById('displayUsername').textContent = '@' + user.username;
+        
+        // Role badge
+        const roleBadge = document.getElementById('roleBadge');
+        roleBadge.textContent = user.role === 'admin' ? 'Administrator' : (user.role === 'superadmin' ? 'Super Admin' : 'Utilizator');
+        roleBadge.className = 'role-badge ' + (user.role === 'admin' || user.role === 'superadmin' ? 'admin' : 'user');
+        
+        // Form
+        document.getElementById('firstName').value = user.first_name || '';
+        document.getElementById('lastName').value = user.last_name || '';
+        document.getElementById('position').value = user.position || '';
+        document.getElementById('phone').value = user.phone || '';
+        document.getElementById('email').value = user.email || '';
+        
+      } catch (err) {
+        console.error('Eroare încărcare profil:', err);
+        showAlert('Eroare la încărcarea profilului.', 'error');
+      }
+    }
+    
+    // Salvează profil
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        position: document.getElementById('position').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value
+      };
+      
+      try {
+        const res = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          showAlert('Profil actualizat cu succes!', 'success');
+          loadProfile(); // Reîncărcăm pentru a actualiza header-ul
+        } else {
+          showAlert(data.error || 'Eroare la actualizare.', 'error');
+        }
+        
+      } catch (err) {
+        console.error('Eroare:', err);
+        showAlert('Eroare de conexiune.', 'error');
+      }
+    });
+    
+    // Validare parolă în timp real
+    document.getElementById('newPassword').addEventListener('input', function() {
+      const password = this.value;
+      
+      document.getElementById('req-length').className = password.length >= 8 ? 'valid' : 'invalid';
+      document.getElementById('req-upper').className = /[A-Z]/.test(password) ? 'valid' : 'invalid';
+      document.getElementById('req-lower').className = /[a-z]/.test(password) ? 'valid' : 'invalid';
+      document.getElementById('req-number').className = /[0-9]/.test(password) ? 'valid' : 'invalid';
+    });
+    
+    // Schimbă parola
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+      
+      // Validare
+      if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+        showAlert('Parola nouă nu îndeplinește toate cerințele.', 'error');
+        return;
+      }
+      
+      if (newPassword !== confirmNewPassword) {
+        showAlert('Parolele nu coincid.', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          showAlert('Parola a fost schimbată cu succes!', 'success');
+          document.getElementById('passwordForm').reset();
+          // Resetăm indicatorii
+          document.querySelectorAll('.password-requirements li').forEach(li => li.className = 'invalid');
+        } else {
+          showAlert(data.error || 'Eroare la schimbarea parolei.', 'error');
+        }
+        
+      } catch (err) {
+        console.error('Eroare:', err);
+        showAlert('Eroare de conexiune.', 'error');
+      }
+    });
+    
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = 'alert ' + type;
+      setTimeout(() => alert.className = 'alert hidden', 5000);
+    }
+    
+    // Inițializare
+    (async function init() {
+      if (await checkAuth()) {
+        await loadProfile();
+      }
+    })();
+  </script>
+</body>
+</html>

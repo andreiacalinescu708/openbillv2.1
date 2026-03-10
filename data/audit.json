@@ -1258,5 +1258,54 @@
       "newStatus": "facturata"
     },
     "createdAt": "2026-01-31T20:25:47.260Z"
+  },
+  {
+    "id": "693473bd-b205-42d4-940b-a50ddd1d8eef",
+    "action": "ORDER_CREATE",
+    "entity": "order",
+    "entityId": "1773094986763",
+    "user": {
+      "id": 1,
+      "username": "alex1",
+      "role": "admin"
+    },
+    "details": {
+      "clientName": "Al Shefa Simplon",
+      "paymentTerms": 60,
+      "dueDate": "2026-05-08"
+    },
+    "createdAt": "2026-03-09T22:23:06.893Z"
+  },
+  {
+    "id": "720a820c-d1c5-49bd-bf4c-53be4af5bb14",
+    "action": "ORDER_UPDATE",
+    "entity": "order",
+    "entityId": "1773094986763",
+    "user": {
+      "id": 1,
+      "username": "alex1",
+      "role": "admin"
+    },
+    "details": {
+      "itemsCount": 3
+    },
+    "createdAt": "2026-03-09T22:34:44.547Z"
+  },
+  {
+    "id": "d502a3fa-25dd-4c1b-a8b3-7403754b54a9",
+    "action": "ORDER_SEND_SMARTBILL",
+    "entity": "order",
+    "entityId": "1773094986763",
+    "user": {
+      "id": 1,
+      "username": "alex1",
+      "role": "admin"
+    },
+    "details": {
+      "clientName": "Al Shefa Simplon",
+      "smartbillSeries": "FMD",
+      "smartbillNumber": ""
+    },
+    "createdAt": "2026-03-09T22:37:35.899Z"
   }
 ]

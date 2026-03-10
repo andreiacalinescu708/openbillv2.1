@@ -86,7 +86,13 @@ async function initLoginPage() {
 
       // Login reușit
       localStorage.setItem('username', username);
-      location.href = "index.html";
+      
+      // Dacă serverul returnează redirectUrl (suntem pe localhost), folosim acela
+      if (data.redirectUrl) {
+        location.href = data.redirectUrl;
+      } else {
+        location.href = "index.html";
+      }
       
     } catch (err) {
       console.error("Login error:", err);
@@ -174,38 +180,104 @@ async function initLoginPage() {
   }
   localStorage.setItem('username', me.user.username);
 
-  const isAdmin = me.user.role === 'admin';
+  const isAdmin = me.user.role === 'admin' || me.user.role === 'superadmin';
   
-  // HTML pentru dropdown
+  // Construim numele afișat: Prenume + Inițiala Nume (ex: Andrei C.)
+  let displayName = me.user.username; // fallback
+  if (me.user.first_name) {
+    const lastNameInitial = me.user.last_name ? me.user.last_name.charAt(0).toUpperCase() + '.' : '';
+    displayName = escapeHtml(me.user.first_name) + (lastNameInitial ? ' ' + lastNameInitial : '');
+  }
+  
+  // Încărcăm datele companiei
+  let companyName = 'Companie';
+  let companyCui = '';
+  let planName = '-';
+  try {
+    const companyRes = await apiFetch('/api/company-settings');
+    if (companyRes.ok) {
+      const company = await companyRes.json();
+      companyName = company.name || 'Companie';
+      companyCui = company.cui || company.registration_number || '';
+    }
+    
+    // Încercăm să luăm planul din subscription-status
+    const planRes = await apiFetch('/api/subscription-status');
+    if (planRes.ok) {
+      const plan = await planRes.json();
+      planName = plan.plan ? plan.plan.charAt(0).toUpperCase() + plan.plan.slice(1) : '-';
+    }
+  } catch (e) {
+    console.error('Eroare încărcare date companie:', e);
+  }
+  
+  // HTML pentru user bar cu 3 coloane
   bar.innerHTML = `
-    <div class="userbar-inner">
-      <div class="user-dropdown-container" id="userDropdownContainer">
-        <button class="user-profile-btn" id="userProfileBtn">
-          <span class="user-ico">👤</span>
-          <span class="user-txt">${escapeHtml(me.user.username)} (${escapeHtml(me.user.role)})</span>
-          <span class="dropdown-arrow">▼</span>
-        </button>
-        
-        <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
-          ${isAdmin ? `
-            <a href="admin.html" class="dropdown-item">
-              <span class="dropdown-icon">🔧</span>
-              <span>Admin</span>
-            </a>
-          ` : ''}
-          
-          <a href="schimba_parola.html" class="dropdown-item">
-            <span class="dropdown-icon">🔑</span>
-            <span>Schimbă parola</span>
-          </a>
-          
-          <div class="dropdown-divider"></div>
-          
-          <button class="dropdown-item logout" id="btnLogoutDropdown">
-            <span class="dropdown-icon">🚪</span>
-            <span>Logout</span>
+    <div class="userbar-inner" style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; gap: 1rem; width: 100%;">
+      <!-- Stânga: User dropdown -->
+      <div style="justify-self: start;">
+        <div class="user-dropdown-container" id="userDropdownContainer">
+          <button class="user-profile-btn" id="userProfileBtn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); cursor: pointer; text-align: left;">
+            <span class="user-ico">👤</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+              <span class="user-txt" style="font-weight: 500;">${displayName}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${me.user.position || (isAdmin ? 'Administrator' : 'Utilizator')}</span>
+            </div>
+            <span class="dropdown-arrow" style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">▼</span>
           </button>
+          
+          <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; min-width: 200px; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+            <a href="profile.html" class="dropdown-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--border);">
+              <span>👤</span>
+              <span>Profilul meu</span>
+            </a>
+            
+            ${isAdmin ? `
+              <a href="company-settings.html" class="dropdown-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--border);">
+                <span>⚙️</span>
+                <span>Setări companie</span>
+              </a>
+              <a href="admin-clients.html" class="dropdown-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--border);">
+                <span>👥</span>
+                <span>Admin clienți</span>
+              </a>
+              <a href="admin-add-user.html" class="dropdown-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--border);">
+                <span>➕</span>
+                <span>Adaugă utilizator</span>
+              </a>
+            ` : ''}
+            
+            <a href="schimba_parola.html" class="dropdown-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--border);">
+              <span>🔑</span>
+              <span>Schimbă parola</span>
+            </a>
+            
+            <button class="dropdown-item logout" id="btnLogoutDropdown" style="display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.75rem 1rem; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.875rem;">
+              <span>🚪</span>
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
+      </div>
+      
+      <!-- Mijloc: Numele companiei -->
+      <div style="justify-self: center; text-align: center;">
+        <div style="font-weight: 600; font-size: 1rem; color: var(--text-primary);">${escapeHtml(companyName)}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">${companyCui ? 'CUI: ' + escapeHtml(companyCui) : 'Companie'}</div>
+      </div>
+      
+      <!-- Dreapta: Planul + Upgrade + Logout -->
+      <div style="justify-self: end; display: flex; align-items: center; gap: 1rem;">
+        <div style="text-align: right;">
+          <div style="font-weight: 500; font-size: 0.875rem; color: var(--primary);">${escapeHtml(planName)}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Plan</div>
+        </div>
+        ${planName.toLowerCase() === 'starter' ? `
+        <a href="billing.html" class="btn btn-success btn-sm" style="padding: 0.5rem 1rem; text-decoration: none;">
+          &#8593; Upgrade
+        </a>
+        ` : ''}
+        <button class="btn btn-danger btn-sm" id="btnLogout" style="padding: 0.5rem 1rem;">Logout</button>
       </div>
     </div>
   `;
@@ -214,7 +286,8 @@ async function initLoginPage() {
   const container = document.getElementById("userDropdownContainer");
   const btn = document.getElementById("userProfileBtn");
   const menu = document.getElementById("userDropdownMenu");
-  const logoutBtn = document.getElementById("btnLogoutDropdown");
+  const logoutBtnDropdown = document.getElementById("btnLogoutDropdown");
+  const logoutBtn = document.getElementById("btnLogout");
 
   // Toggle dropdown
   btn.onclick = (e) => {
@@ -224,11 +297,21 @@ async function initLoginPage() {
     btn.classList.toggle("active", !isOpen);
   };
 
-  // Logout
-  logoutBtn.onclick = async () => {
-    await apiFetch("/api/logout", { method: "POST" });
-    location.href = "login.html";
-  };
+  // Logout din dropdown
+  if (logoutBtnDropdown) {
+    logoutBtnDropdown.onclick = async () => {
+      await apiFetch("/api/logout", { method: "POST" });
+      location.href = "login.html";
+    };
+  }
+  
+  // Logout din butonul principal
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await apiFetch("/api/logout", { method: "POST" });
+      location.href = "login.html";
+    };
+  }
 
   // Închide dropdown când click în afară
   document.addEventListener("click", (e) => {
@@ -331,6 +414,7 @@ function sortCategories(keys) {
     if (p) p.qty++;
     saveCart(cart);
     renderCart();
+    updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul din bara de sus
   }
 
   function decQtyByGTIN(gtin) {
@@ -340,10 +424,13 @@ function sortCategories(keys) {
     if (!p) return;
 
     p.qty--;
-    if (p.qty <= 0) cart.splice(cart.indexOf(p), 1);
+    if (p.qty <= 0) {
+      cart.splice(cart.indexOf(p), 1);
+    }
 
     saveCart(cart);
     renderCart();
+    updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul din bara de sus
   }
   function setQty(id, value) {
     const cart = getCart();
@@ -360,6 +447,7 @@ function sortCategories(keys) {
     p.qty = qty;
     saveCart(cart);
     renderCart();
+    updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul din bara de sus
   }
 
 
@@ -367,13 +455,147 @@ function sortCategories(keys) {
     const g = normalizeGTIN(gtin);
     saveCart(getCart().filter(x => normalizeGTIN(x.gtin) !== g));
     renderCart();
+    updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul din bara de sus
   }
+
+// Helper function to render cart items to a container
+function renderCartItemsToContainer(container, cart, totalBox) {
+  if (!container) return 0;
+  
+  container.innerHTML = "";
+  let total = 0;
+
+  cart.forEach(i => {
+    // ✅ COLECTĂM TOATE GTIN-URILE POSIBILE DIN PRODUS (gtin + gtins)
+    const allGtins = [];
+    
+    // Adăugăm gtin (coloana single)
+    if (i.gtin) {
+      allGtins.push(i.gtin.toString());
+    }
+    
+    // Adăugăm toate gtins din array
+    if (i.gtins && Array.isArray(i.gtins)) {
+      i.gtins.forEach(g => {
+        if (g) allGtins.push(g.toString());
+      });
+    }
+    
+    // Eliminăm duplicatele
+    const uniqueGtins = [...new Set(allGtins)];
+    
+    // ✅ CĂUTĂM STOCUL PENTRU FIECARE GTIN PÂNĂ GĂSIM UNUL CU STOC
+    let foundStock = null;
+    let depozitStock = 0;
+    let magazinStock = 0;
+    
+    for (const gtin of uniqueGtins) {
+      const normalized = normalizeGTIN(gtin);
+      
+      // Încercăm mai multe formate (normalizat, cu zerouri, fără zerouri)
+      const variations = [
+        normalized,
+        gtin.toString().padStart(14, '0'),
+        gtin.toString().replace(/^0+/, ''),
+        gtin.toString()
+      ];
+      
+      for (const variant of variations) {
+        const dStock = window.stockMapDepozit?.[variant] || 0;
+        const mStock = window.stockMapMagazin?.[variant] || 0;
+        
+        if (dStock > 0 || mStock > 0) {
+          depozitStock = dStock;
+          magazinStock = mStock;
+          foundStock = { depozit: dStock, magazin: mStock, total: dStock + mStock };
+          break;
+        }
+      }
+      
+      if (foundStock) break;
+    }
+    
+    // Dacă nu am găsit stoc pentru niciun GTIN, rămâne 0
+    const available = foundStock?.total || 0;
+    
+    const insufficient = i.qty > available;
+    const price = Number(i.price) || 0;
+    const lineTotal = price * i.qty;
+    total += lineTotal;
+
+    const itemDiv = document.createElement("div");
+    itemDiv.className = "cart-item";
+    if (insufficient) itemDiv.style.borderColor = "var(--danger-500)";
+
+    // Text pentru stoc
+    let stockText = "";
+    if (insufficient) {
+      stockText = `<div class="stock-warning">❌ Stoc insuficient (disponibil: ${available})</div>`;
+    } else {
+      // Dacă are stoc în ambele locații, arătăm detaliile
+      if (depozitStock > 0 && magazinStock > 0) {
+        stockText = `<div class="stock-ok">✔️ Stoc OK (${available} - Depozit: ${depozitStock}, Magazin: ${magazinStock})</div>`;
+      } else if (magazinStock > 0 && depozitStock === 0) {
+        stockText = `<div class="stock-ok" style="color: #fbbf24;">✔️ Stoc OK (${available} - Doar în Magazin)</div>`;
+      } else if (depozitStock > 0) {
+        stockText = `<div class="stock-ok">✔️ Stoc OK (${available} - Depozit: ${depozitStock})</div>`;
+      } else {
+        stockText = `<div class="stock-ok">✔️ Stoc OK (${available})</div>`;
+      }
+    }
+
+    itemDiv.innerHTML = `
+      <div class="cart-item-header">
+        <div class="cart-item-name">${escapeHtml(i.name)}</div>
+        <button class="cart-item-remove" title="Șterge">🗑</button>
+      </div>
+      <div class="cart-item-details">
+        <div>Preț: <span class="cart-item-price">${price.toFixed(2)} RON</span></div>
+        ${stockText}
+      </div>
+      <div class="cart-item-controls">
+        <button class="qty-btn dec">−</button>
+        <input type="number" class="qty-input" value="${i.qty}" min="1">
+        <button class="qty-btn inc">+</button>
+      </div>
+    `;
+
+    // Event listeners
+    itemDiv.querySelector(".cart-item-remove").onclick = () => removeItemByGTIN(i.gtin);
+    itemDiv.querySelector(".dec").onclick = () => decQtyByGTIN(i.gtin);
+    itemDiv.querySelector(".inc").onclick = () => incQtyByGTIN(i.gtin);
+    itemDiv.querySelector(".qty-input").onchange = (e) => {
+      const val = parseInt(e.target.value);
+      if (!isNaN(val) && val > 0) {
+        const currentCart = getCart();
+        const item = currentCart.find(x => normalizeGTIN(x.gtin) === normalizeGTIN(i.gtin));
+        if (item) {
+          item.qty = val;
+          saveCart(currentCart);
+          renderCart();
+        }
+      }
+    };
+
+    container.appendChild(itemDiv);
+  });
+
+  if (totalBox) totalBox.textContent = `${total.toFixed(2)} RON`;
+  
+  // ✅ Actualizează badge-ul din bara de sus
+  updateViewCurrentOrderButton();
+  
+  return total;
+}
 
 function renderCart() {
   const box = document.getElementById("cartBox");
+  const boxModal = document.getElementById("cartBoxModal");
   const totalBox = document.getElementById("cartTotal");
+  const totalBoxModal = document.getElementById("cartTotalModal");
   const countBadge = document.getElementById("cartCount");
   const footer = document.getElementById("cartFooter");
+  const footerModal = document.getElementById("cartFooterModal");
 
   if (!box) return;
 
@@ -389,16 +611,28 @@ function renderCart() {
   if (footer) {
     footer.style.display = cart.length > 0 ? "block" : "none";
   }
+  
+  if (footerModal) {
+    footerModal.style.display = cart.length > 0 ? "block" : "none";
+  }
 
   if (!cart.length) {
-    box.innerHTML = `
+    const emptyHTML = `
       <div class="cart-empty">
         <div class="cart-empty-icon">🛒</div>
         <p>Coșul este gol</p>
         <p style="font-size: 0.875rem;">Adaugă produse din lista din stânga</p>
       </div>
     `;
+    box.innerHTML = emptyHTML;
+    if (boxModal) boxModal.innerHTML = emptyHTML;
     if (totalBox) totalBox.textContent = "0.00 RON";
+    if (totalBoxModal) totalBoxModal.textContent = "0.00 RON";
+    
+    // Important: Actualizează și bara de sus și butoanele
+    updateStickyTotals();
+    if (typeof updateVerifyButton === 'function') updateVerifyButton();
+    updateViewCurrentOrderButton();
     return;
   }
 
@@ -517,48 +751,129 @@ function renderCart() {
       }
     };
 
-    box.appendChild(itemDiv);
+    container.appendChild(itemDiv);
   });
 
   if (totalBox) totalBox.textContent = `${total.toFixed(2)} RON`;
-  updateStickyTotals();
+  return total;
 }
 
-  function initViewCurrentOrderButton() {
+function renderCart() {
+  const box = document.getElementById("cartBox");
+  const boxModal = document.getElementById("cartBoxModal");
+  const totalBox = document.getElementById("cartTotal");
+  const totalBoxModal = document.getElementById("cartTotalModal");
+  const countBadge = document.getElementById("cartCount");
+  const footer = document.getElementById("cartFooter");
+  const footerModal = document.getElementById("cartFooterModal");
+
+  if (!box) return;
+
+  const cart = getCart();
+  
+  // Update counter și footer
+  if (countBadge) {
+    const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+    countBadge.textContent = totalItems;
+    countBadge.style.display = cart.length > 0 ? "flex" : "none";
+  }
+  
+  if (footer) {
+    footer.style.display = cart.length > 0 ? "block" : "none";
+  }
+  
+  if (footerModal) {
+    footerModal.style.display = cart.length > 0 ? "block" : "none";
+  }
+
+  if (!cart.length) {
+    const emptyHTML = `
+      <div class="cart-empty">
+        <div class="cart-empty-icon">🛒</div>
+        <p>Coșul este gol</p>
+        <p style="font-size: 0.875rem;">Adaugă produse din lista din stânga</p>
+      </div>
+    `;
+    box.innerHTML = emptyHTML;
+    if (boxModal) boxModal.innerHTML = emptyHTML;
+    if (totalBox) totalBox.textContent = "0.00 RON";
+    if (totalBoxModal) totalBoxModal.textContent = "0.00 RON";
+    updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul când coșul e gol
+    return;
+  }
+
+  // Render items to both containers
+  renderCartItemsToContainer(box, cart, totalBox);
+  if (boxModal) renderCartItemsToContainer(boxModal, cart, totalBoxModal);
+  
+  updateStickyTotals();
+  if (typeof updateVerifyButton === 'function') updateVerifyButton();
+  updateViewCurrentOrderButton();
+}
+
+// ✅ Listener pentru actualizare coș din alte pagini
+window.addEventListener('cartUpdated', function() {
+  updateViewCurrentOrderButton();
+  // Re-render dacă suntem pe pagina de comandă
+  if (typeof renderCart === 'function') {
+    renderCart();
+  }
+});
+
+// ✅ Funcție GLOBALĂ pentru actualizare badge coș
+function updateViewCurrentOrderButton() {
+  const btn = document.getElementById("btnViewCurrentOrder");
+  const cartBadge = document.getElementById("cartBadge");
+  if (!btn) return;
+
+  // Check cart and show/hide button
+  const cart = getCart();
+  const hasItems = cart && cart.length > 0;
+  
+  btn.style.display = hasItems ? "flex" : "none";
+  if (cartBadge) {
+    const totalItems = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+    cartBadge.textContent = totalItems;
+    cartBadge.style.display = hasItems ? "inline-block" : "none";
+  }
+}
+
+function initViewCurrentOrderButton() {
     const btn = document.getElementById("btnViewCurrentOrder");
     if (!btn) return;
 
+    // Initial update
+    updateViewCurrentOrderButton();
+
     btn.onclick = () => {
       const cart = getCart();
-
       if (!cart || cart.length === 0) {
         alert("Nu există produse în coș.");
         return;
       }
-
       location.href = "comanda.html";
     };
-      // ========== UPDATE STICKY TOTALS BAR ==========
-const cart = getCart();
-const totalProducts = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
-let totalNoVat = 0;
-const VAT_RATE = 0.21;
+    
+    // ========== UPDATE STICKY TOTALS BAR ==========
+    const cart = getCart();
+    const totalProducts = cart.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+    let totalNoVat = 0;
+    const VAT_RATE = 0.21;
 
-cart.forEach(item => {
-  totalNoVat += Number(item.price || 0) * Number(item.qty || 0);
-});
+    cart.forEach(item => {
+      totalNoVat += Number(item.price || 0) * Number(item.qty || 0);
+    });
 
-const totalWithVat = totalNoVat * (1 + VAT_RATE);
+    const totalWithVat = totalNoVat * (1 + VAT_RATE);
 
-const elTP = document.getElementById('stickyTotalProducts');
-const elTfT = document.getElementById('stickyTotalNoVat');
-const elTb = document.getElementById('stickyTotalWithVat');
+    const elTP = document.getElementById('stickyTotalProducts');
+    const elTfT = document.getElementById('stickyTotalNoVat');
+    const elTb = document.getElementById('stickyTotalWithVat');
 
-if (elTP) elTP.textContent = totalProducts + ' buc';
-if (elTfT) elTfT.textContent = totalNoVat.toFixed(2) + ' RON';
-if (elTb) elTb.textContent = totalWithVat.toFixed(2) + ' RON';
-// ==============================================
-
+    if (elTP) elTP.textContent = totalProducts + ' buc';
+    if (elTfT) elTfT.textContent = totalNoVat.toFixed(2) + ' RON';
+    if (elTb) elTb.textContent = totalWithVat.toFixed(2) + ' RON';
+    // ==============================================
   }
 
   // ================= CLIENT HOME (client.html) =================
@@ -1251,7 +1566,8 @@ async function initCheckPricePage() {
   }
   // ================= COMANDA.HTML =================
  async function initOrderPage() {
-
+  console.log("🚀 initOrderPage started");
+  
   // ✅ Încărcăm ambele gestiuni separat
   const [depozitRes, magazinRes] = await Promise.all([
     fetch("/api/stock?warehouse=depozit").then(r => r.json()),
@@ -1299,9 +1615,30 @@ async function initCheckPricePage() {
   const flatRaw = await fetch("/api/products-flat").then(r => r.json());
   const flat = Array.isArray(flatRaw) ? flatRaw : [];
 
-  // Info client
-  const client = getSelectedClient();
-  if (client) {
+  // Info client + prețuri speciale
+  let client = getSelectedClient();
+  if (client && client.id) {
+    // Încărcăm prețurile speciale ale clientului din DB
+    try {
+      const pricesRes = await fetch(`/api/clients/${client.id}/prices`);
+      if (pricesRes.ok) {
+        const pricesData = await pricesRes.json();
+        // Convertim array în obiect pentru compatibilitate
+        const pricesObj = {};
+        if (pricesData.prices && Array.isArray(pricesData.prices)) {
+          pricesData.prices.forEach(p => {
+            pricesObj[p.product_id] = p.special_price;
+          });
+        }
+        client.prices = pricesObj;
+        // Actualizăm localStorage cu prețurile
+        localStorage.setItem("clientSelectat", JSON.stringify(client));
+        console.log(`✅ Prețuri speciale încărcate pentru ${client.name}:`, Object.keys(pricesObj).length, "produse");
+      }
+    } catch (err) {
+      console.error("Eroare încărcare prețuri speciale:", err);
+    }
+    
     if (title) title.textContent = `Client: ${client.name}`;
     if (meta) meta.textContent = `Grup: ${client.group || "-"} • Categorie: ${client.category || "-"}`;
   } else {
@@ -1498,7 +1835,41 @@ function getFullProduct(item) {
   renderCart();
 }
 
+// Funcție globală pentru submit order (folosită și în modal)
+async function submitOrder() {
+  const client = getSelectedClient();
+  const items = getCart();
 
+  if (!client) {
+    alert("Client nesetat");
+    return;
+  }
+
+  if (!items.length) {
+    alert("Coșul este gol");
+    return;
+  }
+
+  const res = await fetch("/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client, items })
+  });
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {}
+
+  if (!res.ok || data.error) {
+    alert("Stoc insuficient pentru cel puțin un produs.\n\nVerifică cantitățile din coș.");
+    return;
+  }
+
+  clearCart();
+  alert("Comandă trimisă!");
+  location.href = "index.html";
+}
 
   async function loadClientsAdmin() {
     const res = await apiFetch("/api/clients-flat");
@@ -2225,10 +2596,16 @@ if (!o.sentToSmartbill) {
           const price = Number(i?.price || i?.unitPrice || 0);
           const qty = Number(i?.qty || 0);
           const total = price * qty;
+          
+          // Extrage lot si exp din allocations (stoc alocat)
+          const allocs = i?.allocations || [];
+          const lots = allocs.map(a => a.lot).filter(Boolean).join(', ') || '-';
+          const exps = allocs.map(a => a.expiresAt || a.exp_date).filter(Boolean).join(', ') || '-';
+          
           row.innerHTML = `
             <div>
               <div style="font-weight: 600;">${i?.name || 'Produs'}</div>
-              <div style="font-size: 0.875rem; color: var(--text-muted);">${i?.gtin || '-'} | ${qty} buc × ${price.toFixed(2)} RON</div>
+              <div style="font-size: 0.875rem; color: var(--text-muted);">Lot: ${lots} | Exp: ${exps} | ${qty} buc × ${price.toFixed(2)} RON</div>
             </div>
             <div style="font-weight: 700; color: var(--primary-400);">${total.toFixed(2)} RON</div>
           `;
@@ -2662,7 +3039,7 @@ function selectProductByGTIN(gtin) {
             </p>
             <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 30px; min-width: 300px;">
               <div style="color: #22c55e; font-weight: 700; font-size: 1.2rem;">
-                ${freshOrder.smartbillSeries || 'FMD'} ${freshOrder.smartbillNumber || '-'}
+                ${freshOrder.smartbillSeries || 'OB'} ${freshOrder.smartbillNumber || '-'}
               </div>
               <div style="color: #cbd5e1; font-size: 0.875rem; margin-top: 8px;">
                 Emisă la: ${new Date(freshOrder.createdAt).toLocaleDateString('ro-RO')}
@@ -3232,7 +3609,7 @@ const resultsBox = document.getElementById("stockProductResults");
 
       const meta = document.createElement("div");
       meta.className = "stock-item-meta";
-      const locDisplay = s.warehouse === 'magazin' ? '🏪 Magazin' : `📍 ${s.location || 'A'}`;
+      const locDisplay = s.warehouse === 'magazin' ? `🏪 ${s.location || 'M1'}` : `📍 ${s.location || 'D1'}`;
       meta.innerHTML = `
         LOT: <b>${s.lot || "-"}</b><br>
         Expiră: <b>${(s.expiresAt || "-").slice(0,10)}</b><br>
@@ -3527,7 +3904,7 @@ const resultsBox = document.getElementById("stockProductResults");
         if (locationSelect) locationSelect.value = 'MAGAZIN';
       } else {
         locationGroup.style.display = 'block';
-        if (locationSelect) locationSelect.value = 'A';
+        if (locationSelect) locationSelect.value = 'D1';
       }
       loadStockForWarehouse(warehouseSelect.value);
     });
@@ -3557,7 +3934,7 @@ const resultsBox = document.getElementById("stockProductResults");
       }
       
       const warehouse = warehouseSelect ? warehouseSelect.value : 'depozit';
-      const location = warehouse === 'magazin' ? 'MAGAZIN' : (locationSelect ? locationSelect.value : 'A');
+      const location = warehouse === 'magazin' ? (locationSelect ? locationSelect.value : 'M1') : (locationSelect ? locationSelect.value : 'D1');
       
       const lot = lotInput?.value.trim();
       const expiresAt = fromDisplayDate(expInput?.value);
@@ -3701,6 +4078,7 @@ function parseExcelNumber(val) {
 
   saveCart(cart);
   renderCart();
+  updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul din bara de sus
 }
 
   const orderItemsMap = {};
@@ -3940,7 +4318,7 @@ function parseExcelNumber(val) {
     stockLotInfo[key].totalQty += qty;
 
     // alegem "bestLoc" (cel mai bun raft)
-    const order = ["A","B","C","R1","R2","R3"];
+    const order = ["D1","D2","D3","R1","R2","R3","M1","M2","M3"];
     const rank = (x) => {
       const i = order.indexOf(String(x || "").toUpperCase());
       return i === -1 ? 999 : i;
@@ -4307,7 +4685,7 @@ function parseExcelNumber(val) {
     group.lots.forEach(lot => {
       const locDisplay = lot.warehouse === 'magazin' 
         ? '🏪 Magazin' 
-        : `📍 ${lot.location || 'A'}`;
+        : `📍 ${lot.location || 'D1'}`;
       
       lotsHtml += `
         <div class="csLotRow">
@@ -4626,7 +5004,9 @@ function openProductModal(product) {
   if (nameEl) nameEl.textContent = product?.name || 'Produs';
   if (gtinEl) gtinEl.textContent = 'GTIN: ' + displayGtin;
   
-  const unitPrice = Number(product?.price || 0);
+  // ✅ Folosim getProductPrice pentru a lua prețul special dacă există
+  const client = getSelectedClient();
+  const unitPrice = getProductPrice(product, client);
   if (unitPriceEl) unitPriceEl.textContent = unitPrice.toFixed(2) + ' RON / buc';
   
   // ✅ Afișare stoc
@@ -4650,11 +5030,21 @@ function openProductModal(product) {
     }
   }
   
-  // Setăm cantitatea default
+  // Setăm cantitatea - GOL pentru introducere rapidă pe mobile
   const qtyInput = document.getElementById('modalQty');
   if (qtyInput) {
-    qtyInput.value = '1';
-    qtyInput.focus();
+    qtyInput.value = '';  // Gol - utilizatorul tastează direct
+    qtyInput.focus();     // Focus pe input
+    
+    // Pentru mobile: asigurăm că tastatura numerică apare
+    // și selectăm eventual conținutul (dacă există)
+    setTimeout(() => {
+      qtyInput.focus();
+      // Pe mobile, click() poate forța tastatura
+      if ('ontouchstart' in window) {
+        qtyInput.click();
+      }
+    }, 100);
   }
   
   // Calculăm prețurile inițiale
@@ -4675,7 +5065,9 @@ function calculateModalPrices() {
   if (!qtyInput) return;
   
   const qty = parseInt(qtyInput.value) || 0;
-  const unitPrice = Number(currentModalProduct?.price || 0);
+  // ✅ Folosim getProductPrice pentru a lua prețul special dacă există
+  const client = getSelectedClient();
+  const unitPrice = getProductPrice(currentModalProduct, client);
   const VAT_RATE = 0.21;
   
   const priceWithVat = unitPrice * qty;
@@ -4688,6 +5080,15 @@ function calculateModalPrices() {
 function adjustQty(delta) {
   const input = document.getElementById('modalQty');
   let val = parseInt(input.value) || 0;
+  
+  // Dacă e gol și apasă +, punem 1
+  // Dacă e gol și apasă -, nu facem nimic
+  if (input.value === '' && delta > 0) {
+    val = 0;
+  } else if (input.value === '' && delta < 0) {
+    return;
+  }
+  
   val = Math.max(1, val + delta); // Minim 1
   input.value = val;
   calculateModalPrices();
@@ -4703,8 +5104,14 @@ function confirmAddToCart() {
   const qty = parseInt(document.getElementById('modalQty').value) || 0;
   
   if (qty <= 0) {
-    alert("Introdu o cantitate (minim 1)");
-    document.getElementById('modalQty').focus();
+    const input = document.getElementById('modalQty');
+    alert("⚠️ Introdu cantitatea dorită (ex: 5)");
+    input.value = '';  // Golim pentru claritate
+    input.focus();
+    // Pe mobile, forțăm tastatura
+    if ('ontouchstart' in window) {
+      setTimeout(() => input.click(), 100);
+    }
     return;
   }
   
@@ -4744,6 +5151,7 @@ function addToCartWithQty(product, qty) {
   
   saveCart(cart);
   renderCart();
+  updateViewCurrentOrderButton(); // ✅ Actualizează badge-ul din bara de sus
 }
 
 function showToast(message) {

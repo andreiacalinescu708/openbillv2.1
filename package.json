@@ -1,7 +1,7 @@
 {
-  "name": "magazin-intern",
+  "name": "openbill-erp",
   "version": "1.0.0",
-  "description": "",
+  "description": "OpenBill - Sistem ERP pentru distributie",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -19,6 +19,8 @@
     "express": "^5.2.1",
     "express-session": "^1.18.2",
     "mongoose": "^9.0.1",
-    "pg": "^8.18.0"
+    "nodemailer": "^8.0.1",
+    "pg": "^8.18.0",
+    "stripe": "^20.4.0"
   }
 }

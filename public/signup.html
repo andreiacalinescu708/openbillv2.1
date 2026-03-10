@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Înregistrare - OpenBill</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+        }
+        .plan-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .error {
+            color: #e53e3e;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .success {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .success-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        .success h2 {
+            color: #48bb78;
+            margin-bottom: 15px;
+        }
+        .success .credentials {
+            background: #f7fafc;
+            border: 2px solid #48bb78;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .success .credentials strong {
+            color: #2d3748;
+        }
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner-icon {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .features-list {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .features-list h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .features-list ul {
+            list-style: none;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .features-list li:before {
+            content: "✓ ";
+            color: #48bb78;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Formular Înregistrare -->
+        <div id="registerForm">
+            <div class="header">
+                <h1>🚀 Creează Cont</h1>
+                <p>Începe perioada DEMO de 7 zile cu date de test</p>
+                <div class="plan-badge" id="planBadge">Plan Starter</div>
+            </div>
+
+            <div class="features-list" id="featuresList">
+                <h4>✨ Ce primești:</h4>
+                <ul id="planFeatures">
+                    <li>3 utilizatori</li>
+                    <li>Gestiune stocuri</li>
+                    <li>Comenzi și facturare</li>
+                    <li>Support email</li>
+                </ul>
+            </div>
+
+            <div class="demo-box" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); border-radius: 8px; padding: 1rem; margin: 1rem 0; font-size: 0.875rem;">
+                <strong>🎮 Mod DEMO:</strong> Primești automat date de test (6 clienți, 15 produse, 3 comenzi) ca să poți testa toate funcționalitățile fără să-ți introduci datele reale. După 7 zile, datele demo se șterg și poți începe cu datele tale reale.
+            </div>
+
+            <form id="signupForm">
+                <div class="form-group">
+                    <label for="companyName">🏢 Numele Firmei *</label>
+                    <input type="text" id="companyName" name="companyName" placeholder="Ex: Fast Medical SRL" required>
+                    <div class="error" id="companyNameError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="cui">📝 CUI (Cod Unic de Înregistrare)</label>
+                    <input type="text" id="cui" name="cui" placeholder="Ex: RO12345678">
+                    <div class="error" id="cuiError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">📧 Email *</label>
+                    <input type="email" id="email" name="email" placeholder="contact@firma.ro" required>
+                    <div class="error" id="emailError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">📞 Telefon</label>
+                    <input type="tel" id="phone" name="phone" placeholder="0722-123-456">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">👤 Username Administrator *</label>
+                    <input type="text" id="username" name="username" placeholder="admin" required>
+                    <div class="error" id="usernameError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">🔑 Parolă *</label>
+                    <input type="password" id="password" name="password" placeholder="Minim 8 caractere, 1 majusculă, 1 număr" required>
+                    <div class="password-requirements" style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">
+                        <div id="req-length" style="color: #ef4444;">✓ minim 8 caractere</div>
+                        <div id="req-upper" style="color: #ef4444;">✓ minim o literă mare (A-Z)</div>
+                        <div id="req-lower" style="color: #ef4444;">✓ minim o literă mică (a-z)</div>
+                        <div id="req-number" style="color: #ef4444;">✓ minim un număr (0-9)</div>
+                    </div>
+                    <div class="error" id="passwordError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">🔑 Confirmă Parola *</label>
+                    <input type="password" id="confirmPassword" placeholder="Repetă parola" required>
+                    <div class="error" id="confirmPasswordError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="plan">📦 Selectează Planul</label>
+                    <select id="plan" name="plan">
+                        <option value="starter">Starter - 29.99€/lună (3 utilizatori)</option>
+                        <option value="pro" selected>Pro - 39.99€/lună (10 utilizatori)</option>
+                        <option value="enterprise">Enterprise - 59.99€/lună (Nelimitat)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">
+                    🚀 Creează Cont Gratuit
+                </button>
+            </form>
+
+            <div class="footer">
+                <p>Ai deja cont? <a href="/login.html">Autentifică-te</a></p>
+                <p style="margin-top: 10px; font-size: 0.8em;">
+                    Prin înregistrare, ești de acord cu 
+                    <a href="/termeni.html">Termenii și Condițiile</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="spinner">
+            <div class="spinner-icon"></div>
+            <p>Se creează contul...</p>
+        </div>
+
+        <!-- Succes -->
+        <div id="success" class="success">
+            <div class="success-icon">🎉</div>
+            <h2>Cont Creat cu Succes!</h2>
+            <p>Bine ai venit în OpenBill! Contul tău este gata de utilizare.</p>
+            
+            <div class="credentials">
+                <p><strong>🏢 Companie:</strong> <span id="successCompany"></span></p>
+                <p style="margin-top: 10px;"><strong>👤 Username:</strong> <span id="successUsername"></span></p>
+                <p><strong>📅 Perioadă DEMO:</strong> 7 zile cu date de test (clienți, produse, comenzi fictive)</p>
+            </div>
+
+            <p style="color: #666; font-size: 0.9em; margin-top: 15px;">
+                📧 Am trimis detaliile de acces pe emailul tău.<br>
+                ⏳ Vei fi redirecționat la pagina de login în <span id="countdown">5</span> secunde...
+            </p>
+
+            <a href="/login.html?new=true" class="btn" style="display: inline-block; text-decoration: none; margin-top: 20px;" id="loginLink">
+                Conectează-te Acum →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Config planuri
+        const PLANS = {
+            starter: {
+                name: 'Starter',
+                price: 29.99,
+                users: 3,
+                features: ['3 utilizatori', 'Gestiune stocuri', 'Comenzi și facturare', 'Support email']
+            },
+            pro: {
+                name: 'Pro',
+                price: 39.99,
+                users: 10,
+                features: ['10 utilizatori', 'Toate din Starter', 'Foi de parcurs', 'Rapoarte avansate', 'Support prioritar']
+            },
+            enterprise: {
+                name: 'Enterprise',
+                price: 59.99,
+                users: 'Nelimitat',
+                features: ['Utilizatori nelimitați', 'Toate din Pro', 'API access', 'Integrări custom', 'Support dedicat 24/7']
+            }
+        };
+
+        // Preia planul din URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedPlan = urlParams.get('plan');
+        if (preselectedPlan && PLANS[preselectedPlan]) {
+            document.getElementById('plan').value = preselectedPlan;
+            updatePlanDisplay(preselectedPlan);
+        }
+
+        // Update la schimbare plan
+        document.getElementById('plan').addEventListener('change', (e) => {
+            updatePlanDisplay(e.target.value);
+        });
+
+        function updatePlanDisplay(planKey) {
+            const plan = PLANS[planKey];
+            document.getElementById('planBadge').textContent = `Plan ${plan.name}`;
+            
+            const featuresHtml = plan.features.map(f => `<li>${f}</li>`).join('');
+            document.getElementById('planFeatures').innerHTML = featuresHtml;
+        }
+
+        // Validare parolă în timp real
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            
+            document.getElementById('req-length').style.color = password.length >= 8 ? '#22c55e' : '#ef4444';
+            document.getElementById('req-upper').style.color = /[A-Z]/.test(password) ? '#22c55e' : '#ef4444';
+            document.getElementById('req-lower').style.color = /[a-z]/.test(password) ? '#22c55e' : '#ef4444';
+            document.getElementById('req-number').style.color = /[0-9]/.test(password) ? '#22c55e' : '#ef4444';
+        });
+
+        // Validare formular
+        const form = document.getElementById('signupForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset erori
+            document.querySelectorAll('.error').forEach(el => {
+                el.style.display = 'none';
+                el.textContent = '';
+            });
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validare parolă client-side
+            if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+                document.getElementById('passwordError').textContent = 'Parola nu îndeplinește toate cerințele.';
+                document.getElementById('passwordError').style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                document.getElementById('confirmPasswordError').textContent = 'Parolele nu coincid.';
+                document.getElementById('confirmPasswordError').style.display = 'block';
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Se procesează...';
+
+            // Colectează date
+            const data = {
+                companyName: document.getElementById('companyName').value.trim(),
+                cui: document.getElementById('cui').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                username: document.getElementById('username').value.trim(),
+                password: password,
+                plan: document.getElementById('plan').value
+            };
+
+            try {
+                const response = await fetch('/api/public-signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Eroare la înregistrare');
+                }
+
+                // Afișează succes
+                document.getElementById('registerForm').style.display = 'none';
+                document.getElementById('successUsername').textContent = data.username;
+                document.getElementById('successCompany').textContent = result.company.name;
+                document.getElementById('success').style.display = 'block';
+                
+                // Redirect automat la login după 5 secunde
+                let seconds = 5;
+                const countdownEl = document.getElementById('countdown');
+                const timer = setInterval(() => {
+                    seconds--;
+                    if (countdownEl) countdownEl.textContent = seconds;
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+                        window.location.href = '/login.html?new=true&company=' + encodeURIComponent(result.company.code);
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('Eroare:', error);
+                
+                // Afișează eroare
+                if (error.message.includes('username') || error.message.includes('utilizator')) {
+                    document.getElementById('usernameError').textContent = error.message;
+                    document.getElementById('usernameError').style.display = 'block';
+                } else if (error.message.includes('email')) {
+                    document.getElementById('emailError').textContent = error.message;
+                    document.getElementById('emailError').style.display = 'block';
+                } else if (error.message.includes('CUI')) {
+                    document.getElementById('cuiError').textContent = error.message;
+                    document.getElementById('cuiError').style.display = 'block';
+                } else {
+                    alert('Eroare: ' + error.message);
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Creează Cont Gratuit';
+            }
+        });
+    </script>
+</body>
+</html>
