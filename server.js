@@ -4094,7 +4094,6 @@ async function seedInitialData(companyId) {
   // SFÂRȘIT ENDPOINT IMPORT
   // ============================================
 
-  app.listen(PORT, () => console.log("Server pornit pe port", PORT));
 })();
 
 // PARTEA 3 - API Drivers, Vehicles, Trip Sheets, etc.
@@ -5346,7 +5345,7 @@ app.post("/api/invite-user", requireAuth, async (req, res) => {
     // Salvăm invitația
     await db.q(
       `INSERT INTO invitations (email, invite_token, role, invited_by, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+       VALUES ($1, $2, $3, $4, $5)`,
       [email.toLowerCase(), inviteToken, role, req.session.user.id, expiresAt]
     );
     
@@ -6023,3 +6022,8 @@ app.get("/api/reports/vehicle-km", requireAuth, requireCompany, requireSubscript
     res.status(500).json({ error: "Eroare la generarea raportului" });
   }
 });
+
+
+// PORNIRE SERVER
+app.listen(PORT, () => console.log('Server pornit pe port', PORT));
+
