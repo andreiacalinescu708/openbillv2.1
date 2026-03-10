@@ -20,6 +20,10 @@ function initMasterPool() {
     return null;
   }
   
+  // DEBUG: Afișăm URL-ul (fără parolă)
+  const urlObj = new URL(MASTER_DB_URL);
+  console.log(`🔗 Conectare la: ${urlObj.protocol}//${urlObj.username}:****@${urlObj.host}${urlObj.pathname}`);
+  
   if (!masterPool) {
     masterPool = new Pool({
       connectionString: MASTER_DB_URL,
