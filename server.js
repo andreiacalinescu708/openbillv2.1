@@ -3944,6 +3944,12 @@ async function seedInitialData(companyId) {
 // ----- START SERVER -----
 (async () => {
   try {
+    // 1. MAI ÎNTÂI inițializăm Master DB (companies table)
+    console.log("🚀 PAS 1: Inițializăm Master DB...");
+    await db.initMasterDatabase();
+    console.log("✅ Master DB gata");
+    
+    // 2. Apoi restul inițializărilor
     await db.ensureTables();
     console.log("✅ DB ready (multi-tenant)");
     
@@ -3961,11 +3967,6 @@ async function seedInitialData(companyId) {
 
   // Verificăm serviciul de email
   await emailService.verifyConnection();
-  
-  // Inițializăm Master Database (companies table etc.)
-  console.log("📞 Apelez db.initMasterDatabase()...");
-  await db.initMasterDatabase();
-  console.log("📞 db.initMasterDatabase() s-a terminat");
   
   // Inițializăm tabelul pentru categorii per companie
   await initCompanyCategoriesTable();
