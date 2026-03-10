@@ -192,21 +192,8 @@ async function initMasterDatabase() {
       return false;
     }
     
-    // Verificăm dacă tabela companies există
-    const checkResult = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'companies'
-      )
-    `);
-    
-    if (checkResult.rows[0].exists) {
-      console.log("✅ Master DB deja inițializat");
-      return true;
-    }
-    
-    console.log("🔄 Inițializăm Master DB...");
+    // Forțăm crearea tabelelor (cu IF NOT EXISTS pentru siguranță)
+    console.log("🔄 Creăm/verificăm tabelele Master DB...");
     
     // Creăm tabela companies
     await pool.query(`
@@ -276,7 +263,7 @@ async function initMasterDatabase() {
       ON CONFLICT (code) DO NOTHING
     `);
     
-    console.log("✅ Master DB inițializat cu succes!");
+    console.log("✅ Master DB inițializat/verificat cu succes!");
     return true;
     
   } catch (e) {
