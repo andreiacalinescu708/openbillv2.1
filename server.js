@@ -3201,7 +3201,7 @@ app.post("/api/demo-signup", async (req, res) => {
               <li>✅ Acces complet la toate funcționalitățile (plan Enterprise)</li>
               <li>✅ Date demo pre-populate (produse, clienți, stoc)</li>
               <li>✅ Rol de Administrator - poți invita alți utilizatori</li>
-              <li>✅ Valabil 7 zile</li>
+              <li>✅ Valabil 14 zile</li>
             </ul>
             <p>Introdu codul de mai jos pentru a-ți activa contul:</p>
             <center>
@@ -5173,7 +5173,7 @@ app.post("/api/invite-user", requireAuth, async (req, res) => {
     // Generăm token unic
     const inviteToken = generateToken(32);
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Invitație valabilă 7 zile
+    expiresAt.setDate(expiresAt.getDate() + 7); // Invitație valabilă 14 zile
     
     // Salvăm invitația
     await db.q(
@@ -5193,7 +5193,7 @@ app.post("/api/invite-user", requireAuth, async (req, res) => {
         <p>Utilizatorul <strong>${req.session.user.username}</strong> te-a invitat să te alături echipei.</p>
         <p>Click mai jos pentru a-ți crea contul:</p>
         <a href="${inviteLink}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Creează contul</a>
-        <p style="color: #666;">Link-ul este valabil 7 zile.</p>
+        <p style="color: #666;">Link-ul este valabil 14 zile.</p>
         <p style="color: #666; font-size: 12px;">Dacă nu te așteptai la această invitație, poți ignora acest email.</p>
       `
     });
