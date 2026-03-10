@@ -3055,8 +3055,11 @@ app.post("/api/login", async (req, res) => {
             plan: comp.plan,
             subdomain: comp.subdomain
           };
-          // Construim URL-ul de redirect
-          redirectUrl = `http://${comp.subdomain}.${baseDomain}${port}`;
+          // Construim URL-ul de redirect DOAR pentru localhost (nu pentru Railway - nu avem SSL wildcard)
+          if (host.includes('localhost')) {
+            redirectUrl = `http://${comp.subdomain}.${baseDomain}${port}`;
+          }
+          // Pentru Railway/domenii publice, rămânem pe domeniul principal
         }
       } catch (e) {
         console.error('[Login] Eroare obținere info companie:', e.message);
