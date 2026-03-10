@@ -2939,47 +2939,127 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+// POST /api/register - Înregistrare utilizator nou cu companie și DB separat
 app.post("/api/register", async (req, res) => {
+  let newCompanyId = null;
+  let userId = null;
+  
   try {
-    const { username, password, companyCode } = req.body;
-
-    if (!username || !password) return res.status(400).json({ error: "Date lipsă" });
-    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
-
-    let companyId = null;
+    const { username, password, confirmPassword, email, firstName, lastName, companyName, phone } = req.body;
     
-    // Dacă s-a specificat un cod de companie, caută compania
-    if (companyCode) {
-      const companyRes = await db.q(
-        `SELECT id FROM companies WHERE code = $1`,
-        [companyCode.toUpperCase()]
-      );
-      if (companyRes.rows.length > 0) {
-        companyId = companyRes.rows[0].id;
-      } else {
-        return res.status(400).json({ error: "Cod companie invalid" });
-      }
+    // Validări
+    if (!username || !password || !email || !companyName) {
+      return res.status(400).json({ error: "Username, parolă, email și numele companiei sunt obligatorii" });
     }
-
+    
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: "Parolele nu coincid" });
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Parola trebuie să aibă cel puțin 6 caractere" });
+    }
+    
+    if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
+    
+    // Validare email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Email invalid" });
+    }
+    
+    // Verifică dacă email-ul există deja
+    const companiesRes = await db.masterQuery(`SELECT id, subdomain FROM companies WHERE status = 'active'`);
+    for (const company of companiesRes.rows) {
+      try {
+        db.setCompanyContext(company);
+        const emailCheck = await db.q(
+          `SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+          [email]
+        );
+        if (emailCheck.rows.length > 0) {
+          return res.status(409).json({ 
+            error: "Email-ul există deja în baza de date",
+            message: "Acest email este deja înregistrat. Mergi la pagina de login."
+          });
+        }
+      } catch (e) { /* ignoră erori */ }
+    }
+    db.resetCompanyContext();
+    
+    // Generează cod de verificare (6 cifre)
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minute
+    
+    // Creează compania cu bază de date SEPARATĂ
     const passwordHash = bcrypt.hashSync(password, 10);
-
-    const r = await db.q(
-      `INSERT INTO users (username, password_hash, role, active, is_approved, failed_attempts)
-       VALUES ($1,$2,$3,'user',true,false,0)
-       RETURNING id, username, role, is_approved, company_id`,
-      [username.trim(), passwordHash]
+    
+    const companyResult = await createCompanyWithDatabase({
+      name: companyName,
+      code: null,
+      cui: null,
+      address: null,
+      phone: phone || null,
+      email: email.toLowerCase(),
+      plan: 'trial',
+      planData: { price: 29.99, maxUsers: 3 }
+    });
+    
+    newCompanyId = companyResult.companyId;
+    const subdomain = companyResult.subdomain;
+    
+    // Setează contextul și creează utilizatorul
+    const companyData = { id: newCompanyId, subdomain };
+    db.setCompanyContext(companyData);
+    
+    const userResult = await db.q(
+      `INSERT INTO users (username, password_hash, email, first_name, last_name, 
+                         role, active, is_approved, is_demo_user, demo_company_id, 
+                         email_verification_code, email_verification_expires_at, 
+                         email_verified, failed_attempts, created_at)
+       VALUES ($1, $2, $3, $4, $5, 'admin', false, false, false, $6, $7, $8, false, 0, NOW())
+       RETURNING id`,
+      [username.trim(), passwordHash, email.toLowerCase(), 
+       firstName || '', lastName || '', newCompanyId, verificationCode, codeExpiresAt]
     );
-
+    userId = userResult.rows[0].id;
+    
+    db.resetCompanyContext();
+    
+    // Trimite email cu cod de verificare
+    try {
+      await emailService.sendEmail({
+        to: email,
+        subject: 'Cod de verificare - OpenBill',
+        html: `
+          <h2>Bine ai venit la OpenBill!</h2>
+          <p>Compania <strong>${companyName}</strong> a fost creată cu succes.</p>
+          <p>Subdomeniul tău: <strong>${subdomain}.openbillv21-production.up.railway.app</strong></p>
+          <p>Codul tău de verificare este:</p>
+          <h1 style="color: #4CAF50; font-size: 36px; letter-spacing: 5px;">${verificationCode}</h1>
+          <p>Acest cod este valabil 30 de minute.</p>
+          <p>După verificare, vei avea acces la trial gratuit de 14 zile!</p>
+        `
+      });
+      console.log(`[REGISTER] Email de verificare trimis către ${email}`);
+    } catch (emailErr) {
+      console.error("[REGISTER] Eroare trimitere email:", emailErr);
+    }
+    
     res.json({ 
       ok: true, 
-      message: companyId ? "Cont creat. Așteaptă aprobarea administratorului." : "Cont creat. Alocă-i o companie."
+      message: "Cont creat! Verifică email-ul pentru codul de confirmare.",
+      email: email,
+      subdomain: subdomain,
+      requiresVerification: true
     });
+    
   } catch (e) {
+    console.error("[REGISTER] Eroare:", e);
     if (String(e.message || "").includes("duplicate key")) {
       return res.status(400).json({ error: "Utilizator existent" });
     }
-    console.error("REGISTER error:", e);
-    res.status(500).json({ error: "Eroare register" });
+    res.status(500).json({ error: "Eroare la înregistrare: " + e.message });
   }
 });
 
