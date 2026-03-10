@@ -3963,7 +3963,9 @@ async function seedInitialData(companyId) {
   await emailService.verifyConnection();
   
   // Inițializăm Master Database (companies table etc.)
+  console.log("📞 Apelez db.initMasterDatabase()...");
   await db.initMasterDatabase();
+  console.log("📞 db.initMasterDatabase() s-a terminat");
   
   // Inițializăm tabelul pentru categorii per companie
   await initCompanyCategoriesTable();

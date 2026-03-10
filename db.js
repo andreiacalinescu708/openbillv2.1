@@ -185,7 +185,9 @@ async function withTransaction(callback) {
 
 // Inițializează tabelele în baza de date master (companies, etc.)
 async function initMasterDatabase() {
-  console.log("🚀 initMasterDatabase() START");
+  console.log("========================================");
+  console.log("🚀 initMasterDatabase() A FOST APELATA!");
+  console.log("========================================");
   try {
     const pool = getMasterPool();
     if (!pool) {
