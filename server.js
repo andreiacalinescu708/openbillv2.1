@@ -50,14 +50,15 @@ async function subdomainMiddleware(req, res, next) {
         db.setCompanyContext(company);
         console.log(`[Subdomain] Companie detectată: ${company.name} (${subdomain})`);
       } else {
-        // Subdomeniu invalid
-        if (!req.path.startsWith('/api/')) {
-          return res.status(404).send('Companie negăsită');
-        }
+        // Subdomeniu invalid - doar logăm, nu blocăm
+        console.log(`[Subdomain] Subdomeniu invalid: ${subdomain}`);
       }
     } catch (e) {
       console.error('[Subdomain] Eroare:', e.message);
     }
+  } else {
+    // Fără subdomeniu - modul public (landing page, login, signup)
+    console.log(`[Subdomain] Mod public (fără subdomeniu)`);
   }
   
   next();
@@ -3838,40 +3839,9 @@ app.get("/api/users", isAdmin, async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 async function ensureDefaultCompany() {
-  if (!db.hasDb()) return;
-
-  try {
-    // Creează compania default dacă nu există nicio companie
-    // Folosim masterQuery pentru că suntem în Master DB
-    const r = await db.masterQuery("SELECT COUNT(*)::int AS n FROM companies");
-    const n = r.rows?.[0]?.n ?? 0;
-    
-    if (n > 0) {
-      console.log("ℹ️ Exista deja companii în Master DB");
-      return;
-    }
-
-    const companyId = crypto.randomUUID();
-    
-    await db.masterQuery(
-      `INSERT INTO companies (id, code, name, plan, plan_price, max_users, subscription_status, subscription_expires_at, subdomain, status)
-       VALUES ($1, 'DEMO', 'Demo Company', 'enterprise', 59.99, 999, 'active', NOW() + INTERVAL '1 year', 'demo', 'active')`,
-      [companyId]
-    );
-
-    await db.masterQuery(
-      `INSERT INTO company_settings (company_id, name, cui, smartbill_series)
-       VALUES ($1, 'Demo Company', 'RO47095864', 'OB')`,
-      [companyId]
-    );
-
-    console.log(`✅ Companie default creată: DEMO (${companyId})`);
-    
-    return companyId;
-  } catch (e) {
-    console.error("❌ Eroare ensureDefaultCompany:", e.message);
-    return null;
-  }
+  // Nu mai creăm companie demo - fiecare utilizator își creează propria companie
+  console.log("ℹ️ ensureDefaultCompany: Nu se creează companie demo (trial 14 zile la înregistrare)");
+  return null;
 }
 
 async function ensureDefaultAdmin() {
@@ -4508,9 +4478,9 @@ app.post("/api/public-signup", async (req, res) => {
       return res.status(400).json({ error: "Username deja existent. Alege alt username." });
     }
 
-    // Calculăm perioada DEMO (7 zile)
+    // Calculăm perioada TRIAL (14 zile)
     const trialExpires = new Date();
-    trialExpires.setDate(trialExpires.getDate() + 7);
+    trialExpires.setDate(trialExpires.getDate() + 14);
 
     const planData = PLANS[plan];
     const companyId = crypto.randomUUID();
@@ -4575,7 +4545,7 @@ app.post("/api/public-signup", async (req, res) => {
         company_id: companyId
       });
 
-      console.log(`✅ Companie nouă înregistrată: ${companyName} (${companyCode}) - Plan: ${plan} - DEMO 7 zile`);
+      console.log(`✅ Companie nouă înregistrată: ${companyName} (${companyCode}) - Plan: ${plan} - TRIAL 14 zile`);
 
       // Trimitem email de bun venit (async, nu blocăm răspunsul)
       if (email) {
@@ -4586,7 +4556,7 @@ app.post("/api/public-signup", async (req, res) => {
           password, // ⚠️ În producție, poate vrei să nu trimiți parola în clar
           plan,
           companyCode,
-          trialDays: 7
+          trialDays: 14
         }).catch(err => console.error('Eroare trimitere email:', err));
       }
 
@@ -4602,7 +4572,7 @@ app.post("/api/public-signup", async (req, res) => {
         demo: {
           days: 7,
           expiresAt: trialExpires,
-          message: "Lucrezi cu date DEMO. Poti testa toate functionalitatile cu datele de test. Dupa 7 zile, datele demo vor fi sterse daca nu activezi un abonament."
+          message: "Lucrezi cu date DEMO. Poti testa toate functionalitatile cu datele de test. Dupa 14 zile, datele vor fi sterse daca nu activezi un abonament."
         }
       });
 

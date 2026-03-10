@@ -263,24 +263,8 @@ async function initMasterDatabase() {
     await pool.query(`CREATE INDEX idx_companies_status ON companies(status)`);
     console.log("✅ Indexuri create");
     
-    // Inserăm compania demo
-    await pool.query(`
-      INSERT INTO companies (id, code, name, plan, plan_price, max_users, subscription_status, subscription_expires_at, subdomain, status)
-      VALUES (
-        gen_random_uuid(), 
-        'DEMO', 
-        'Demo Company', 
-        'enterprise', 
-        59.99, 
-        999, 
-        'active', 
-        NOW() + INTERVAL '1 year',
-        'demo',
-        'active'
-      )
-      ON CONFLICT (code) DO NOTHING
-    `);
-    console.log("✅ Compania demo inserată");
+    // Nu mai inserăm companie demo - fiecare utilizator își creează propria companie cu trial 14 zile
+    console.log("ℹ️ Nu există companie demo - trial 14 zile la înregistrare");
     
     console.log("✅✅✅ Master DB inițializat complet!");
     
