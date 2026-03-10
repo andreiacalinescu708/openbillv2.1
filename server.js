@@ -3756,18 +3756,24 @@ async function seedInitialData(companyId) {
   // ENDPOINT TEMPORAR: Import date din backup
   // ============================================
   app.post("/admin/import-backup", async (req, res) => {
-    const fs = require('fs');
     const crypto = require('crypto');
     
     try {
       console.log('[IMPORT] Încep importul din backup...');
       
-      // Verificăm dacă există backup-ul
-      if (!fs.existsSync('backup-data.json')) {
-        return res.status(404).json({ error: 'Fișierul backup-data.json nu există' });
+      // Primim backup-ul în body sau îl citim din fișier
+      let backupData;
+      if (req.body && req.body.data) {
+        backupData = req.body;
+        console.log('[IMPORT] Backup primit în request body');
+      } else {
+        const fs = require('fs');
+        const backupPath = 'data/import-fastmedical.json';
+        if (!fs.existsSync(backupPath)) {
+          return res.status(404).json({ error: 'Fișierul de backup nu există' });
+        }
+        backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
       }
-      
-      const backupData = JSON.parse(fs.readFileSync('backup-data.json', 'utf8'));
       const data = backupData.data;
       
       console.log(`[IMPORT] Backup conține: ${data.companies?.length || 0} companii, ${data.users?.length || 0} utilizatori`);
