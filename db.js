@@ -188,9 +188,14 @@ async function initMasterDatabase() {
   console.log("========================================");
   console.log("🚀 initMasterDatabase() A FOST APELATA!");
   console.log("========================================");
+  
+  const pool = getMasterPool();
+  if (!pool) {
+    console.error("❌ Pool nu e disponibil!");
+    return false;
+  }
+  
   try {
-    const pool = getMasterPool();
-    
     // DEBUG: Verificăm ce baza de date și schema suntem
     const dbInfo = await pool.query(`SELECT current_database(), current_schema()`);
     console.log("📍 Baza de date:", dbInfo.rows[0].current_database);
@@ -296,17 +301,21 @@ async function initMasterDatabase() {
       console.log("ℹ️ Tabelele există deja (eroare așteptată)");
       
       // DEBUG: Verificăm ce tabele există în TOATE schemenile
-      const allTables = await pool.query(`
-        SELECT table_schema, table_name 
-        FROM information_schema.tables 
-        WHERE table_type = 'BASE TABLE' 
-        AND table_schema NOT IN ('pg_catalog', 'information_schema')
-        ORDER BY table_schema, table_name
-      `);
-      console.log("📋 Toate tabelele găsite:");
-      allTables.rows.forEach(row => {
-        console.log(`   - ${row.table_schema}.${row.table_name}`);
-      });
+      try {
+        const allTables = await pool.query(`
+          SELECT table_schema, table_name 
+          FROM information_schema.tables 
+          WHERE table_type = 'BASE TABLE' 
+          AND table_schema NOT IN ('pg_catalog', 'information_schema')
+          ORDER BY table_schema, table_name
+        `);
+        console.log("📋 Toate tabelele găsite:");
+        allTables.rows.forEach(row => {
+          console.log(`   - ${row.table_schema}.${row.table_name}`);
+        });
+      } catch (e2) {
+        console.log("⚠️ Nu am putut verifica tabelele:", e2.message);
+      }
       
       return true;
     }
