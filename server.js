@@ -2709,7 +2709,7 @@ app.get("/api/audit", requireAuth, requireCompany, async (req, res) => {
 // ----- API AUTH -----
 
 // Funcție helper pentru a găsi userul în toate companiile (când suntem pe localhost)
-async function findUserInAllCompanies(username) {
+async function findUserByEmailInAllCompanies(email) {
   // Luăm lista companiilor din master DB
   const companiesRes = await db.masterQuery(`SELECT id, subdomain FROM companies WHERE status = 'active'`);
   
@@ -2718,13 +2718,13 @@ async function findUserInAllCompanies(username) {
       // Setăm contextul pentru această companie
       db.setCompanyContext(company);
       
-      // Căutăm userul
+      // Căutăm userul după email
       const userRes = await db.q(
-        `SELECT id, username, password_hash, role, active, is_approved, 
-                failed_attempts, unlock_at, last_failed_at
+        `SELECT id, username, email, first_name, last_name, position, password_hash, role, active, is_approved, 
+                failed_attempts, unlock_at, last_failed_at, email_verified
          FROM users
-         WHERE username=$1 OR LOWER(email)=LOWER($1) LIMIT 1`,
-        [username]
+         WHERE LOWER(email)=LOWER($1) LIMIT 1`,
+        [email]
       );
       
       if (userRes.rows.length > 0) {
@@ -2744,28 +2744,33 @@ async function findUserInAllCompanies(username) {
 
 app.post("/api/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email și parolă sunt obligatorii" });
+    }
+    
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
 
     let userData = null;
     let companyData = null;
 
     if (req.company) {
-      // Suntem pe subdomeniu - căutăm în compania curentă
+      // Suntem pe subdomeniu - căutăm în compania curentă după email
       const r = await db.q(
-        `SELECT id, username, password_hash, role, active, is_approved, 
-                failed_attempts, unlock_at, last_failed_at
+        `SELECT id, username, email, password_hash, role, active, is_approved, 
+                failed_attempts, unlock_at, last_failed_at, email_verified
          FROM users
-         WHERE username=$1 OR LOWER(email)=LOWER($1) LIMIT 1`,
-        [username]
+         WHERE LOWER(email)=LOWER($1) LIMIT 1`,
+        [email]
       );
       if (r.rows.length > 0) {
         userData = r.rows[0];
         companyData = req.company;
       }
     } else {
-      // Suntem pe localhost - căutăm în toate companiile
-      const result = await findUserInAllCompanies(username);
+      // Suntem pe domeniu principal - căutăm în toate companiile după email
+      const result = await findUserByEmailInAllCompanies(email);
       if (result) {
         userData = result.user;
         companyData = result.company;
@@ -2939,25 +2944,25 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// POST /api/register - Înregistrare utilizator nou cu companie și DB separat
+// POST /api/register - Înregistrare utilizator nou cu companie și DB separat (simplificat: doar Email + Parolă)
 app.post("/api/register", async (req, res) => {
   let newCompanyId = null;
   let userId = null;
   
   try {
-    const { username, password, confirmPassword, email, firstName, lastName, companyName, phone } = req.body;
+    const { email, password, confirmPassword, firstName, lastName, companyName, phone, position } = req.body;
     
     // Validări
-    if (!username || !password || !email || !companyName) {
-      return res.status(400).json({ error: "Username, parolă, email și numele companiei sunt obligatorii" });
+    if (!email || !password || !confirmPassword || !companyName || !firstName || !lastName) {
+      return res.status(400).json({ error: "Toate câmpurile marcate cu * sunt obligatorii" });
     }
     
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "Parolele nu coincid" });
     }
     
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Parola trebuie să aibă cel puțin 6 caractere" });
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Parola trebuie să aibă cel puțin 8 caractere" });
     }
     
     if (!db.hasDb()) return res.status(500).json({ error: "DB neconfigurat" });
@@ -3012,15 +3017,16 @@ app.post("/api/register", async (req, res) => {
     const companyData = { id: newCompanyId, subdomain };
     db.setCompanyContext(companyData);
     
+    // Creează utilizatorul - folosim email ca username
     const userResult = await db.q(
-      `INSERT INTO users (username, password_hash, email, first_name, last_name, 
+      `INSERT INTO users (username, password_hash, email, first_name, last_name, position,
                          role, active, is_approved, is_demo_user, demo_company_id, 
                          email_verification_code, email_verification_expires_at, 
                          email_verified, failed_attempts, created_at)
-       VALUES ($1, $2, $3, $4, $5, 'admin', false, false, false, $6, $7, $8, false, 0, NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, 'admin', true, true, false, $7, $8, $9, false, 0, NOW())
        RETURNING id`,
-      [username.trim(), passwordHash, email.toLowerCase(), 
-       firstName || '', lastName || '', newCompanyId, verificationCode, codeExpiresAt]
+      [email.toLowerCase(), passwordHash, email.toLowerCase(), 
+       firstName.trim(), lastName.trim(), position || 'Administrator', newCompanyId, verificationCode, codeExpiresAt]
     );
     userId = userResult.rows[0].id;
     
@@ -3030,15 +3036,17 @@ app.post("/api/register", async (req, res) => {
     try {
       await emailService.sendEmail({
         to: email,
-        subject: 'Cod de verificare - OpenBill',
+        subject: 'Bine ai venit la OpenBill!',
         html: `
           <h2>Bine ai venit la OpenBill!</h2>
           <p>Compania <strong>${companyName}</strong> a fost creată cu succes.</p>
           <p>Subdomeniul tău: <strong>${subdomain}.openbillv21-production.up.railway.app</strong></p>
-          <p>Codul tău de verificare este:</p>
+          <p>Pentru a-ți activa contul, folosește codul de mai jos:</p>
           <h1 style="color: #4CAF50; font-size: 36px; letter-spacing: 5px;">${verificationCode}</h1>
           <p>Acest cod este valabil 30 de minute.</p>
-          <p>După verificare, vei avea acces la trial gratuit de 14 zile!</p>
+          <p>Ai trial gratuit de 14 zile!</p>
+          <hr>
+          <p style="color: #666;">După activare, completează datele companiei în Setări > Companie.</p>
         `
       });
       console.log(`[REGISTER] Email de verificare trimis către ${email}`);
@@ -3048,7 +3056,7 @@ app.post("/api/register", async (req, res) => {
     
     res.json({ 
       ok: true, 
-      message: "Cont creat! Verifică email-ul pentru codul de confirmare.",
+      message: "Cont creat! Verifică email-ul pentru codul de activare.",
       email: email,
       subdomain: subdomain,
       requiresVerification: true

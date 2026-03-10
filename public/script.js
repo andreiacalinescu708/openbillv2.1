@@ -32,7 +32,7 @@ async function initLoginPage() {
     msg.className = ""; 
     msg.style.display = "none";
 
-    const username = document.getElementById("loginUser").value.trim();
+    const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPass").value;
 
     try {
@@ -41,7 +41,7 @@ async function initLoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email, password })
       });
 
       const data = await res.json().catch(() => ({}));
