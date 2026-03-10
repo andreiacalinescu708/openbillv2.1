@@ -894,6 +894,8 @@ app.get("/api/companies", requireAuth, async (req, res) => {
     const isAdmin = req.session.user.role === 'admin' || req.session.user.role === 'superadmin';
     const userCompanyId = req.session.user.company_id;
     
+    console.log('[GET /api/companies] userId:', userId, 'isAdmin:', isAdmin, 'userCompanyId:', userCompanyId);
+    
     let companies;
     if (isAdmin) {
       // Admin/SuperAdmin vede toate companiile (din master DB)
@@ -908,6 +910,7 @@ app.get("/api/companies", requireAuth, async (req, res) => {
       companies = req.company ? [req.company] : [];
     }
     
+    console.log('[GET /api/companies] returning:', companies.length, 'companies');
     res.json(companies);
   } catch (e) {
     console.error("GET /api/companies error:", e);
@@ -5117,6 +5120,8 @@ app.get("/api/company-settings", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Companie necunoscută" });
     }
     
+    console.log('[GET /api/company-settings] companyId:', companyId);
+    
     // Get company info from master DB
     const companyResult = await db.masterQuery(
       `SELECT id, name, cui, plan, subscription_status, subscription_expires_at, max_users, subdomain
@@ -5178,6 +5183,7 @@ app.get("/api/company-settings", requireAuth, async (req, res) => {
       updated_at: settings?.updated_at || null
     };
     
+    console.log('[GET /api/company-settings] returning plan:', response.plan);
     res.json(response);
   } catch (error) {
     console.error("Eroare la citire setari companie:", error);
@@ -5192,9 +5198,15 @@ app.post("/api/company-settings", requireAuth, async (req, res) => {
     const isSuperAdmin = req.session.user.role === 'superadmin';
     const userRole = req.session.user.role;
     
+    console.log('[POST /api/company-settings] companyId:', companyId, 'role:', userRole);
+    
     // Doar admin sau superadmin pot modifica setările
     if (userRole !== 'admin' && userRole !== 'superadmin') {
       return res.status(403).json({ error: "Acces interzis. Doar administratorii pot modifica setările." });
+    }
+    
+    if (!companyId) {
+      return res.status(400).json({ error: "Companie necunoscută în session" });
     }
     
     // Superadmin poate modifica setările oricărei companii
