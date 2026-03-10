@@ -185,6 +185,7 @@ async function withTransaction(callback) {
 
 // Inițializează tabelele în baza de date master (companies, etc.)
 async function initMasterDatabase() {
+  console.log("🚀 initMasterDatabase() START");
   try {
     const pool = getMasterPool();
     if (!pool) {
@@ -192,20 +193,11 @@ async function initMasterDatabase() {
       return false;
     }
     
-    // Forțăm crearea tabelelor (cu IF NOT EXISTS pentru siguranță)
-    console.log("🔄 Creăm/verificăm tabelele Master DB...");
-    console.log("📡 Conectat la:", MASTER_DB_URL?.replace(/:\/\/[^:]+:/, '://***:***@'));
+    console.log("🔄 Executăm SQL direct...");
     
-    // DEBUG: Verificăm ce tabele există înainte
-    const beforeCheck = await pool.query(`
-      SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public' ORDER BY table_name
-    `);
-    console.log("📋 Tabele existente înainte:", beforeCheck.rows.map(r => r.table_name));
-    
-    // Creăm tabela companies
+    // Creăm tabelele direct, fără IF NOT EXISTS (vedem dacă dă eroare)
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS companies (
+      CREATE TABLE companies (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         code TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
@@ -224,10 +216,10 @@ async function initMasterDatabase() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    console.log("✅ Tabela companies creată");
     
-    // Creăm tabela company_settings (opțional, pentru setări globale)
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS company_settings (
+      CREATE TABLE company_settings (
         id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
         company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
         name TEXT DEFAULT 'OpenBill',
@@ -247,13 +239,15 @@ async function initMasterDatabase() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    console.log("✅ Tabela company_settings creată");
     
     // Creăm indexuri
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_companies_subdomain ON companies(subdomain)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_companies_code ON companies(code)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_companies_status ON companies(status)`);
+    await pool.query(`CREATE INDEX idx_companies_subdomain ON companies(subdomain)`);
+    await pool.query(`CREATE INDEX idx_companies_code ON companies(code)`);
+    await pool.query(`CREATE INDEX idx_companies_status ON companies(status)`);
+    console.log("✅ Indexuri create");
     
-    // Inserăm o companie demo default
+    // Inserăm compania demo
     await pool.query(`
       INSERT INTO companies (id, code, name, plan, plan_price, max_users, subscription_status, subscription_expires_at, subdomain, status)
       VALUES (
@@ -270,18 +264,17 @@ async function initMasterDatabase() {
       )
       ON CONFLICT (code) DO NOTHING
     `);
+    console.log("✅ Compania demo inserată");
     
-    // DEBUG: Verificăm ce tabele există după
-    const afterCheck = await pool.query(`
-      SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public' ORDER BY table_name
-    `);
-    console.log("📋 Tabele existente după:", afterCheck.rows.map(r => r.table_name));
-    
-    console.log("✅ Master DB inițializat/verificat cu succes!");
+    console.log("✅✅✅ Master DB inițializat complet!");
     return true;
     
   } catch (e) {
+    // Dacă tabelele există deja, e ok
+    if (e.message.includes('already exists')) {
+      console.log("ℹ️ Tabelele există deja (eroare așteptată)");
+      return true;
+    }
     console.error("❌ Eroare inițializare Master DB:", e.message);
     return false;
   }
