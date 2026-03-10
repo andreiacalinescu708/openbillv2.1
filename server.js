@@ -400,7 +400,8 @@ function getSmartbillAuthHeaders(token) {
 
 // Middleware pentru verificare admin
 function isAdmin(req, res, next) {
-  if (req.session?.user?.role !== 'admin') {
+  const role = req.session?.user?.role;
+  if (role !== 'admin' && role !== 'superadmin') {
     return res.status(403).json({ error: "Acces interzis. Doar admin." });
   }
   next();
@@ -5223,7 +5224,12 @@ app.post("/api/company-settings", requireAuth, async (req, res) => {
     }
     
     // Set company context for company DB queries
-    db.setCompanyContext(companyResult.rows[0]);
+    console.log('[POST /api/company-settings] setting context for company:', companyResult.rows[0].subdomain);
+    try {
+      db.setCompanyContext(companyResult.rows[0]);
+    } catch (e) {
+      console.error('[POST /api/company-settings] Error setting context:', e.message);
+    }
     
     const {
       name, cui, registration_number, vat_number,
@@ -5299,7 +5305,15 @@ app.post("/api/company-settings", requireAuth, async (req, res) => {
       smartbill_token ? encrypt(smartbill_token) : null
     ];
     
-    await db.q(query, upsertValues);
+    console.log('[POST /api/company-settings] executing UPSERT with values:', upsertValues.map(v => v ? (v.length > 10 ? v.substring(0,10)+'...' : v) : 'null'));
+    try {
+      await db.q(query, upsertValues);
+      console.log('[POST /api/company-settings] UPSERT successful');
+    } catch (dbError) {
+      console.error('[POST /api/company-settings] DB Error:', dbError.message);
+      console.error('[POST /api/company-settings] Query:', query);
+      throw dbError;
+    }
     
     // Dacă e superadmin și trimite date de plan, actualizăm și tabela companies
     if (isSuperAdmin && (plan !== undefined || subscription_status !== undefined || subscription_expires_at !== undefined)) {
